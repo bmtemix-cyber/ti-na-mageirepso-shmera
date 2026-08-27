@@ -226,17 +226,39 @@ function renderHome(){
 
 function renderHistory(){
   const historyEl=$('history');
-  historyEl.innerHTML=s.history.length
-    ? s.history.slice().reverse().map((h,i)=>`<div class=item><b>${h.type==='dinner'?'🌙':'☀️'} ${h.name}</b><div class=small>${h.date} · ${'★'.repeat(h.rating||3)} · ${labels[h.cat]||h.cat}</div><button class="btn" style="margin-top:8px" onclick="deleteMeal(${s.history.length-1-i})">🗑 Διαγραφή</button></div>`).join('')
-    : '<div class=small>Δεν υπάρχουν ακόμη καταγραφές.</div>';
+
+  if(!s.history.length){
+    historyEl.innerHTML='<div class="small">Δεν υπάρχουν ακόμη καταγραφές.</div>';
+    return;
+  }
+
+  historyEl.innerHTML=s.history
+    .slice()
+    .reverse()
+    .map((h,i)=>{
+      const realIndex=s.history.length-1-i;
+      return `
+        <div class="item">
+          <b>${h.type==='dinner'?'🌙':'☀️'} ${h.name}</b>
+          <div class="small">
+            ${h.date} · ${'★'.repeat(h.rating||3)} · ${labels[h.cat]||h.cat}
+          </div>
+          <button class="btn" style="margin-top:8px" onclick="deleteMeal(${realIndex})">
+            🗑 Διαγραφή
+          </button>
+        </div>
+      `;
+    })
+    .join('');
 }
- function deleteMeal(i){
+
+function deleteMeal(i){
   if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;')) return;
+
   s.history.splice(i,1);
   save();
   render();
 }
-
 function renderFamily(){
   $('familyInfo').innerHTML=
     `<div class=soft><b>${s.family.adults} ενήλικες · ${s.family.children||0} παιδιά</b><div class=small>${s.family.ages?'Ηλικίες: '+s.family.ages+' · ':''}Μαγειρεύετε για ${s.family.cookFor} άτομα.</div></div>`+
