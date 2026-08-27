@@ -227,8 +227,14 @@ function renderHome(){
 function renderHistory(){
   const historyEl=$('history');
   historyEl.innerHTML=s.history.length
-    ? s.history.slice().reverse().map(h=>`<div class=item><b>${h.type==='dinner'?'🌙':'☀️'} ${h.name}</b><div class=small>${h.date} · ${'★'.repeat(h.rating||3)} · ${labels[h.cat]||h.cat}</div></div>`).join('')
+    ? s.history.slice().νreverse().map((h,i)=>`<div class=item><b>${h.type==='dinner'?'🌙':'☀️'} ${h.name}</b><div class=small>${h.date} · ${'★'.repeat(h.rating||3)} · ${labels[h.cat]||h.cat}</div><button class="btn" style="margin-top:8px" onclick="deleteMeal(${s.history.length-1-i})">🗑 Διαγραφή</button></div>`).join('')
     : '<div class=small>Δεν υπάρχουν ακόμη καταγραφές.</div>';
+}
+ function deleteMeal(i){
+  if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;')) return;
+  s.history.splice(i,1);
+  save();
+  render();
 }
 
 function renderFamily(){
