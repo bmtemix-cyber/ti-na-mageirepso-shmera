@@ -1,315 +1,45 @@
-<!doctype html>
-<html lang="el"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#315c3a"><link rel="manifest" href="manifest.webmanifest">
-<title>Τι να μαγειρέψω σήμερα;</title>
-<style>
-:root{--g:#315c3a;--bg:#f6f2ea;--paper:#fffdf9;--muted:#68716b;--line:#e5e2d9}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#213126}
-.app{max-width:520px;margin:auto;min-height:100vh;background:var(--paper)}header{padding:18px;position:sticky;top:0;background:#fffdf9ee;z-index:4;border-bottom:1px solid #eee}
-h1,h2,h3,p{margin-top:0}.brand{font-size:24px;font-weight:900}.sub,.small{color:var(--muted);font-size:13px}
-main{padding:12px 14px 95px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:16px;margin:10px 0}
-.banner{background:#edf6e9}.learn{background:linear-gradient(#eef7ea,#fff)}.eyebrow{font-size:12px;font-weight:900;color:var(--g);text-transform:uppercase}
-.meal{font-size:24px;font-weight:900;margin:7px 0}.reason{color:#4a564e;line-height:1.5}
-.btn{width:100%;border:0;border-radius:15px;padding:14px;margin-top:10px;font:inherit;font-weight:800}.primary{background:var(--g);color:#fff}.secondary{background:#edf0ea}
-.field{margin:13px 0}.field label{display:block;font-weight:800;margin-bottom:6px}input,select,textarea{width:100%;padding:12px;border:1px solid #d7dbd3;border-radius:13px;font:inherit;background:#fff}textarea{min-height:85px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip{background:#f2f4ef;padding:7px 9px;border-radius:999px;font-size:12px}
-.list{display:flex;flex-direction:column;gap:8px}.item{padding:11px;border:1px solid var(--line);border-radius:14px}.soft{background:#f5f6f1;padding:12px;border-radius:14px}
-.progress{height:8px;background:#e9ece5;border-radius:99px;overflow:hidden}.bar{height:100%;background:var(--g)}
-.hidden{display:none!important}.view{display:none}.view.active{display:block}
-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:520px;width:100%;display:grid;grid-template-columns:repeat(5,1fr);background:white;border-top:1px solid var(--line);padding:8px 4px}
-nav button{border:0;background:white;font-size:11px;color:#48534b}
-</style></head><body>
-<div class="app"><header><div class="brand">Τι να μαγειρέψω σήμερα; 🍳</div><div class="sub" id="date"></div></header>
-<main>
-<section id="home" class="view active">
-<div id="banner" class="card banner"></div>
-
-<div id="learningHome">
- <div class="card learn"><div class="eyebrow">☀️ Μεσημεριανό</div><div class="meal">Τι μαγειρέψατε σήμερα;</div>
- <p class="reason">Στην περίοδο εκμάθησης δεν μαντεύω. Καταγράφεις το πραγματικό γεύμα και μαθαίνω τις συνήθειές σας.</p>
- <button class="btn primary" onclick="openLog('lunch')">+ Καταχώρισε μεσημεριανό</button></div>
- <div class="card learn"><div class="eyebrow">🌙 Βραδινό</div><div class="meal">Τι φάγατε το βράδυ;</div>
- <p class="reason">Κατέγραψε ακόμη και κάτι απλό. Η πραγματική συνήθεια είναι πιο χρήσιμη από μια «τέλεια» απάντηση.</p>
- <button class="btn primary" onclick="openLog('dinner')">+ Καταχώρισε βραδινό</button></div>
- <div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div></div>
-</div>
-
-<div id="recommendHome" class="hidden">
- <div class="card"><div class="eyebrow">Μεσημεριανό</div><div class="meal" id="lunch"></div><div class="chips" id="lunchChips"></div><p id="lunchWhy" class="reason"></p></div>
- <div class="card"><div class="eyebrow">Βραδινό</div><div class="meal" id="dinner"></div><div class="chips" id="dinnerChips"></div><p id="dinnerWhy" class="reason"></p></div>
-</div>
-
-<div class="card"><div class="row"><b>🥗 Ισορροπία 7 ημερών</b><span id="weekScore" class="small"></span></div><p id="weekStatus" class="reason"></p><div id="bars"></div></div>
-</section>
-
-<section id="learn" class="view">
-<div class="card"><h2>🧠 Μάθε με</h2>
-<div class="field"><label>Γεύμα</label><select id="type"><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
-<div class="field"><label>Τι φτιάξατε;</label><input id="name" placeholder="π.χ. γαύρος με σαλάτα" oninput="autoCategory()"></div>
-<div id="hint" class="small"></div>
-<div class="field"><label>Κύρια κατηγορία</label><select id="cat"><option value="legumes">Όσπρια</option><option value="fish">Ψάρι / θαλασσινά</option><option value="poultry">Πουλερικά</option><option value="redmeat">Κόκκινο κρέας</option><option value="vegetables">Λαχανικά / λαδερό</option><option value="eggs">Αυγά</option><option value="pasta">Ζυμαρικά / ρύζι</option><option value="other">Άλλο</option></select></div>
-<div class="field"><label>Συνταγή / υλικά (προαιρετικά)</label><textarea id="recipe"></textarea></div>
+<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#315c3a"><link rel="manifest" href="manifest.webmanifest"><title>Τι να μαγειρέψω σήμερα;</title><style>
+:root{--g:#315c3a;--bg:#f6f2ea;--paper:#fffdf9;--muted:#68716b;--line:#e5e2d9;--soft:#f4f6f1;--warn:#fff3d8}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#213126}.app{max-width:520px;margin:auto;min-height:100vh;background:var(--paper)}header{padding:18px;position:sticky;top:0;background:#fffdf9ee;backdrop-filter:blur(10px);z-index:4;border-bottom:1px solid #eee}.brand{font-size:24px;font-weight:900}.sub,.small{color:var(--muted);font-size:13px}main{padding:12px 14px 95px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:16px;margin:10px 0}.banner{background:#edf6e9}.learn{background:linear-gradient(#eef7ea,#fff)}.eyebrow{font-size:12px;font-weight:900;color:var(--g);text-transform:uppercase}.meal{font-size:24px;font-weight:900;margin:7px 0}.reason{color:#4a564e;line-height:1.5}.btn{width:100%;border:0;border-radius:15px;padding:14px;margin-top:10px;font:inherit;font-weight:800}.primary{background:var(--g);color:#fff}.secondary{background:#edf0ea}.ghost{background:white;border:1px solid var(--line)}.field{margin:13px 0}.field label{display:block;font-weight:800;margin-bottom:6px}input,select,textarea{width:100%;padding:12px;border:1px solid #d7dbd3;border-radius:13px;font:inherit;background:#fff}textarea{min-height:85px}.row{display:flex;justify-content:space-between;align-items:center;gap:8px}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip{background:#f2f4ef;padding:7px 9px;border-radius:999px;font-size:12px}.list{display:flex;flex-direction:column;gap:8px}.item{padding:11px;border:1px solid var(--line);border-radius:14px}.soft{background:var(--soft);padding:12px;border-radius:14px}.notice{background:var(--warn);padding:11px;border-radius:14px}.progress{height:8px;background:#e9ece5;border-radius:99px;overflow:hidden}.bar{height:100%;background:var(--g)}.hidden{display:none!important}.view{display:none}.view.active{display:block}nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:520px;width:100%;display:grid;grid-template-columns:repeat(5,1fr);background:white;border-top:1px solid var(--line);padding:8px 4px}nav button{border:0;background:white;font-size:11px;color:#48534b}
+</style></head><body><div class="app"><header><div class="brand">Τι να μαγειρέψω σήμερα; 🍳</div><div class="sub" id="date"></div></header><main>
+<section id="home" class="view active"><div id="banner" class="card banner"></div><div id="learningHome">
+<div class="card learn"><div class="eyebrow">🌅 Πρωινό</div><div class="meal">Τι φάγατε το πρωί;</div><p class="reason">Κατέγραψε το πραγματικό πρωινό, ακόμη κι αν είναι κάτι πολύ απλό.</p><button class="btn primary" onclick="openLog('breakfast')">+ Καταχώρισε πρωινό</button></div>
+<div class="card learn"><div class="eyebrow">☀️ Μεσημεριανό</div><div class="meal">Τι μαγειρέψατε σήμερα;</div><p class="reason">Στην περίοδο εκμάθησης δεν μαντεύω. Μαθαίνω από τα πραγματικά γεύματα.</p><button class="btn primary" onclick="openLog('lunch')">+ Καταχώρισε μεσημεριανό</button></div>
+<div class="card learn"><div class="eyebrow">🌙 Βραδινό</div><div class="meal">Τι φάγατε το βράδυ;</div><p class="reason">Κατέγραψε ακόμη και κάτι απλό. Η πραγματική συνήθεια είναι πιο χρήσιμη από μια «τέλεια» απάντηση.</p><button class="btn primary" onclick="openLog('dinner')">+ Καταχώρισε βραδινό</button></div>
+<div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div></div></div>
+<div class="card"><div class="row"><b>🥗 Ισορροπία 7 ημερών</b><span id="weekScore" class="small"></span></div><p id="weekStatus" class="reason"></p><div id="bars"></div></div></section>
+<section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
+<div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
+<div class="field"><label>Τι φτιάξατε;</label><input id="mealName" placeholder="π.χ. γιαούρτι με μέλι ή γαύρος με σαλάτα" oninput="autoCategory()"></div><div id="hint" class="small"></div>
+<div class="field" id="categoryField"><label>Κύρια κατηγορία</label><select id="cat"><option value="drinks">Αναψυκτικά / Ποτά</option><option value="eggs">Αυγά</option><option value="dairy">Γαλακτοκομικά</option><option value="sweets">Γλυκά</option><option value="grains">Δημητριακά</option><option value="seafood">Θαλασσινά</option><option value="meat">Κρέατα</option><option value="vegetables">Λαχανικά</option><option value="legumes">Όσπρια</option><option value="fruit">Φρούτα</option></select></div>
+<div class="field"><label>Συνταγή / υλικά</label><textarea id="recipe"></textarea></div><div id="recipeSuggestion" class="soft hidden"></div><button class="btn secondary" onclick="suggestRecipe()">✨ Πρότεινέ μου δημοφιλή συνταγή στην περιοχή μου</button>
 <div class="field"><label>Πόσο άρεσε;</label><select id="rating"><option value="5">😍 Πολύ</option><option value="4">🙂 Αρκετά</option><option value="3">😐 Μέτρια</option><option value="2">🙁 Λίγο</option><option value="1">👎 Καθόλου</option></select></div>
 <button class="btn primary" onclick="saveMeal()">Καταχώριση γεύματος</button><div id="saveStatus" class="small" style="margin-top:10px"></div></div>
-<div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div>
-</section>
-
+<div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
 <section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
-<section id="settings" class="view"><div class="card"><h2>⚙️ Ρυθμίσεις</h2><div class="field"><label>Περίοδος εκμάθησης</label><select id="learnDays" onchange="changeLearn()"><option value="21">3 εβδομάδες</option><option value="14">2 εβδομάδες</option><option value="0">Προτάσεις από τώρα</option></select></div><p class="reason">Η V3 κρατά τα ήδη αποθηκευμένα στοιχεία από την προηγούμενη έκδοση.</p></div></section>
-</main>
-<nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav>
-</div>
+<section id="settings" class="view"><div class="card"><h2>⚙️ Ρυθμίσεις</h2><div class="field"><label>Περίοδος εκμάθησης</label><select id="learnDays" onchange="changeLearn()"><option value="21">3 εβδομάδες</option><option value="14">2 εβδομάδες</option><option value="0">Προτάσεις από τώρα</option></select></div><div class="notice">Η online «δημοφιλής συνταγή στην περιοχή» είναι έτοιμη ως UI. Για πραγματική αναζήτηση θα χρειαστεί backend/API.</div></div></section>
+</main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
 const defaults={created:new Date().toISOString().slice(0,10),learningDays:21,history:[],pantry:[],family:{adults:2,children:0,ages:'',cookFor:2,favorites:'',dislikes:'',budget:3,time:45,dinnerLight:true}};
 let s=JSON.parse(localStorage.getItem('cookv2')||'null')||defaults;s.history=s.history||[];s.pantry=s.pantry||[];s.family={...defaults.family,...(s.family||{})};if(s.learningDays==null)s.learningDays=21;if(!s.created)s.created=defaults.created;
-const save=()=>localStorage.setItem('cookv2',JSON.stringify(s)), day=x=>Math.max(0,Math.floor((new Date()-new Date(x+'T12:00:00'))/86400000)), rem=()=>Math.max(0,s.learningDays-day(s.created));
-const targets={legumes:2,fish:2,poultry:2,redmeat:1,vegetables:7,fruit:7}, labels={legumes:'🫘 Όσπρια',fish:'🐟 Ψάρι',poultry:'🍗 Πουλερικά',redmeat:'🥩 Κόκκινο κρέας',vegetables:'🥬 Λαχανικά',fruit:'🍎 Φρούτα',eggs:'🥚 Αυγά',pasta:'🍝 Ζυμαρικά',other:'🍽️ Άλλο'};
-const recs=[['lunch','legumes','Φακές με σαλάτα',94],['lunch','fish','Ψάρι φούρνου με λαχανικά',95],['lunch','poultry','Κοτόπουλο λεμονάτο με πατάτες',84],['lunch','vegetables','Φασολάκια λαδερά με φέτα',95],['dinner','eggs','Ομελέτα με λαχανικά',90],['dinner','fish','Σαλάτα με τόνο',92],['dinner','poultry','Κοτόπουλο σχάρας με σαλάτα',92],['dinner','other','Γιαούρτι με φρούτο και βρώμη',94]];
-
-const $=id=>document.getElementById(id);
-
-function detect(t){
-  t=(t||'').toLowerCase();
-  let r=[
-    ['fish',['ψαρ','γαυρ','μπακαλιαρ','σαρδελ','τονο','σολομ']],
-    ['poultry',['κοτοπουλ','γαλοπουλ','σνιτσελ κοτ']],
-    ['redmeat',['μοσχαρ','χοιριν','μπριζολ','κιμα','αρν']],
-    ['legumes',['φακ','ρεβιθ','φασολ','γιγαντ']],
-    ['eggs',['αυγ','ομελετ']],
-    ['vegetables',['μπριαμ','μπαμι','φασολακ','λαδερο','σαλατ']],
-    ['pasta',['μακαρον','ζυμαρ','ρυζ','κριθαρακ']]
-  ];
-  for(const [c,a] of r) if(a.some(x=>t.includes(x))) return c;
-  return 'other';
-}
-
-function autoCategory(){
-  const nameEl=$('name'), catEl=$('cat'), hintEl=$('hint');
-  let c=detect(nameEl.value);
-  if(c!=='other'){
-    catEl.value=c;
-    hintEl.textContent='✨ Πρότεινα αυτόματα: '+(labels[c]||c)+'. Μπορείς να το διορθώσεις.';
-  }else{
-    hintEl.textContent='';
-  }
-}
-
-function openLog(t){
-  $('type').value=t;
-  show('learn');
-  setTimeout(()=>$('name').focus(),100);
-}
-
-function saveMeal(){
-  const nameEl=$('name');
-  const typeEl=$('type');
-  const catEl=$('cat');
-  const recipeEl=$('recipe');
-  const ratingEl=$('rating');
-  const statusEl=$('saveStatus');
-
-  const mealName=nameEl.value.trim();
-  if(!mealName){
-    statusEl.textContent='⚠️ Γράψε πρώτα το γεύμα.';
-    nameEl.focus();
-    return;
-  }
-
-  const c=catEl.value || detect(mealName);
-
-  s.history.push({
-    date:new Date().toISOString().slice(0,10),
-    type:typeEl.value,
-    name:mealName,
-    cat:c,
-    recipe:recipeEl.value.trim(),
-    rating:Number(ratingEl.value)
-  });
-
-  save();
-
-  nameEl.value='';
-  recipeEl.value='';
-  $('hint').textContent='';
-  statusEl.textContent='✅ Το γεύμα καταγράφηκε.';
-
-  render();
-  show('learn');
-}
-
-function counts(){
-  let c={legumes:0,fish:0,poultry:0,redmeat:0,vegetables:0,fruit:0};
-  s.history.filter(h=>day(h.date)<7).forEach(h=>{
-    if(c[h.cat]!=null) c[h.cat]++;
-    if((((h.name||'')+' '+(h.recipe||'')).toLowerCase()).includes('φρούτ')) c.fruit++;
-  });
-  return c;
-}
-
-function renderBars(){
-  let c=counts(),
-      recent=s.history.filter(h=>day(h.date)<7),
-      days=new Set(recent.map(h=>h.date)).size,
-      ready=recent.length>=4&&days>=3;
-
-  $('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';
-  $('weekStatus').textContent=ready
-    ? `Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`
-    : `Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες. Χρειάζομαι τουλάχιστον 4 γεύματα σε 3 διαφορετικές ημέρες.`;
-
-  $('bars').innerHTML=Object.keys(targets).map(k=>{
-    let p=Math.min(100,Math.round(c[k]/targets[k]*100));
-    return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`;
-  }).join('');
-}
-
-function renderInsights(){
-  $('learnCount').textContent=s.history.length+' γεύματα';
-
-  if(!s.history.length){
-    $('insights').innerHTML='<div class=soft style="margin-top:10px"><b>Δεν έχω ακόμη αρκετά δεδομένα.</b><div class=small>Κατάγραψε το πρώτο γεύμα.</div></div>';
-    return;
-  }
-
-  let cc={};
-  s.history.forEach(h=>cc[h.cat]=(cc[h.cat]||0)+1);
-  let top=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  let loved=s.history.filter(h=>(h.rating||0)>=4).slice(-3).reverse();
-
-  $('insights').innerHTML=
-    `<div class=soft style="margin-top:10px"><b>Συχνότερα μέχρι τώρα</b><div class=chips style="margin-top:7px">${top.map(([k,v])=>`<span class=chip>${labels[k]||k}: ${v}</span>`).join('')}</div></div>`+
-    (loved.length?`<div class=soft style="margin-top:8px"><b>Γεύματα που άρεσαν</b><div class=small>${loved.map(x=>x.name).join(' · ')}</div></div>`:'');
-}
-
-function familiar(cat){
-  let a=s.history.filter(h=>h.cat===cat),
-      good=a.filter(h=>(h.rating||0)>=4).length;
-  return Math.min(100,30+a.length*12+good*10);
-}
-
-function recommendation(meal){
-  let arr=recs
-    .filter(r=>r[0]===meal)
-    .map(r=>({r,score:r[3]*.55+familiar(r[1])*.45}))
-    .sort((a,b)=>b.score-a.score);
-  return arr[0];
-}
-
-function renderRecommendations(){
-  let l=recommendation('lunch'), d=recommendation('dinner');
-
-  $('lunch').textContent=l.r[2];
-  $('dinner').textContent=d.r[2];
-  $('lunchChips').innerHTML=`<span class=chip>🥗 ${l.r[3]}/100</span><span class=chip>❤️ Οικειότητα ${familiar(l.r[1])}/100</span>`;
-  $('dinnerChips').innerHTML=`<span class=chip>🥗 ${d.r[3]}/100</span><span class=chip>❤️ Οικειότητα ${familiar(d.r[1])}/100</span>`;
-  $('lunchWhy').textContent='Βασίζεται στις καταγραφές σας και στην εβδομαδιαία ισορροπία.';
-  $('dinnerWhy').textContent='Προτιμά ελαφρύτερο βραδινό και γνώριμες κατηγορίες.';
-}
-
-function renderHome(){
-  let learning=rem()>0;
-
-  $('learningHome').classList.toggle('hidden',!learning);
-  $('recommendHome').classList.toggle('hidden',learning);
-
-  $('banner').innerHTML=learning
-    ? `<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Δεν εμφανίζω έτοιμες συνταγές σαν να σας ξέρω ήδη. Μαθαίνω από τα πραγματικά γεύματα.</div>`
-    : `<b>✅ Η βασική εκμάθηση ολοκληρώθηκε</b><div class=small style="margin-top:6px">Οι προτάσεις πλέον χρησιμοποιούν τις καταγραφές σας.</div>`;
-
-  if(learning) renderInsights();
-  else renderRecommendations();
-
-  renderBars();
-}
-
-function renderHistory(){
-  const historyEl=$('history');
-
-  if(!s.history.length){
-    historyEl.innerHTML='<div class="small">Δεν υπάρχουν ακόμη καταγραφές.</div>';
-    return;
-  }
-
-  historyEl.innerHTML=s.history
-    .slice()
-    .reverse()
-    .map((h,i)=>{
-      const realIndex=s.history.length-1-i;
-      return `
-        <div class="item">
-          <b>${h.type==='dinner'?'🌙':'☀️'} ${h.name}</b>
-          <div class="small">
-            ${h.date} · ${'★'.repeat(h.rating||3)} · ${labels[h.cat]||h.cat}
-          </div>
-          <button class="btn" style="margin-top:8px" onclick="deleteMeal(${realIndex})">
-            🗑 Διαγραφή
-          </button>
-        </div>
-      `;
-    })
-    .join('');
-}
-
-function deleteMeal(i){
-  if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;')) return;
-
-  s.history.splice(i,1);
-  save();
-  render();
-}
-function renderFamily(){
-  $('familyInfo').innerHTML=
-    `<div class=soft><b>${s.family.adults} ενήλικες · ${s.family.children||0} παιδιά</b><div class=small>${s.family.ages?'Ηλικίες: '+s.family.ages+' · ':''}Μαγειρεύετε για ${s.family.cookFor} άτομα.</div></div>`+
-    `<div class=soft style="margin-top:8px"><b>Αγαπημένα</b><div class=small>${s.family.favorites||'—'}</div></div>`+
-    `<div class=soft style="margin-top:8px"><b>Δεν προτιμάτε</b><div class=small>${s.family.dislikes||'—'}</div></div>`;
-}
-
-function addIng(){
-  const ingEl=$('ing'), qtyEl=$('qty'), expEl=$('exp');
-  if(!ingEl.value.trim()) return;
-
-  s.pantry.push({
-    name:ingEl.value.trim(),
-    qty:qtyEl.value.trim(),
-    exp:expEl.value
-  });
-
-  ingEl.value='';
-  qtyEl.value='';
-  expEl.value='';
-  save();
-  render();
-}
-
-function renderPantry(){
-  $('pantryList').innerHTML=s.pantry.length
-    ? s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join('')
-    : '<div class=small>Δεν υπάρχουν υλικά.</div>';
-}
-
-function changeLearn(){
-  s.learningDays=Number($('learnDays').value);
-  if(s.learningDays>0) s.created=new Date().toISOString().slice(0,10);
-  save();
-  render();
-}
-
-function show(id){
-  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
-  $(id).classList.add('active');
-  render();
-}
-
-function render(){
-  $('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});
-  $('learnDays').value=s.learningDays;
-  renderHome();
-  renderHistory();
-  renderFamily();
-  renderPantry();
-}
-
-render();if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js?v=3.2').then(r=>r.update()).catch(()=>{});}
+const $=id=>document.getElementById(id);const save=()=>localStorage.setItem('cookv2',JSON.stringify(s));const day=x=>Math.max(0,Math.floor((new Date()-new Date(x+'T12:00:00'))/86400000));const rem=()=>Math.max(0,s.learningDays-day(s.created));
+const targets={drinks:7,eggs:3,dairy:7,sweets:2,grains:7,seafood:2,meat:3,vegetables:7,legumes:2,fruit:7};
+const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά',dairy:'🥛 Γαλακτοκομικά',sweets:'🍰 Γλυκά',grains:'🌾 Δημητριακά',seafood:'🐟 Θαλασσινά',meat:'🥩 Κρέατα',vegetables:'🥬 Λαχανικά',legumes:'🫘 Όσπρια',fruit:'🍎 Φρούτα'};
+function detect(text){const t=(text||'').toLowerCase();const rules=[['drinks',['αναψυκ','χυμ','κρασ','μπυρ','ποτο','καφε','τσαι']],['eggs',['αυγ','ομελετ']],['dairy',['γιαουρ','γαλα','τυρ','φετα','κεφιρ']],['sweets',['γλυκ','τουρτ','παγωτ','σοκολατ','μπισκοτ']],['grains',['ψωμ','βρωμ','δημητριακ','μακαρον','ζυμαρ','ρυζ','κριθαρακ','παξιμαδ']],['seafood',['ψαρ','γαυρ','μπακαλιαρ','σαρδελ','τονο','σολομ','χταποδ','καλαμαρ','γαριδ','μυδι']],['meat',['κοτοπουλ','γαλοπουλ','μοσχαρ','χοιριν','μπριζολ','κιμα','αρν','κατσικ','σνιτσελ']],['vegetables',['μπριαμ','μπαμι','φασολακ','λαδερο','σαλατ','κολοκυθ','μελιτζ','ντοματ','πατατ']],['legumes',['φακ','ρεβιθ','φασολ','γιγαντ','οσπρ']],['fruit',['μηλ','μπανα','πορτοκαλ','καρπουζ','πεπον','φρουτ','αχλαδ','ροδακιν']]];for(const [c,arr] of rules)if(arr.some(x=>t.includes(x)))return c;return ''}
+function autoCategory(){const c=detect($('mealName').value);if(c){$('cat').value=c;$('categoryField').classList.add('hidden');$('hint').textContent='✨ Βρήκα αυτόματα την κατηγορία: '+labels[c]+'. Πάτησε εδώ αν θέλεις διόρθωση.';$('hint').onclick=()=>{$('categoryField').classList.remove('hidden');$('hint').textContent='Μπορείς να διορθώσεις την κατηγορία.'}}else{$('categoryField').classList.remove('hidden');$('hint').textContent='Δεν είμαι σίγουρη για την κατηγορία. Διάλεξέ την εσύ.';$('hint').onclick=null}}
+function openLog(t){$('type').value=t;show('learn');setTimeout(()=>$('mealName').focus(),100)}
+function suggestRecipe(){const meal=$('mealName').value.trim();$('recipeSuggestion').classList.remove('hidden');$('recipeSuggestion').innerHTML=meal?`<b>Πρόταση συνταγής για «${meal}»</b><div class="small" style="margin-top:6px">Το επόμενο βήμα είναι να συνδέσουμε πραγματική online αναζήτηση δημοφιλών τοπικών συνταγών.</div>`:'<b>Γράψε πρώτα το φαγητό.</b>'}
+function saveMeal(){const mealName=$('mealName').value.trim();if(!mealName){$('saveStatus').textContent='⚠️ Γράψε πρώτα το γεύμα.';return}const auto=detect(mealName);const category=auto||$('cat').value;s.history.push({date:new Date().toISOString().slice(0,10),type:$('type').value,name:mealName,cat:category,recipe:$('recipe').value.trim(),rating:Number($('rating').value)});save();$('mealName').value='';$('recipe').value='';$('hint').textContent='';$('saveStatus').textContent='✅ Το γεύμα καταγράφηκε.';$('categoryField').classList.remove('hidden');render();show('learn')}
+function counts(){let c={drinks:0,eggs:0,dairy:0,sweets:0,grains:0,seafood:0,meat:0,vegetables:0,legumes:0,fruit:0};s.history.filter(h=>day(h.date)<7).forEach(h=>{if(c[h.cat]!=null)c[h.cat]++});return c}
+function renderBars(){const c=counts(),recent=s.history.filter(h=>day(h.date)<7),days=new Set(recent.map(h=>h.date)).size,ready=recent.length>=4&&days>=3;$('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';$('weekStatus').textContent=ready?`Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`:`Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες.`;$('bars').innerHTML=Object.keys(targets).map(k=>{const p=Math.min(100,Math.round(c[k]/targets[k]*100));return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`}).join('')}
+function renderInsights(){$('learnCount').textContent=s.history.length+' γεύματα';if(!s.history.length){$('insights').innerHTML='<div class=soft style="margin-top:10px"><b>Δεν έχω ακόμη αρκετά δεδομένα.</b><div class=small>Κατάγραψε το πρώτο γεύμα.</div></div>';return}let cc={};s.history.forEach(h=>cc[h.cat]=(cc[h.cat]||0)+1);const top=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,3);$('insights').innerHTML=`<div class=soft style="margin-top:10px"><b>Συχνότερα μέχρι τώρα</b><div class=chips style="margin-top:7px">${top.map(([k,v])=>`<span class=chip>${labels[k]||k}: ${v}</span>`).join('')}</div></div>`}
+function renderHistory(){const historyEl=$('history');if(!s.history.length){historyEl.innerHTML='<div class="small">Δεν υπάρχουν ακόμη καταγραφές.</div>';return}historyEl.innerHTML=s.history.slice().reverse().map((h,i)=>{const realIndex=s.history.length-1-i;const icon=h.type==='breakfast'?'🌅':h.type==='dinner'?'🌙':'☀️';return `<div class="item"><b>${icon} ${h.name}</b><div class="small">${h.date} · ${'★'.repeat(h.rating||3)} · ${labels[h.cat]||h.cat}</div><button class="btn ghost" onclick="deleteMeal(${realIndex})">🗑 Διαγραφή</button></div>`}).join('')}
+function deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
+function renderFamily(){$('familyInfo').innerHTML=`<div class=soft><b>${s.family.adults} ενήλικες · ${s.family.children||0} παιδιά</b><div class=small>${s.family.ages?'Ηλικίες: '+s.family.ages+' · ':''}Μαγειρεύετε για ${s.family.cookFor} άτομα.</div></div><div class=soft style="margin-top:8px"><b>Αγαπημένα</b><div class=small>${s.family.favorites||'—'}</div></div><div class=soft style="margin-top:8px"><b>Δεν προτιμάτε</b><div class=small>${s.family.dislikes||'—'}</div></div>`}
+function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
+function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
+function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
+function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');render()}
+function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry()}
+render();if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js?v=4').then(r=>r.update()).catch(()=>{})}
 </script></body></html>
