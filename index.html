@@ -10,7 +10,7 @@
 <section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
 <div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
 <div class="field"><label>Τι φτιάξατε;</label><input id="mealName" placeholder="π.χ. γιαούρτι με μέλι ή γαύρος με σαλάτα" oninput="autoCategory()"></div><div id="hint" class="small"></div>
-<div class="field" id="categoryField"><label>Κύρια κατηγορία</label><select id="cat"><option value="drinks">Αναψυκτικά / Ποτά</option><option value="eggs">Αυγά</option><option value="dairy">Γαλακτοκομικά</option><option value="sweets">Γλυκά</option><option value="grains">Δημητριακά</option><option value="seafood">Θαλασσινά</option><option value="meat">Κρέατα</option><option value="vegetables">Λαχανικά</option><option value="legumes">Όσπρια</option><option value="pasta">Ζυμαρικά</option><option value="fruit">Φρούτα</option></select></div>
+<div class="field" id="categoryField"><label>Κατηγορίες τροφίμων</label><div id="cat"><label><input type="checkbox" value="drinks"> 🥤 Αναψυκτικά / Ποτά</label><label><input type="checkbox" value="eggs"> 🥚 Αυγά</label><label><input type="checkbox" value="dairy"> 🥛 Γαλακτοκομικά</label><label><input type="checkbox" value="sweets"> 🍰 Γλυκά</label><label><input type="checkbox" value="grains"> 🌾 Δημητριακά</label><label><input type="checkbox" value="seafood"> 🐟 Θαλασσινά</label><label><input type="checkbox" value="meat"> 🥩 Κρέατα</label><label><input type="checkbox" value="vegetables"> 🥒 Λαχανικά</label><label><input type="checkbox" value="legumes"> 🫘 Όσπρια</label><label><input type="checkbox" value="fruit"> 🍎 Φρούτα</label><label><input type="checkbox" value="pasta"> 🍝 Ζυμαρικά</label></div></div>
 <div class="field"><label>Συνταγή / υλικά</label><textarea id="recipe"></textarea></div><div id="recipeSuggestion" class="soft hidden"></div><button class="btn secondary" onclick="suggestRecipe()">✨ Πρότεινέ μου δημοφιλή συνταγή στην περιοχή μου</button>
 <div class="field"><label>Πόσο άρεσε;</label><select id="rating"><option value="5">😍 Πολύ</option><option value="4">🙂 Αρκετά</option><option value="3">😐 Μέτρια</option><option value="2">🙁 Λίγο</option><option value="1">👎 Καθόλου</option></select></div>
 <button class="btn primary" onclick="saveMeal()">Καταχώριση γεύματος</button><div id="saveStatus" class="small" style="margin-top:10px"></div></div>
@@ -25,17 +25,129 @@ let s=JSON.parse(localStorage.getItem('cookv2')||'null')||defaults;s.history=s.h
 const $=id=>document.getElementById(id);const save=()=>localStorage.setItem('cookv2',JSON.stringify(s));const day=x=>Math.max(0,Math.floor((new Date()-new Date(x+'T12:00:00'))/86400000));const rem=()=>Math.max(0,s.learningDays-day(s.created));
 const targets={drinks:7,eggs:3,dairy:7,sweets:2,grains:7,seafood:2,meat:3,vegetables:7,legumes:2,pasta:3,fruit:7};
 const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά',dairy:'🥛 Γαλακτοκομικά',sweets:'🍰 Γλυκά',grains:'🌾 Δημητριακά',seafood:'🐟 Θαλασσινά',meat:'🥩 Κρέατα',vegetables:'🥬 Λαχανικά',legumes:'🫘 Όσπρια',pasta:'🍝 Ζυμαρικά',fruit:'🍎 Φρούτα'};
-function detect(text){const t=(text||'').toLowerCase();const rules=[['drinks',['αναψυκ','χυμ','κρασ','μπυρ','ποτο','καφε','τσαι']],['eggs',['αυγ','ομελετ']],['dairy',['γιαουρ','γαλα','τυρ','φετα','κεφιρ']],['sweets',['γλυκ','τουρτ','παγωτ','σοκολατ','μπισκοτ']],['grains',['ψωμ','βρωμ','δημητριακ','ρυζ','παξιμαδ']],['pasta',['μακαρον','ζυμαρ','σπαγγετ','πεννε','πέννε','ταλιατελ','κριθαρακ','λαζαν','τορτελιν','ραβιολ']],['seafood',['ψαρ','γαυρ','μπακαλιαρ','σαρδελ','τονο','σολομ','χταποδ','καλαμαρ','γαριδ','μυδι']],['meat',['κοτοπουλ','γαλοπουλ','μοσχαρ','χοιριν','μπριζολ','κιμα','αρν','κατσικ','σνιτσελ']],['vegetables',['μπριαμ','μπαμι','φασολακ','λαδερο','σαλατ','κολοκυθ','μελιτζ','ντοματ','πατατ']],['legumes',['φακ','ρεβιθ','φασολ','γιγαντ','οσπρ']],['fruit',['μηλ','μπανα','πορτοκαλ','καρπουζ','πεπον','φρουτ','αχλαδ','ροδακιν']]];for(const [c,arr] of rules)if(arr.some(x=>t.includes(x)))return c;return ''}
-function autoCategory(){const c=detect($('mealName').value);if(c){$('cat').value=c;$('categoryField').classList.add('hidden');$('hint').textContent='✨ Βρήκα αυτόματα την κατηγορία: '+labels[c]+'. Πάτησε εδώ αν θέλεις διόρθωση.';$('hint').onclick=()=>{$('categoryField').classList.remove('hidden');$('hint').textContent='Μπορείς να διορθώσεις την κατηγορία.'}}else{$('categoryField').classList.remove('hidden');$('hint').textContent='Δεν είμαι σίγουρη για την κατηγορία. Διάλεξέ την εσύ.';$('hint').onclick=null}}
+function detect(text){
+  const t=(text||'').toLowerCase();
+  const rules=[
+    ['drinks',['αναψυκ','χυμ','κρασ','μπυρ','ποτο','καφε','τσαι']],
+    ['eggs',['αυγ','ομελετ']],
+    ['dairy',['γιαουρ','γαλα','τυρ','φετα','κεφιρ']],
+    ['sweets',['γλυκ','τουρτ','παγωτ','σοκολατ','μπισκοτ']],
+    ['grains',['ψωμ','βρωμ','δημητριακ','ρυζ','παξιμαδ']],
+    ['seafood',['ψαρ','γαυρ','μπακαλιαρ','σαρδελ','τονο','σολομ','χταποδ','καλαμαρ','γαριδ','μυδι']],
+    ['meat',['κοτοπουλ','γαλοπουλ','μοσχαρ','χοιριν','μπριζολ','κιμα','αρν','κατσικ','σνιτσελ']],
+    ['vegetables',['μπριαμ','μπαμι','φασολακ','λαδερο','σαλατ','κολοκυθ','μελιτζ','ντοματ','πατατ']],
+    ['legumes',['φακ','ρεβιθ','φασολ','γιγαντ','οσπρ']],
+    ['fruit',['μηλ','μπανα','πορτοκαλ','καρπουζ','πεπον','φρουτ','αχλαδ','ροδακιν']],
+    ['pasta',['μακαρον','ζυμαρ','σπαγγετ','πεννε','πέννε','ταλιατελ','κριθαρακ','λαζαν','τορτελιν','ραβιολ']]
+  ];
+  return rules.filter(([c,arr])=>arr.some(x=>t.includes(x))).map(([c])=>c);
+}
+function autoCategory(){
+  const cats=detect($('mealName').value);
+  const boxes=document.querySelectorAll('#cat input[type="checkbox"]');
+
+  boxes.forEach(b=>b.checked=cats.includes(b.value));
+
+  if(cats.length){
+    $('hint').textContent='✨ Αναγνώρισα αυτόματα: '+cats.map(c=>labels[c]).join(' + ')+'. Μπορείς να διορθώσεις τις επιλογές.';
+  }else{
+    $('hint').textContent='Δεν είμαι σίγουρη για τις κατηγορίες. Διάλεξε μία ή περισσότερες.';
+  }
+}
 function openLog(t){$('type').value=t;show('learn');setTimeout(()=>$('mealName').focus(),100)}
 function searchName(x){let t=(x||'').toLowerCase().trim();const m={'μακαρόνια με κιμά':'spaghetti bolognese','μακαρονια με κιμα':'spaghetti bolognese','μακαρόνια':'spaghetti','μακαρονια':'spaghetti','κοτόπουλο':'chicken','κοτοπουλο':'chicken','πατάτες':'potato','πατατες':'potato','ομελέτα':'omelette','ομελετα':'omelette'};return m[t]||x}
 async function suggestRecipe(){const meal=$('mealName').value.trim();const box=$('recipeSuggestion');box.classList.remove('hidden');if(!meal){box.innerHTML='<b>Γράψε πρώτα το φαγητό.</b>';return}box.innerHTML='<b>🔎 Ψάχνω ελληνική συνταγή...</b>';const greekRecipes={'μακαρόνια με κιμά':'https://www.argiro.gr/recipe/makaronia-me-kima/','μακαρονια με κιμα':'https://www.argiro.gr/recipe/makaronia-me-kima/'};const recipeUrl=greekRecipes[meal.toLowerCase()];if(!recipeUrl){box.innerHTML='<b>Δεν έχω ακόμη ελληνική πηγή για «'+meal+'».</b><div class="small">Θα προσθέσουμε αυτόματη αναζήτηση στο επόμενο βήμα.</div>';return}try{const r=await fetch('/api/recipe?url='+encodeURIComponent(recipeUrl));const data=await r.json();if(!data.ok){box.innerHTML='<b>⚠️ Δεν μπόρεσα να βρω τη συνταγή.</b><div class="small">'+(data.error||'')+'</div>';return}const m=data.recipe;box.innerHTML=(m.image?'<img src="'+m.image+'" style="width:100%;border-radius:14px;margin-bottom:10px">':'')+'<b>🍽️ '+m.name+'</b><div class="small" style="margin-top:8px"><b>Υλικά:</b><br>'+m.ingredients.join('<br>')+'</div><button class="btn secondary" onclick="useRecipe()">Χρησιμοποίησε αυτή τη συνταγή</button>';window.foundRecipe={name:m.name,ingredients:m.ingredients,instructions:m.instructions||''}}catch(e){box.innerHTML='<b>⚠️ Πρόβλημα σύνδεσης με το backend.</b>'}}
 function useRecipe(){if(!window.foundRecipe)return;$('recipe').value=window.foundRecipe.ingredients.join('\n')+'\n\nΟδηγίες:\n'+window.foundRecipe.instructions}
-function saveMeal(){const mealName=$('mealName').value.trim();if(!mealName){$('saveStatus').textContent='⚠️ Γράψε πρώτα το γεύμα.';return}const auto=detect(mealName);const category=auto||$('cat').value;s.history.push({date:new Date().toISOString().slice(0,10),type:$('type').value,name:mealName,cat:category,recipe:$('recipe').value.trim(),rating:Number($('rating').value)});save();$('mealName').value='';$('recipe').value='';$('hint').textContent='';$('saveStatus').textContent='✅ Το γεύμα καταγράφηκε.';$('categoryField').classList.remove('hidden');render();show('learn')}
-function counts(){let c={drinks:0,eggs:0,dairy:0,sweets:0,grains:0,seafood:0,meat:0,vegetables:0,legumes:0,pasta:0,fruit:0};s.history.filter(h=>day(h.date)<7).forEach(h=>{if(c[h.cat]!=null)c[h.cat]++});return c}
+function saveMeal(){
+  const mealName=$('mealName').value.trim();
+  if(!mealName){
+    $('saveStatus').textContent='⚠️ Γράψε πρώτα το γεύμα.';
+    return;
+  }
+
+  const cats=[...document.querySelectorAll('#cat input[type="checkbox"]:checked')].map(x=>x.value);
+
+  if(!cats.length){
+    $('saveStatus').textContent='⚠️ Διάλεξε τουλάχιστον μία κατηγορία.';
+    return;
+  }
+
+  s.history.push({
+    date:new Date().toISOString().slice(0,10),
+    type:$('type').value,
+    name:mealName,
+    cats:cats,
+    cat:cats[0],
+    recipe:$('recipe').value.trim(),
+    rating:Number($('rating').value)
+  });
+
+  save();
+
+  $('mealName').value='';
+  $('recipe').value='';
+  $('hint').textContent='';
+  document.querySelectorAll('#cat input[type="checkbox"]').forEach(x=>x.checked=false);
+  $('saveStatus').textContent='✅ Το γεύμα καταγράφηκε.';
+
+  render();
+  show('learn');
+}
+function counts(){
+  let c={
+    drinks:0,
+    eggs:0,
+    dairy:0,
+    sweets:0,
+    grains:0,
+    seafood:0,
+    meat:0,
+    vegetables:0,
+    legumes:0,
+    pasta:0,
+    fruit:0
+  };
+
+  s.history
+    .filter(h=>day(h.date)<7)
+    .forEach(h=>{
+      const cats=Array.isArray(h.cats) && h.cats.length ? h.cats : (h.cat?[h.cat]:[]);
+      [...new Set(cats)].forEach(cat=>{
+        if(c[cat]!=null)c[cat]++;
+      });
+    });
+
+  return c;
+}
 function renderBars(){const c=counts(),recent=s.history.filter(h=>day(h.date)<7),days=new Set(recent.map(h=>h.date)).size,ready=recent.length>=4&&days>=3;$('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';$('weekStatus').textContent=ready?`Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`:`Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες.`;$('bars').innerHTML=Object.keys(targets).map(k=>{const p=Math.min(100,Math.round(c[k]/targets[k]*100));return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`}).join('')}
 function renderInsights(){$('learnCount').textContent=s.history.length+' γεύματα';if(!s.history.length){$('insights').innerHTML='<div class=soft style="margin-top:10px"><b>Δεν έχω ακόμη αρκετά δεδομένα.</b><div class=small>Κατάγραψε το πρώτο γεύμα.</div></div>';return}let cc={};s.history.forEach(h=>cc[h.cat]=(cc[h.cat]||0)+1);const top=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,3);$('insights').innerHTML=`<div class=soft style="margin-top:10px"><b>Συχνότερα μέχρι τώρα</b><div class=chips style="margin-top:7px">${top.map(([k,v])=>`<span class=chip>${labels[k]||k}: ${v}</span>`).join('')}</div></div>`}
-function renderHistory(){const historyEl=$('history');if(!s.history.length){historyEl.innerHTML='<div class="small">Δεν υπάρχουν ακόμη καταγραφές.</div>';return}historyEl.innerHTML=s.history.slice().reverse().map((h,i)=>{const realIndex=s.history.length-1-i;const icon=h.type==='breakfast'?'🌅':h.type==='dinner'?'🌙':'☀️';return `<div class="item"><b>${icon} ${h.name}</b><div class="small">${h.date} · ${'★'.repeat(h.rating||3)} · ${labels[h.cat]||h.cat}</div><button class="btn ghost" onclick="deleteMeal(${realIndex})">🗑 Διαγραφή</button></div>`}).join('')}
+function renderHistory(){
+  const historyEl=$('history');
+
+  if(!s.history.length){
+    historyEl.innerHTML='<div class="small">Δεν υπάρχουν ακόμη καταγραφές.</div>';
+    return;
+  }
+
+  historyEl.innerHTML=s.history.slice().reverse().map((h,i)=>{
+    const realIndex=s.history.length-1-i;
+    const icon=h.type==='breakfast'?'🌅':h.type==='dinner'?'🌙':'☀️';
+
+    const cats=Array.isArray(h.cats) && h.cats.length
+      ? h.cats
+      : (h.cat?[h.cat]:[]);
+
+    const categoryText=cats
+      .map(c=>labels[c]||c)
+      .join(' + ');
+
+    return `<div class="item">
+      <b>${icon} ${h.name}</b>
+      <div class="small">${h.date} · ${'★'.repeat(h.rating||3)} · ${categoryText}</div>
+      <button class="btn ghost" onclick="deleteMeal(${realIndex})">🗑 Διαγραφή</button>
+    </div>`;
+  }).join('');
+}
 function deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
 function renderFamily(){$('familyInfo').innerHTML=`<div class=soft><b>${s.family.adults} ενήλικες · ${s.family.children||0} παιδιά</b><div class=small>${s.family.ages?'Ηλικίες: '+s.family.ages+' · ':''}Μαγειρεύετε για ${s.family.cookFor} άτομα.</div></div><div class=soft style="margin-top:8px"><b>Αγαπημένα</b><div class=small>${s.family.favorites||'—'}</div></div><div class=soft style="margin-top:8px"><b>Δεν προτιμάτε</b><div class=small>${s.family.dislikes||'—'}</div></div>`}
 function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
