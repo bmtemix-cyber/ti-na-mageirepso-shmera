@@ -49,7 +49,75 @@ function instructionText(x) {
 export default {
   async fetch(request) {
     const url = new URL(request.url);
+if (url.pathname === "/api/search-recipe") {
+  const q = (url.searchParams.get("q") || "").trim();
 
+  if (!q) {
+    return Response.json(
+      { ok: false, error: "Λείπει το όνομα του φαγητού." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const searchUrl =
+      "https://www.argiro.gr/?s=" + encodeURIComponent(q);
+
+    const r = await fetch(searchUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
+    if (!r.ok) throw new Error("HTTP " + r.status);
+
+    const html = await r.text();
+
+    const links = [
+      ...html.matchAll(/href=["']([^"']*\/recipe\/[^"']+)["']/gi)
+    ]
+      .map(m => m[1])
+      .map(x => x.startsWith("http") ? x : new URL(x, "https://www.argiro.gr").href);
+
+    const unique = [...new Set(links)];
+
+    if (!unique.length) {
+      return Response.json({
+        ok: false,
+        error: "Δεν βρέθηκε ελληνική συνταγή."
+      }, { status: 404 });
+    }
+
+    const recipeUrl = unique[0];
+
+    const page = await fetch(recipeUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
+    const recipeHtml = await page.text();
+    const recipe = findRecipeJsonLd(recipeHtml);
+
+    return Response.json({
+      ok: true,
+      recipe: {
+        name: recipe?.name || q,
+        image: Array.isArray(recipe?.image)
+          ? recipe.image[0]
+          : recipe?.image?.url || recipe?.image || "",
+        source: "Argiro.gr",
+        url: recipeUrl
+      }
+    });
+
+  } catch (e) {
+    return Response.json(
+      { ok: false, error: "Η αναζήτηση απέτυχε." },
+      { status: 500 }
+    );
+  }
+}
     if (url.pathname === "/api/test") {
       return Response.json({
         ok: true,
