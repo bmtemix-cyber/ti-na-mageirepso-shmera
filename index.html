@@ -25,7 +25,7 @@
 <div class="card learn"><div class="eyebrow">🌅 Πρωινό</div><div class="meal">Τι φάγατε το πρωί;</div><p class="reason">Κατέγραψε το πραγματικό πρωινό, ακόμη κι αν είναι κάτι πολύ απλό.</p><button class="btn primary" onclick="openLog('breakfast')">+ Καταχώρισε πρωινό</button></div>
 <div class="card learn"><div class="eyebrow">☀️ Μεσημεριανό</div><div class="meal">Τι μαγειρέψατε σήμερα;</div><p class="reason">Στην περίοδο εκμάθησης δεν μαντεύω. Μαθαίνω από τα πραγματικά γεύματα.</p><button class="btn primary" onclick="openLog('lunch')">+ Καταχώρισε μεσημεριανό</button></div>
 <div class="card learn"><div class="eyebrow">🌙 Βραδινό</div><div class="meal">Τι φάγατε το βράδυ;</div><p class="reason">Κατέγραψε ακόμη και κάτι απλό. Η πραγματική συνήθεια είναι πιο χρήσιμη από μια «τέλεια» απάντηση.</p><button class="btn primary" onclick="openLog('dinner')">+ Καταχώρισε βραδινό</button></div>
-<div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div></div></div>
+<div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"><div id="todaySuggestion" class="soft" style="margin-top:10px"></div></div></div></div>
 <div class="card"><div class="row"><b>🥗 Ισορροπία 7 ημερών</b><span id="weekScore" class="small"></span></div><p id="weekStatus" class="reason"></p><div id="bars"></div></div></section>
 <section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
 <div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
@@ -177,6 +177,147 @@ function saveMeal(){
   render();
   show('learn');
 }
+ function preferenceStats(){
+  const meals={};
+
+  s.history.forEach(h=>{
+    const name=(h.name||'').trim();
+    if(!name)return;
+
+    const key=name.toLowerCase();
+
+    if(!meals[key]){
+      meals[key]={
+        name:name,
+        total:0,
+        count:0,
+        cats:new Set()
+      };
+    }
+
+    meals[key].total+=Number(h.rating||3);
+    meals[key].count++;
+
+    const cats=Array.isArray(h.cats)&&h.cats.length
+      ? h.cats
+      : (h.cat?[h.cat]:[]);
+
+    cats.forEach(c=>meals[key].cats.add(c));
+  });
+
+  return Object.values(meals).map(m=>({
+    name:m.name,
+    count:m.count,
+    average:m.total/m.count,
+    cats:[...m.cats]
+  }));
+} 
+ function categoryPreferenceStats(){
+  const stats={};
+
+  Object.keys(labels).forEach(c=>{
+    stats[c]={cat:c,total:0,count:0};
+  });
+
+  s.history.forEach(h=>{
+    const rating=Number(h.rating||3);
+
+    const cats=Array.isArray(h.cats)&&h.cats.length
+      ? h.cats
+      : (h.cat?[h.cat]:[]);
+
+    [...new Set(cats)].forEach(c=>{
+      if(!stats[c])stats[c]={cat:c,total:0,count:0};
+      stats[c].total+=rating;
+      stats[c].count++;
+    });
+  });
+
+  return Object.values(stats)
+    .filter(x=>x.count>0)
+    .map(x=>({
+      cat:x.cat,
+      count:x.count,
+      average:x.total/x.count
+    }))
+    .sort((a,b)=>b.average-a.average);
+} 
+function mealSuitability(meal){
+  const prefStats=preferenceStats();
+  const catStats=categoryPreferenceStats();
+  const week=counts();
+
+  const key=(meal.name||'').toLowerCase().trim();
+  const known=prefStats.find(x=>x.name.toLowerCase().trim()===key);
+
+  const cats=Array.isArray(meal.cats)&&meal.cats.length
+    ? meal.cats
+    : [];
+
+  let preferenceScore=known ? known.average : 3;
+
+  let categoryScore=3;
+  if(cats.length){
+    const values=cats.map(c=>{
+      const x=catStats.find(v=>v.cat===c);
+      return x ? x.average : 3;
+    });
+    categoryScore=values.reduce((a,b)=>a+b,0)/values.length;
+  }
+
+  let balanceScore=5;
+  if(cats.length){
+    const values=cats.map(c=>{
+      const target=targets[c]||1;
+      const current=week[c]||0;
+
+      if(current>=target)return 1;
+      if(current>=target*0.75)return 2;
+      if(current>=target*0.5)return 3;
+      if(current>=target*0.25)return 4;
+      return 5;
+    });
+
+    balanceScore=values.reduce((a,b)=>a+b,0)/values.length;
+  }
+
+  const total=
+    preferenceScore*0.45 +
+    categoryScore*0.20 +
+    balanceScore*0.35;
+
+  return {
+    total:Number(total.toFixed(2)),
+    preference:Number(preferenceScore.toFixed(2)),
+    category:Number(categoryScore.toFixed(2)),
+    balance:Number(balanceScore.toFixed(2))
+  };
+}  
+ function bestKnownMealForToday(){
+  const stats=preferenceStats();
+
+  if(!stats.length){
+    return null;
+  }
+
+  const candidates=stats.map(x=>{
+    const meal={
+      name:x.name,
+      cats:x.cats||[]
+    };
+
+    return {
+      ...meal,
+      ratingAverage:x.average,
+      times:x.count,
+      score:mealSuitability(meal)
+    };
+  });
+
+  candidates.sort((a,b)=>b.score.total-a.score.total);
+
+  return candidates[0]||null;
+} 
 function counts(){
   let c={
     drinks:0,
@@ -204,7 +345,144 @@ function counts(){
   return c;
 }
 function renderBars(){const c=counts(),recent=s.history.filter(h=>day(h.date)<7),days=new Set(recent.map(h=>h.date)).size,ready=recent.length>=4&&days>=3;$('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';$('weekStatus').textContent=ready?`Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`:`Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες.`;$('bars').innerHTML=Object.keys(targets).map(k=>{const p=Math.min(100,Math.round(c[k]/targets[k]*100));return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`}).join('')}
-function renderInsights(){$('learnCount').textContent=s.history.length+' γεύματα';if(!s.history.length){$('insights').innerHTML='<div class=soft style="margin-top:10px"><b>Δεν έχω ακόμη αρκετά δεδομένα.</b><div class=small>Κατάγραψε το πρώτο γεύμα.</div></div>';return}let cc={};s.history.forEach(h=>cc[h.cat]=(cc[h.cat]||0)+1);const top=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,3);$('insights').innerHTML=`<div class=soft style="margin-top:10px"><b>Συχνότερα μέχρι τώρα</b><div class=chips style="margin-top:7px">${top.map(([k,v])=>`<span class=chip>${labels[k]||k}: ${v}</span>`).join('')}</div></div>`}
+function renderInsights(){
+  $('learnCount').textContent=s.history.length+' γεύματα';
+
+  if(!s.history.length){
+    $('insights').innerHTML=
+      '<div class="soft" style="margin-top:10px">'+
+      '<b>Δεν έχω ακόμη αρκετά δεδομένα.</b>'+
+      '<div class="small">Κατάγραψε το πρώτο γεύμα.</div>'+
+      '</div>';
+    return;
+  const best=bestKnownMealForToday();
+
+if(best){
+  $('todaySuggestion').innerHTML=
+    '<b>⭐ Καλύτερη πρόταση από όσα έχω μάθει</b>'+
+    '<div style="margin-top:8px;font-size:18px;font-weight:800">'+
+      best.name+
+    '</div>'+
+    '<div class="small" style="margin-top:6px">'+
+      'Συνολικό score: '+best.score.total+'/5'+
+      '<br>❤️ Προτίμηση: '+best.score.preference+'/5'+
+      '<br>📊 Κατηγορία: '+best.score.category+'/5'+
+      '<br>🥗 7ήμερη ισορροπία: '+best.score.balance+'/5'+
+    '</div>';
+}else{
+  $('todaySuggestion').innerHTML=
+    '<b>⭐ Πρόταση για σήμερα</b>'+
+    '<div class="small">Χρειάζομαι μερικές καταχωρίσεις ακόμη για να μάθω τι προτιμάτε.</div>';
+}  
+  }
+
+  const stats=preferenceStats()
+    .sort((a,b)=>b.average-a.average);
+
+  const categoryStats=categoryPreferenceStats();
+
+  const favorites=stats.filter(x=>x.average>=4.5);
+  const liked=stats.filter(x=>x.average>=3.5 && x.average<4.5);
+  const neutral=stats.filter(x=>x.average>2.5 && x.average<3.5);
+  const disliked=stats.filter(x=>x.average<=2.5);
+
+  function mealChips(list){
+    if(!list.length){
+      return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
+    }
+
+    return list.slice(0,6).map(x=>{
+      const stars='★'.repeat(Math.round(x.average));
+      const times=x.count>1?' · '+x.count+' φορές':'';
+
+      return '<span class="chip">'+
+        x.name+' · '+stars+times+
+        '</span>';
+    }).join('');
+  }
+
+  function categoryChips(){
+    if(!categoryStats.length){
+      return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
+    }
+
+    return categoryStats.map(x=>{
+      const score=x.average.toFixed(1);
+      return '<span class="chip">'+
+        (labels[x.cat]||x.cat)+' · '+score+'/5'+
+        '</span>';
+    }).join('');
+  }
+
+  $('insights').innerHTML=
+    '<div class="soft" style="margin-top:10px">'+
+      '<b>😍 Αγαπημένα</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(favorites)+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>🙂 Αρέσουν αρκετά</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(liked)+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>😐 Μέτρια</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(neutral)+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>🙁 Δεν πολυαρέσουν</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(disliked)+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>📊 Προτιμήσεις ανά κατηγορία</b>'+
+      '<div class="chips" style="margin-top:7px">'+categoryChips()+'</div>'+
+    '</div>';
+}
+
+  const stats=preferenceStats()
+    .sort((a,b)=>b.average-a.average);
+
+  const favorites=stats.filter(x=>x.average>=4.5);
+  const liked=stats.filter(x=>x.average>=3.5 && x.average<4.5);
+  const neutral=stats.filter(x=>x.average>2.5 && x.average<3.5);
+  const disliked=stats.filter(x=>x.average<=2.5);
+
+  function mealChips(list){
+    if(!list.length)return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
+
+    return list.slice(0,6).map(x=>{
+      const stars='★'.repeat(Math.round(x.average));
+      const times=x.count>1?' · '+x.count+' φορές':'';
+
+      return '<span class="chip">'+
+        x.name+' · '+stars+times+
+        '</span>';
+    }).join('');
+  }
+
+  $('insights').innerHTML=
+    '<div class="soft" style="margin-top:10px">'+
+      '<b>😍 Αγαπημένα</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(favorites)+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>🙂 Αρέσουν αρκετά</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(liked)+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>😐 Μέτρια</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(neutral)+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>🙁 Δεν πολυαρέσουν</b>'+
+      '<div class="chips" style="margin-top:7px">'+mealChips(disliked)+'</div>'+
+    '</div>';
+}
 function renderHistory(){
   const historyEl=$('history');
 
