@@ -25,7 +25,7 @@
 <div class="card learn"><div class="eyebrow">🌅 Πρωινό</div><div class="meal">Τι φάγατε το πρωί;</div><p class="reason">Κατέγραψε το πραγματικό πρωινό, ακόμη κι αν είναι κάτι πολύ απλό.</p><button class="btn primary" onclick="openLog('breakfast')">+ Καταχώρισε πρωινό</button></div>
 <div class="card learn"><div class="eyebrow">☀️ Μεσημεριανό</div><div class="meal">Τι μαγειρέψατε σήμερα;</div><p class="reason">Στην περίοδο εκμάθησης δεν μαντεύω. Μαθαίνω από τα πραγματικά γεύματα.</p><button class="btn primary" onclick="openLog('lunch')">+ Καταχώρισε μεσημεριανό</button></div>
 <div class="card learn"><div class="eyebrow">🌙 Βραδινό</div><div class="meal">Τι φάγατε το βράδυ;</div><p class="reason">Κατέγραψε ακόμη και κάτι απλό. Η πραγματική συνήθεια είναι πιο χρήσιμη από μια «τέλεια» απάντηση.</p><button class="btn primary" onclick="openLog('dinner')">+ Καταχώρισε βραδινό</button></div>
-<div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div><div id="todaySuggestion" class="soft hidden" style="margin-top:10px"></div></div></div>
+<div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div><div id="todaySuggestion" class="soft hidden" style="margin-top:10px"></div><button class="btn secondary" onclick="showTodaySuggestion()">⭐ Δείξε πρόταση για σήμερα</button></div></div>
 <div class="card"><div class="row"><b>🥗 Ισορροπία 7 ημερών</b><span id="weekScore" class="small"></span></div><p id="weekStatus" class="reason"></p><div id="bars"></div></div></section>
 <section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
 <div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
@@ -327,6 +327,23 @@ function getTodaySuggestionText(){
 
   return '⭐ '+best.name+
     ' · score '+best.score.total+'/5';
+} 
+function showTodaySuggestion(){
+  const box=$('todaySuggestion');
+  const text=getTodaySuggestionText();
+
+  if(!box)return;
+
+  if(!text){
+    box.classList.remove('hidden');
+    box.innerHTML=
+      '<b>Δεν έχω ακόμη αρκετά δεδομένα.</b>'+
+      '<div class="small">Κατάγραψε μερικά ακόμη γεύματα.</div>';
+    return;
+  }
+
+  box.classList.remove('hidden');
+  box.innerHTML='<b>'+text+'</b>';
 }  
 
 function counts(){
