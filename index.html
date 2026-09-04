@@ -318,6 +318,31 @@ function bestKnownMealForToday(){
 
   return candidates[0]||null;
 }
+function topKnownMealsForToday(limit=3){
+  const stats=preferenceStats();
+
+  if(!stats.length){
+    return [];
+  }
+
+  const candidates=stats.map(x=>{
+    const meal={
+      name:x.name,
+      cats:x.cats||[]
+    };
+
+    return {
+      ...meal,
+      ratingAverage:x.average,
+      times:x.count,
+      score:mealSuitability(meal)
+    };
+  });
+
+  candidates.sort((a,b)=>b.score.total-a.score.total);
+
+  return candidates.slice(0,limit);
+}  
 function getTodaySuggestionText(){
   const best=bestKnownMealForToday();
 
