@@ -355,11 +355,11 @@ function getTodaySuggestionText(){
 } 
 function showTodaySuggestion(){
   const box=$('todaySuggestion');
-  const best=bestKnownMealForToday();
+  const meals=topKnownMealsForToday(3);
 
   if(!box)return;
 
-  if(!best){
+  if(!meals.length){
     box.classList.remove('hidden');
     box.innerHTML=
       '<b>Δεν έχω ακόμη αρκετά δεδομένα.</b>'+
@@ -367,28 +367,47 @@ function showTodaySuggestion(){
     return;
   }
 
-  let reason='';
+  function reasonFor(meal){
+    if(meal.score.preference>=4.5 && meal.score.balance>=4){
+      return 'Σας αρέσει πολύ και ταιριάζει καλά με την ισορροπία της εβδομάδας.';
+    }
 
-  if(best.score.preference>=4.5 && best.score.balance>=4){
-    reason='Σας αρέσει πολύ και ταιριάζει καλά με την ισορροπία της εβδομάδας.';
-  }else if(best.score.preference>=4.5){
-    reason='Είναι από τα αγαπημένα σας γεύματα.';
-  }else if(best.score.balance>=4.5){
-    reason='Βοηθά ιδιαίτερα να καλυφθούν κατηγορίες που λείπουν αυτή την εβδομάδα.';
-  }else if(best.score.category>=4){
-    reason='Ανήκει σε κατηγορίες τροφίμων που συνήθως σας αρέσουν.';
-  }else{
-    reason='Είναι η καλύτερη επιλογή αυτή τη στιγμή με βάση όσα έχω μάθει και την 7ήμερη ισορροπία.';
+    if(meal.score.preference>=4.5){
+      return 'Είναι από τα αγαπημένα σας γεύματα.';
+    }
+
+    if(meal.score.balance>=4.5){
+      return 'Βοηθά να καλυφθούν κατηγορίες που λείπουν αυτή την εβδομάδα.';
+    }
+
+    if(meal.score.category>=4){
+      return 'Ανήκει σε κατηγορίες τροφίμων που συνήθως σας αρέσουν.';
+    }
+
+    return 'Ταιριάζει καλά με όσα έχω μάθει και την 7ήμερη ισορροπία.';
   }
+
+  const titles=[
+    '🥇 Καλύτερη επιλογή',
+    '🥈 Δεύτερη επιλογή',
+    '🥉 Εναλλακτική'
+  ];
 
   box.classList.remove('hidden');
 
   box.innerHTML=
-    '<b>⭐ '+best.name+'</b>'+
-    '<div class="small" style="margin-top:7px">'+reason+'</div>'+
-    '<div class="small" style="margin-top:7px">'+
-      'Score: '+best.score.total+'/5'+
-    '</div>';
+    '<b>⭐ Προτάσεις για σήμερα</b>'+
+    meals.map((meal,i)=>
+      '<div class="soft" style="margin-top:10px">'+
+        '<b>'+titles[i]+' · '+meal.name+'</b>'+
+        '<div class="small" style="margin-top:5px">'+
+          reasonFor(meal)+
+        '</div>'+
+        '<div class="small" style="margin-top:5px">'+
+          'Score: '+meal.score.total+'/5'+
+        '</div>'+
+      '</div>'
+    ).join('');
 }
  
 function counts(){
