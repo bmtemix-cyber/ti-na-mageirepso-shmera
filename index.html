@@ -342,7 +342,48 @@ function topKnownMealsForToday(limit=3){
   candidates.sort((a,b)=>b.score.total-a.score.total);
 
   return candidates.slice(0,limit);
-}  
+} 
+ function smartTodayChoices(){
+  const stats=preferenceStats();
+
+  if(!stats.length){
+    return [];
+  }
+
+  const candidates=stats.map(x=>{
+    const meal={
+      name:x.name,
+      cats:x.cats||[]
+    };
+
+    return {
+      ...meal,
+      ratingAverage:x.average,
+      times:x.count,
+      score:mealSuitability(meal)
+    };
+  });
+
+  const favorite=[...candidates]
+    .sort((a,b)=>b.score.preference-a.score.preference)[0];
+
+  const balanced=[...candidates]
+    .filter(x=>!favorite || x.name!==favorite.name)
+    .sort((a,b)=>b.score.balance-a.score.balance)[0];
+
+  const alternative=[...candidates]
+    .filter(x=>
+      (!favorite || x.name!==favorite.name) &&
+      (!balanced || x.name!==balanced.name)
+    )
+    .sort((a,b)=>b.score.total-a.score.total)[0];
+
+  return [
+    favorite ? {...favorite,choiceType:'favorite'} : null,
+    balanced ? {...balanced,choiceType:'balanced'} : null,
+    alternative ? {...alternative,choiceType:'alternative'} : null
+  ].filter(Boolean);
+} 
 function getTodaySuggestionText(){
   const best=bestKnownMealForToday();
 
