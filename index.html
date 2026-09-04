@@ -318,6 +318,16 @@ function bestKnownMealForToday(){
 
   return candidates[0]||null;
 }
+function getTodaySuggestionText(){
+  const best=bestKnownMealForToday();
+
+  if(!best){
+    return '';
+  }
+
+  return '⭐ '+best.name+
+    ' · score '+best.score.total+'/5';
+}  
 
 function counts(){
   let c={
