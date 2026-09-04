@@ -25,7 +25,7 @@
 <div class="card learn"><div class="eyebrow">🌅 Πρωινό</div><div class="meal">Τι φάγατε το πρωί;</div><p class="reason">Κατέγραψε το πραγματικό πρωινό, ακόμη κι αν είναι κάτι πολύ απλό.</p><button class="btn primary" onclick="openLog('breakfast')">+ Καταχώρισε πρωινό</button></div>
 <div class="card learn"><div class="eyebrow">☀️ Μεσημεριανό</div><div class="meal">Τι μαγειρέψατε σήμερα;</div><p class="reason">Στην περίοδο εκμάθησης δεν μαντεύω. Μαθαίνω από τα πραγματικά γεύματα.</p><button class="btn primary" onclick="openLog('lunch')">+ Καταχώρισε μεσημεριανό</button></div>
 <div class="card learn"><div class="eyebrow">🌙 Βραδινό</div><div class="meal">Τι φάγατε το βράδυ;</div><p class="reason">Κατέγραψε ακόμη και κάτι απλό. Η πραγματική συνήθεια είναι πιο χρήσιμη από μια «τέλεια» απάντηση.</p><button class="btn primary" onclick="openLog('dinner')">+ Καταχώρισε βραδινό</button></div>
-<div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"><div id="todaySuggestion" class="soft" style="margin-top:10px"></div></div></div></div>
+<div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div></div></div>
 <div class="card"><div class="row"><b>🥗 Ισορροπία 7 ημερών</b><span id="weekScore" class="small"></span></div><p id="weekStatus" class="reason"></p><div id="bars"></div></div></section>
 <section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
 <div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
@@ -355,21 +355,7 @@ function renderInsights(){
       '<div class="small">Κατάγραψε το πρώτο γεύμα.</div>'+
       '</div>';
     return;
-  const best=bestKnownMealForToday();
-
-if(best){
-  $('todaySuggestion').innerHTML=
-    '<b>⭐ Καλύτερη πρόταση από όσα έχω μάθει</b>'+
-    '<div style="margin-top:8px;font-size:18px;font-weight:800">'+
-      best.name+
-    '</div>'+
-    '<div class="small" style="margin-top:6px">'+
-      'Συνολικό score: '+best.score.total+'/5'+
-      '<br>❤️ Προτίμηση: '+best.score.preference+'/5'+
-      '<br>📊 Κατηγορία: '+best.score.category+'/5'+
-      '<br>🥗 7ήμερη ισορροπία: '+best.score.balance+'/5'+
-    '</div>';
-}else{
+  else{
   $('todaySuggestion').innerHTML=
     '<b>⭐ Πρόταση για σήμερα</b>'+
     '<div class="small">Χρειάζομαι μερικές καταχωρίσεις ακόμη για να μάθω τι προτιμάτε.</div>';
