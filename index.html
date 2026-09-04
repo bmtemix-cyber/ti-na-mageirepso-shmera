@@ -318,18 +318,7 @@ function bestKnownMealForToday(){
 
   return candidates[0]||null;
 }
-    return {
-      ...meal,
-      ratingAverage:x.average,
-      times:x.count,
-      score:mealSuitability(meal)
-    };
-  });
 
-  candidates.sort((a,b)=>b.score.total-a.score.total);
-
-  return candidates[0]||null;
-} 
 function counts(){
   let c={
     drinks:0,
