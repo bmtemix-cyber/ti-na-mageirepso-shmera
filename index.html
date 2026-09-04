@@ -330,17 +330,41 @@ function getTodaySuggestionText(){
 } 
 function showTodaySuggestion(){
   const box=$('todaySuggestion');
-  const text=getTodaySuggestionText();
+  const best=bestKnownMealForToday();
 
   if(!box)return;
 
-  if(!text){
+  if(!best){
     box.classList.remove('hidden');
     box.innerHTML=
       '<b>Δεν έχω ακόμη αρκετά δεδομένα.</b>'+
       '<div class="small">Κατάγραψε μερικά ακόμη γεύματα.</div>';
     return;
   }
+
+  let reason='';
+
+  if(best.score.preference>=4.5 && best.score.balance>=4){
+    reason='Σας αρέσει πολύ και ταιριάζει καλά με την ισορροπία της εβδομάδας.';
+  }else if(best.score.preference>=4.5){
+    reason='Είναι από τα αγαπημένα σας γεύματα.';
+  }else if(best.score.balance>=4.5){
+    reason='Βοηθά ιδιαίτερα να καλυφθούν κατηγορίες που λείπουν αυτή την εβδομάδα.';
+  }else if(best.score.category>=4){
+    reason='Ανήκει σε κατηγορίες τροφίμων που συνήθως σας αρέσουν.';
+  }else{
+    reason='Είναι η καλύτερη επιλογή αυτή τη στιγμή με βάση όσα έχω μάθει και την 7ήμερη ισορροπία.';
+  }
+
+  box.classList.remove('hidden');
+
+  box.innerHTML=
+    '<b>⭐ '+best.name+'</b>'+
+    '<div class="small" style="margin-top:7px">'+reason+'</div>'+
+    '<div class="small" style="margin-top:7px">'+
+      'Score: '+best.score.total+'/5'+
+    '</div>';
+}
 
   box.classList.remove('hidden');
   box.innerHTML='<b>'+text+'</b>';
