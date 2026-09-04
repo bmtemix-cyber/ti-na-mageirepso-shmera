@@ -421,48 +421,7 @@ function renderInsights(){
     '</div>';
 }
 
-  const stats=preferenceStats()
-    .sort((a,b)=>b.average-a.average);
 
-  const favorites=stats.filter(x=>x.average>=4.5);
-  const liked=stats.filter(x=>x.average>=3.5 && x.average<4.5);
-  const neutral=stats.filter(x=>x.average>2.5 && x.average<3.5);
-  const disliked=stats.filter(x=>x.average<=2.5);
-
-  function mealChips(list){
-    if(!list.length)return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
-
-    return list.slice(0,6).map(x=>{
-      const stars='★'.repeat(Math.round(x.average));
-      const times=x.count>1?' · '+x.count+' φορές':'';
-
-      return '<span class="chip">'+
-        x.name+' · '+stars+times+
-        '</span>';
-    }).join('');
-  }
-
-  $('insights').innerHTML=
-    '<div class="soft" style="margin-top:10px">'+
-      '<b>😍 Αγαπημένα</b>'+
-      '<div class="chips" style="margin-top:7px">'+mealChips(favorites)+'</div>'+
-    '</div>'+
-
-    '<div class="soft" style="margin-top:8px">'+
-      '<b>🙂 Αρέσουν αρκετά</b>'+
-      '<div class="chips" style="margin-top:7px">'+mealChips(liked)+'</div>'+
-    '</div>'+
-
-    '<div class="soft" style="margin-top:8px">'+
-      '<b>😐 Μέτρια</b>'+
-      '<div class="chips" style="margin-top:7px">'+mealChips(neutral)+'</div>'+
-    '</div>'+
-
-    '<div class="soft" style="margin-top:8px">'+
-      '<b>🙁 Δεν πολυαρέσουν</b>'+
-      '<div class="chips" style="margin-top:7px">'+mealChips(disliked)+'</div>'+
-    '</div>';
-}
 function renderHistory(){
   const historyEl=$('history');
 
