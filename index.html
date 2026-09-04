@@ -346,17 +346,6 @@ function renderTodaySuggestion(){
       '<br>🥗 7ήμερη ισορροπία: '+best.score.balance+'/5'+
     '</div>';
 }
-function renderTodaySuggestion(){
-  const box=$('todaySuggestion');
-
-  if(!box)return;
-
-  const best=bestKnownMealForToday();
-
-  if(!best){
-    box.classList.add('hidden');
-    return;
-  }
 
   box.classList.remove('hidden');
 
@@ -526,6 +515,6 @@ function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').
 function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
 function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');render()}
-function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();renderTodaySuggestion();}
+function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();}
 render();if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js?v=6').then(r=>r.update()).catch(()=>{})}
 </script></body></html>
