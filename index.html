@@ -443,43 +443,7 @@ function showTodaySuggestion(){
     ).join('');
 }
 
-  function titleFor(type){
-    if(type==='favorite')return '❤️ Αγαπημένη επιλογή';
-    if(type==='balanced')return '🥗 Ισορροπημένη επιλογή';
-    return '🔄 Εναλλακτική επιλογή';
-  }
 
-  function reasonFor(meal){
-    if(meal.choiceType==='favorite'){
-      return 'Είναι από τα γεύματα που σας αρέσουν περισσότερο.';
-    }
-
-    if(meal.choiceType==='balanced'){
-      return 'Βοηθά περισσότερο την ισορροπία της εβδομάδας με βάση όσα έχετε ήδη φάει.';
-    }
-
-    return 'Είναι μια καλή διαφορετική επιλογή με βάση όσα έχω μάθει.';
-  }
-
-  box.classList.remove('hidden');
-
-  box.innerHTML=
-    '<b>⭐ Προτάσεις για σήμερα</b>'+
-    meals.map(meal=>
-      '<div class="soft" style="margin-top:10px">'+
-        '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
-        '<div class="small" style="margin-top:5px">'+
-          reasonFor(meal)+
-        '</div>'+
-        '<div class="small" style="margin-top:5px">'+
-          'Score: '+meal.score.total+'/5'+
-        '</div>'+
-      '</div>'
-    ).join('');
-}
-
-
- 
 function counts(){
   let c={
     drinks:0,
