@@ -318,31 +318,6 @@ function bestKnownMealForToday(){
 
   return candidates[0]||null;
 }
-
-
-
-
-  box.classList.remove('hidden');
-
-  box.innerHTML=
-    '<b>⭐ Πρόταση βάσει όσων έχω μάθει</b>'+
-    '<div style="margin-top:8px;font-size:18px;font-weight:800">'+
-      best.name+
-    '</div>'+
-    '<div class="small" style="margin-top:6px">'+
-      'Συνολικό score: '+best.score.total+'/5'+
-      '<br>❤️ Προτίμηση: '+best.score.preference+'/5'+
-      '<br>📊 Κατηγορία: '+best.score.category+'/5'+
-      '<br>🥗 7ήμερη ισορροπία: '+best.score.balance+'/5'+
-    '</div>';
-}   
-
-  const candidates=stats.map(x=>{
-    const meal={
-      name:x.name,
-      cats:x.cats||[]
-    };
-
     return {
       ...meal,
       ratingAverage:x.average,
