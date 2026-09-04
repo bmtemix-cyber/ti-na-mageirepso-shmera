@@ -355,13 +355,7 @@ function renderInsights(){
       '<div class="small">Κατάγραψε το πρώτο γεύμα.</div>'+
       '</div>';
     return;
-  else{
-  $('todaySuggestion').innerHTML=
-    '<b>⭐ Πρόταση για σήμερα</b>'+
-    '<div class="small">Χρειάζομαι μερικές καταχωρίσεις ακόμη για να μάθω τι προτιμάτε.</div>';
-}  
   }
-
   const stats=preferenceStats()
     .sort((a,b)=>b.average-a.average);
 
