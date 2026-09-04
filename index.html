@@ -466,5 +466,5 @@ function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((
 function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');render()}
 function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();}
-render();if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js?v=6').then(r=>r.update()).catch(()=>{})}
+render();if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js?v=7').then(r=>r.update()).catch(()=>{})}
 </script></body></html>
