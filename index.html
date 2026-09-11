@@ -407,6 +407,11 @@ function showTodaySuggestion(){
       '<div class="small">Κατάγραψε μερικά ακόμη γεύματα.</div>';
     return;
   }
+  function findRecipeForMeal(name){
+  $('mealName').value=name;
+  show('learn');
+  suggestRecipe();
+}
 
   function titleFor(type){
     if(type==='favorite')return '❤️ Αγαπημένη επιλογή';
@@ -432,12 +437,20 @@ function showTodaySuggestion(){
     '<b>⭐ Προτάσεις για σήμερα</b>'+
     meals.map(meal=>
       '<div class="soft" style="margin-top:10px">'+
-        '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
-        '<div class="small" style="margin-top:5px">'+
+        '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+'<button class="btn secondary" style="margin-top:8px" '+
+'onclick="findRecipeForMeal(\''+meal.name.replace(/'/g,"\\'")+'\')">'+
+'🍳 Βρες μου συνταγή</button>'+
+        '<div class="small" style="margin-top:5px">'+'<button class="btn secondary" style="margin-top:8px" '+
+'onclick="findRecipeForMeal(\''+meal.name.replace(/'/g,"\\'")+'\')">'+
+'🍳 Βρες μου συνταγή</button>'+
           reasonFor(meal)+
-        '</div>'+
+        '</div>'+'<button class="btn secondary" style="margin-top:8px" '+
+'onclick="findRecipeForMeal(\''+meal.name.replace(/'/g,"\\'")+'\')">'+
+'🍳 Βρες μου συνταγή</button>'+
         '<div class="small" style="margin-top:5px">'+
-          'Score: '+meal.score.total+'/5'+
+          'Score: '+meal.score.total+'/5'+'<button class="btn secondary" style="margin-top:8px" '+
+'onclick="findRecipeForMeal(\''+meal.name.replace(/'/g,"\\'")+'\')">'+
+'🍳 Βρες μου συνταγή</button>'+
         '</div>'+
       '</div>'
     ).join('');
