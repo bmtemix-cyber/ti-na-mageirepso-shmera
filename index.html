@@ -447,11 +447,25 @@ box.innerHTML=
     '</div>'
   ).join('');
 }
-  function findRecipeForMeal(name){
-  $('mealName').value=name;
-  show('learn');
-  suggestRecipe();
-}  
+async function findRecipeForMeal(name){
+  try{
+    const r=await fetch(
+      '/api/search-recipe?q='+encodeURIComponent(name)
+    );
+
+    const data=await r.json();
+
+    if(!data.ok || !data.recipe || !data.recipe.url){
+      alert('Δεν βρήκα ελληνική συνταγή για «'+name+'».');
+      return;
+    }
+
+    window.open(data.recipe.url,'_blank');
+
+  }catch(e){
+    alert('Υπήρξε πρόβλημα κατά την αναζήτηση της συνταγής.');
+  }
+}
 function counts(){
   let c={
     drinks:0,
