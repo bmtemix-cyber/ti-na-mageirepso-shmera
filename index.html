@@ -631,7 +631,92 @@ function renderHistory(){
   }).join('');
 }
 function deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
-function renderFamily(){$('familyInfo').innerHTML=`<div class=soft><b>${s.family.adults} ενήλικες · ${s.family.children||0} παιδιά</b><div class=small>${s.family.ages?'Ηλικίες: '+s.family.ages+' · ':''}Μαγειρεύετε για ${s.family.cookFor} άτομα.</div></div><div class=soft style="margin-top:8px"><b>Αγαπημένα</b><div class=small>${s.family.favorites||'—'}</div></div><div class=soft style="margin-top:8px"><b>Δεν προτιμάτε</b><div class=small>${s.family.dislikes||'—'}</div></div>`}
+function renderFamily(){
+  const members=s.family.members||[];
+
+  $('familyInfo').innerHTML=
+    '<div class="soft">'+
+      '<b>'+s.family.adults+' ενήλικες · '+(s.family.children||0)+' παιδιά</b>'+
+      '<div class="small">'+
+        (s.family.ages?'Ηλικίες: '+s.family.ages+' · ':'')+
+        'Μαγειρεύετε για '+s.family.cookFor+' άτομα.'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>Αγαπημένα</b>'+
+      '<div class="small">'+(s.family.favorites||'—')+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>Δεν προτιμάτε</b>'+
+      '<div class="small">'+(s.family.dislikes||'—')+'</div>'+
+    '</div>'+
+
+    '<div class="soft" style="margin-top:8px">'+
+      '<b>👨‍👩‍👧‍👦 Μέλη οικογένειας</b>'+
+      (
+        members.length
+        ? members.map((m,i)=>
+            '<div class="item" style="margin-top:7px">'+
+              '<b>'+(m.name||('Μέλος '+(i+1)))+'</b>'+
+              '<div class="small">'+
+                (m.age?'Ηλικία: '+m.age+' · ':'')+
+                (m.sex?'Φύλο: '+m.sex+' · ':'')+
+                (m.height?'Ύψος: '+m.height+' cm · ':'')+
+                (m.weight?'Βάρος: '+m.weight+' kg':'')+
+              '</div>'+
+            '</div>'
+          ).join('')
+        : '<div class="small">Δεν έχουν προστεθεί ακόμη μέλη.</div>'
+      )+
+    '</div>'+
+
+    '<button class="btn secondary" style="margin-top:10px" onclick="showFamilyEditor()">'+
+      '✏️ Επεξεργασία οικογένειας'+
+    '</button>'+
+
+    '<div id="familyEditor" class="hidden" style="margin-top:10px"></div>';
+}
+ function showFamilyEditor(){
+  const box=$('familyEditor');
+
+  box.classList.remove('hidden');
+
+  box.innerHTML=
+    '<div class="soft">'+
+      '<b>✏️ Επεξεργασία οικογένειας</b>'+
+
+      '<div class="field">'+
+        '<label>Ενήλικες</label>'+
+        '<input id="editAdults" type="number" min="0" value="'+s.family.adults+'">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Παιδιά</label>'+
+        '<input id="editChildren" type="number" min="0" value="'+(s.family.children||0)+'">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Μαγειρεύετε για πόσα άτομα;</label>'+
+        '<input id="editCookFor" type="number" min="1" value="'+s.family.cookFor+'">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Αγαπημένα φαγητά</label>'+
+        '<input id="editFavorites" value="'+(s.family.favorites||'')+'">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Δεν προτιμάτε</label>'+
+        '<input id="editDislikes" value="'+(s.family.dislikes||'')+'">'+
+      '</div>'+
+
+      '<button class="btn primary" onclick="saveFamilySettings()">'+
+        '💾 Αποθήκευση'+
+      '</button>'+
+    '</div>';
+} 
 function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
 function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
 function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
