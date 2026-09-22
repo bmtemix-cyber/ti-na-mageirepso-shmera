@@ -430,25 +430,30 @@ function showTodaySuggestion(){
 
 box.innerHTML=
   '<b>⭐ Προτάσεις για σήμερα</b>'+
-  meals.map(meal=>
-    '<div class="soft" style="margin-top:10px">'+
-      '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
-      '<div class="small" style="margin-top:5px">'+
-        reasonFor(meal)+
-      '</div>'+
-      '<div class="small" style="margin-top:5px">'+
-        'Score: '+meal.score.total+'/5'+
-      '</div>'+
-      '<button class="btn secondary" style="margin-top:8px" '+
-        'data-meal="'+encodeURIComponent(meal.name)+'" '+
-        'onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal))">'+
-        '🍳 Βρες μου συνταγή'+
-      '</button>'+
-    '</div>'
-  ).join('');
+ meals.map((meal,i)=>
+  '<div class="soft" style="margin-top:10px">'+
+    '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
+    '<div class="small" style="margin-top:5px">'+
+      reasonFor(meal)+
+    '</div>'+
+    '<div class="small" style="margin-top:5px">'+
+      'Score: '+meal.score.total+'/5'+
+    '</div>'+
+    '<button class="btn secondary" style="margin-top:8px" '+
+      'data-meal="'+encodeURIComponent(meal.name)+'" '+
+      'onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),\'recipePreview'+i+'\')">'+
+      '🍳 Βρες μου συνταγή'+
+    '</button>'+
+    '<div id="recipePreview'+i+'" style="margin-top:10px"></div>'+
+  '</div>'
+).join('');
 }
-async function findRecipeForMeal(name){
-  const box=$('todaySuggestion');
+async function findRecipeForMeal(name,targetId){
+  const box=$(targetId);
+
+  if(!box)return;
+
+  box.innerHTML='<div class="small">🔎 Ψάχνω ελληνική συνταγή...</div>';
 
   try{
     const r=await fetch(
@@ -458,16 +463,15 @@ async function findRecipeForMeal(name){
     const data=await r.json();
 
     if(!data.ok || !data.recipe || !data.recipe.url){
-      alert('Δεν βρήκα ελληνική συνταγή για «'+name+'».');
+      box.innerHTML=
+        '<div class="small">Δεν βρήκα ελληνική συνταγή για «'+name+'».</div>';
       return;
     }
 
     const recipe=data.recipe;
 
-    box.classList.remove('hidden');
-
-    box.innerHTML+=
-      '<div class="soft" style="margin-top:12px">'+
+    box.innerHTML=
+      '<div class="soft">'+
         (recipe.image
           ? '<img src="'+recipe.image+'" style="width:100%;border-radius:14px;margin-bottom:10px">'
           : '')+
@@ -482,7 +486,8 @@ async function findRecipeForMeal(name){
       '</div>';
 
   }catch(e){
-    alert('Υπήρξε πρόβλημα κατά την αναζήτηση της συνταγής.');
+    box.innerHTML=
+      '<div class="small">⚠️ Υπήρξε πρόβλημα κατά την αναζήτηση.</div>';
   }
 }
 function counts(){
