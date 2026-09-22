@@ -40,8 +40,19 @@
 <section id="settings" class="view"><div class="card"><h2>⚙️ Ρυθμίσεις</h2><div class="field"><label>Περίοδος εκμάθησης</label><select id="learnDays" onchange="changeLearn()"><option value="21">3 εβδομάδες</option><option value="14">2 εβδομάδες</option><option value="0">Προτάσεις από τώρα</option></select></div><div class="notice">Η online «δημοφιλής συνταγή στην περιοχή» είναι έτοιμη ως UI. Για πραγματική αναζήτηση θα χρειαστεί backend/API.</div></div></section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
-const defaults={created:new Date().toISOString().slice(0,10),learningDays:21,history:[],pantry:[],family:{adults:2,children:0,ages:'',cookFor:2,favorites:'',dislikes:'',budget:3,time:45,dinnerLight:true}};
+const defaults={created:new Date().toISOString().slice(0,10),learningDays:21,history:[],pantry:[],family:{
+  adults:2,
+  children:0,
+  ages:'',
+  cookFor:2,
+  favorites:'',
+  dislikes:'',
+  members:[]
+}};
 let s=JSON.parse(localStorage.getItem('cookv2')||'null')||defaults;s.history=s.history||[];s.pantry=s.pantry||[];s.family={...defaults.family,...(s.family||{})};if(s.learningDays==null)s.learningDays=21;if(!s.created)s.created=defaults.created;
+  if(!Array.isArray(s.family.members)){
+  s.family.members=[];
+}
 const $=id=>document.getElementById(id);const save=()=>localStorage.setItem('cookv2',JSON.stringify(s));const day=x=>Math.max(0,Math.floor((new Date()-new Date(x+'T12:00:00'))/86400000));const rem=()=>Math.max(0,s.learningDays-day(s.created));
 const targets={drinks:7,eggs:3,dairy:7,sweets:2,grains:7,seafood:2,meat:3,vegetables:7,legumes:2,pasta:3,fruit:7};
 const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά',dairy:'🥛 Γαλακτοκομικά',sweets:'🍰 Γλυκά',grains:'🌾 Δημητριακά',seafood:'🐟 Θαλασσινά',meat:'🥩 Κρέατα',vegetables:'🥬 Λαχανικά',legumes:'🫘 Όσπρια',pasta:'🍝 Ζυμαρικά',fruit:'🍎 Φρούτα'};
