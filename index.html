@@ -669,6 +669,10 @@ function renderFamily(){
                 (m.sex?'Φύλο: '+m.sex+' · ':'')+
                 (m.height?'Ύψος: '+m.height+' cm · ':'')+
                 (m.weight?'Βάρος: '+m.weight+' kg':'')+
+          '<div style="margin-top:7px;display:flex;gap:8px;flex-wrap:wrap">'+
+  '<button class="btn secondary" onclick="editFamilyMember('+i+')">✏️ Επεξεργασία</button>'+
+  '<button class="btn ghost" onclick="deleteFamilyMember('+i+')">🗑 Διαγραφή</button>'+
+'</div>'+
               '</div>'+
             '</div>'
           ).join('')
@@ -798,6 +802,90 @@ function saveFamilySettings(){
     height:height ? Number(height) : '',
     weight:weight ? Number(weight) : ''
   });
+
+  save();
+  renderFamily();
+} 
+ function editFamilyMember(index){
+  const m=s.family.members[index];
+  const box=$('memberEditor');
+
+  if(!m || !box)return;
+
+  box.classList.remove('hidden');
+
+  box.innerHTML=
+    '<div class="soft">'+
+      '<b>✏️ Επεξεργασία μέλους</b>'+
+
+      '<div class="field">'+
+        '<label>Όνομα</label>'+
+        '<input id="memberName" value="'+(m.name||'')+'">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Ηλικία</label>'+
+        '<input id="memberAge" type="number" min="0" max="120" value="'+(m.age||'')+'">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Φύλο</label>'+
+        '<select id="memberSex">'+
+          '<option value="">—</option>'+
+          '<option value="Άνδρας" '+(m.sex==='Άνδρας'?'selected':'')+'>Άνδρας</option>'+
+          '<option value="Γυναίκα" '+(m.sex==='Γυναίκα'?'selected':'')+'>Γυναίκα</option>'+
+          '<option value="Άλλο" '+(m.sex==='Άλλο'?'selected':'')+'>Άλλο</option>'+
+        '</select>'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Ύψος (cm)</label>'+
+        '<input id="memberHeight" type="number" min="50" max="250" value="'+(m.height||'')+'">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Βάρος (kg)</label>'+
+        '<input id="memberWeight" type="number" min="10" max="300" step="0.1" value="'+(m.weight||'')+'">'+
+      '</div>'+
+
+      '<button class="btn primary" onclick="updateFamilyMember('+index+')">'+
+        '💾 Αποθήκευση αλλαγών'+
+      '</button>'+
+    '</div>';
+}
+
+function updateFamilyMember(index){
+  const m=s.family.members[index];
+  if(!m)return;
+
+  const name=$('memberName').value.trim();
+
+  if(!name){
+    alert('Γράψε πρώτα το όνομα του μέλους.');
+    return;
+  }
+
+  s.family.members[index]={
+    name:name,
+    age:$('memberAge').value ? Number($('memberAge').value) : '',
+    sex:$('memberSex').value,
+    height:$('memberHeight').value ? Number($('memberHeight').value) : '',
+    weight:$('memberWeight').value ? Number($('memberWeight').value) : ''
+  };
+
+  save();
+  renderFamily();
+}
+
+function deleteFamilyMember(index){
+  const m=s.family.members[index];
+  if(!m)return;
+
+  if(!confirm('Να διαγραφεί το μέλος «'+(m.name||'')+'»;')){
+    return;
+  }
+
+  s.family.members.splice(index,1);
 
   save();
   renderFamily();
