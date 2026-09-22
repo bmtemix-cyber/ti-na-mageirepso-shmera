@@ -655,6 +655,10 @@ function renderFamily(){
 
     '<div class="soft" style="margin-top:8px">'+
       '<b>👨‍👩‍👧‍👦 Μέλη οικογένειας</b>'+
+    '<button class="btn secondary" style="margin-top:10px" onclick="showAddMember()">'+
+  '➕ Προσθήκη μέλους'+
+'</button>'+
+'<div id="memberEditor" class="hidden" style="margin-top:10px"></div>'+
       (
         members.length
         ? members.map((m,i)=>
@@ -727,6 +731,50 @@ function saveFamilySettings(){
   save();
   renderFamily();
 }
+ function showAddMember(){
+  const box=$('memberEditor');
+
+  box.classList.remove('hidden');
+
+  box.innerHTML=
+    '<div class="soft">'+
+      '<b>➕ Νέο μέλος</b>'+
+
+      '<div class="field">'+
+        '<label>Όνομα</label>'+
+        '<input id="memberName" placeholder="π.χ. Γιώργος">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Ηλικία</label>'+
+        '<input id="memberAge" type="number" min="0" max="120">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Φύλο</label>'+
+        '<select id="memberSex">'+
+          '<option value="">—</option>'+
+          '<option value="Άνδρας">Άνδρας</option>'+
+          '<option value="Γυναίκα">Γυναίκα</option>'+
+          '<option value="Άλλο">Άλλο</option>'+
+        '</select>'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Ύψος (cm)</label>'+
+        '<input id="memberHeight" type="number" min="50" max="250">'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<label>Βάρος (kg)</label>'+
+        '<input id="memberWeight" type="number" min="10" max="300" step="0.1">'+
+      '</div>'+
+
+      '<button class="btn primary" onclick="saveFamilyMember()">'+
+        '💾 Αποθήκευση μέλους'+
+      '</button>'+
+    '</div>';
+} 
 function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
 function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
 function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
