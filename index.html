@@ -668,10 +668,15 @@ function renderFamily(){
                 (m.age?'Ηλικία: '+m.age+' · ':'')+
                 (m.sex?'Φύλο: '+m.sex+' · ':'')+
                 (m.height?'Ύψος: '+m.height+' cm · ':'')+
-                (m.weight?'Βάρος: '+m.weight+' kg':'')+
-          '<div style="margin-top:7px;display:flex;gap:8px;flex-wrap:wrap">'+
-  '<button class="btn secondary" onclick="editFamilyMember('+i+')">✏️ Επεξεργασία</button>'+
-  '<button class="btn ghost" onclick="deleteFamilyMember('+i+')">🗑 Διαγραφή</button>'+
+               (m.weight?'Βάρος: '+m.weight+' kg':'')+
+'</div>'+
+
+'<div class="small" style="margin-top:6px">'+
+  '❤️ Αγαπημένα: '+(m.likes||'Δεν έχουν δηλωθεί')+
+'</div>'+
+
+'<div class="small" style="margin-top:4px">'+
+  '🚫 Δεν προτιμά: '+(m.dislikes||'Δεν έχουν δηλωθεί')+
 '</div>'+
               '</div>'+
             '</div>'
