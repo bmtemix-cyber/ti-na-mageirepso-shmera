@@ -831,7 +831,8 @@ dislikes:$('memberDislikes').value.trim()
   save();
   renderFamily();
 } 
- function editFamilyMember(index){
+
+function editFamilyMember(index){
   const m=s.family.members[index];
   const box=$('memberEditor');
 
@@ -850,7 +851,7 @@ dislikes:$('memberDislikes').value.trim()
 
       '<div class="field">'+
         '<label>Ηλικία</label>'+
-        '<input id="memberAge" type="number" min="0" max="120" value="'+(m.age||'')+'">'+
+        '<input id="memberAge" type="number" min="0" max="120" value="'+(m.age??'')+'">'+
       '</div>'+
 
       '<div class="field">'+
@@ -865,28 +866,29 @@ dislikes:$('memberDislikes').value.trim()
 
       '<div class="field">'+
         '<label>Ύψος (cm)</label>'+
-        '<input id="memberHeight" type="number" min="50" max="250" value="'+(m.height||'')+'">'+
+        '<input id="memberHeight" type="number" min="50" max="250" value="'+(m.height??'')+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Βάρος (kg)</label>'+
-        '<input id="memberWeight" type="number" min="10" max="300" step="0.1" value="'+(m.weight||'')+'">'+
+        '<input id="memberWeight" type="number" min="10" max="300" step="0.1" value="'+(m.weight??'')+'">'+
       '</div>'+
 
-      '<button class="btn primary" onclick="updateFamilyMember('+index+')">'+
-    '<div class="field">'+
-  '<label>❤️ Αγαπημένα φαγητά</label>'+
-  '<textarea id="memberLikes" placeholder="π.χ. Παστίτσιο, κοτόπουλο">'+
-    (m.likes||'')+
-  '</textarea>'+
-'</div>'+
+      '<div class="field">'+
+        '<label>❤️ Αγαπημένα φαγητά</label>'+
+        '<textarea id="memberLikes" placeholder="π.χ. Παστίτσιο, κοτόπουλο">'+
+          (m.likes||'')+
+        '</textarea>'+
+      '</div>'+
 
-'<div class="field">'+
-  '<label>🚫 Φαγητά που δεν προτιμά</label>'+
-  '<textarea id="memberDislikes" placeholder="π.χ. Μανιτάρια, φακές">'+
-    (m.dislikes||'')+
-  '</textarea>'+
-'</div>'+
+      '<div class="field">'+
+        '<label>🚫 Φαγητά που δεν προτιμά</label>'+
+        '<textarea id="memberDislikes" placeholder="π.χ. Μανιτάρια, φακές">'+
+          (m.dislikes||'')+
+        '</textarea>'+
+      '</div>'+
+
+      '<button type="button" class="btn primary" onclick="updateFamilyMember('+index+')">'+
         '💾 Αποθήκευση αλλαγών'+
       '</button>'+
     '</div>';
