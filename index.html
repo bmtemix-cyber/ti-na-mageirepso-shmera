@@ -809,7 +809,9 @@ function saveFamilySettings(){
     age:age ? Number(age) : '',
     sex:sex,
     height:height ? Number(height) : '',
-    weight:weight ? Number(weight) : ''
+    weight:weight ? Number(weight) : '',
+likes:$('memberLikes').value.trim(),
+dislikes:$('memberDislikes').value.trim()
   });
 
   save();
