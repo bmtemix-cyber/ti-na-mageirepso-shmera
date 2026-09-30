@@ -661,26 +661,35 @@ function renderFamily(){
 '<div id="memberEditor" class="hidden" style="margin-top:10px"></div>'+
       (
         members.length
-        ? members.map((m,i)=>
-            '<div class="item" style="margin-top:7px">'+
-              '<b>'+(m.name||('Μέλος '+(i+1)))+'</b>'+
-              '<div class="small">'+
-                (m.age?'Ηλικία: '+m.age+' · ':'')+
-                (m.sex?'Φύλο: '+m.sex+' · ':'')+
-                (m.height?'Ύψος: '+m.height+' cm · ':'')+
-               (m.weight?'Βάρος: '+m.weight+' kg':'')+
-'</div>'+
+? members.map((m,i)=>
+    '<div class="item" style="margin-top:7px">'+
+      '<b>'+(m.name||('Μέλος '+(i+1)))+'</b>'+
 
-'<div class="small" style="margin-top:6px">'+
-  '❤️ Αγαπημένα: '+(m.likes||'Δεν έχουν δηλωθεί')+
-'</div>'+
+      '<div class="small">'+
+        (m.age?'Ηλικία: '+m.age+' · ':'')+
+        (m.sex?'Φύλο: '+m.sex+' · ':'')+
+        (m.height?'Ύψος: '+m.height+' cm · ':'')+
+        (m.weight?'Βάρος: '+m.weight+' kg':'')+
+      '</div>'+
 
-'<div class="small" style="margin-top:4px">'+
-  '🚫 Δεν προτιμά: '+(m.dislikes||'Δεν έχουν δηλωθεί')+
-'</div>'+
-              '</div>'+
-            '</div>'
-          ).join('')
+      '<div class="small" style="margin-top:6px">'+
+        '❤️ Αγαπημένα: '+(m.likes||'Δεν έχουν δηλωθεί')+
+      '</div>'+
+
+      '<div class="small" style="margin-top:4px">'+
+        '🚫 Δεν προτιμά: '+(m.dislikes||'Δεν έχουν δηλωθεί')+
+      '</div>'+
+
+      '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'+
+        '<button class="btn secondary" onclick="editFamilyMember('+i+')">'+
+          '✏️ Επεξεργασία'+
+        '</button>'+
+        '<button class="btn ghost" onclick="deleteFamilyMember('+i+')">'+
+          '🗑 Διαγραφή'+
+        '</button>'+
+      '</div>'+
+    '</div>'
+  ).join('')
         : '<div class="small">Δεν έχουν προστεθεί ακόμη μέλη.</div>'
       )+
     '</div>'+
