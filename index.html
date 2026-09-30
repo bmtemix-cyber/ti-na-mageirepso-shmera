@@ -865,6 +865,19 @@ dislikes:$('memberDislikes').value.trim()
       '</div>'+
 
       '<button class="btn primary" onclick="updateFamilyMember('+index+')">'+
+    '<div class="field">'+
+  '<label>❤️ Αγαπημένα φαγητά</label>'+
+  '<textarea id="memberLikes" placeholder="π.χ. Παστίτσιο, κοτόπουλο">'+
+    (m.likes||'')+
+  '</textarea>'+
+'</div>'+
+
+'<div class="field">'+
+  '<label>🚫 Φαγητά που δεν προτιμά</label>'+
+  '<textarea id="memberDislikes" placeholder="π.χ. Μανιτάρια, φακές">'+
+    (m.dislikes||'')+
+  '</textarea>'+
+'</div>'+
         '💾 Αποθήκευση αλλαγών'+
       '</button>'+
     '</div>';
