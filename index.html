@@ -893,9 +893,9 @@ function editFamilyMember(index){
       '</button>'+
     '</div>';
 }
-
 function updateFamilyMember(index){
   const m=s.family.members[index];
+
   if(!m)return;
 
   const name=$('memberName').value.trim();
@@ -906,11 +906,14 @@ function updateFamilyMember(index){
   }
 
   s.family.members[index]={
+    ...m,
     name:name,
     age:$('memberAge').value ? Number($('memberAge').value) : '',
     sex:$('memberSex').value,
     height:$('memberHeight').value ? Number($('memberHeight').value) : '',
-    weight:$('memberWeight').value ? Number($('memberWeight').value) : ''
+    weight:$('memberWeight').value ? Number($('memberWeight').value) : '',
+    likes:$('memberLikes').value.trim(),
+    dislikes:$('memberDislikes').value.trim()
   };
 
   save();
