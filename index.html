@@ -484,6 +484,9 @@ function showTodaySuggestion(){
 box.innerHTML=
   '<b>⭐ Προτάσεις για σήμερα</b>'+
  meals.map((meal,i)=>
+  (familyNote(meal)
+  ? '<div class="small" style="margin-top:5px">'+familyNote(meal)+'</div>'
+  : '')+ 
   '<div class="soft" style="margin-top:10px">'+
     '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
     '<div class="small" style="margin-top:5px">'+
@@ -543,6 +546,24 @@ async function findRecipeForMeal(name,targetId){
       '<div class="small">⚠️ Υπήρξε πρόβλημα κατά την αναζήτηση.</div>';
   }
 }
+function familyNote(meal){
+  const pref=familyPreferenceForMeal(meal.name);
+
+  if(pref.likes>0 && pref.dislikes>0){
+    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+
+      ' μέλη · '+pref.dislikes+' μέλη δεν το προτιμούν.';
+  }
+
+  if(pref.likes>0){
+    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+' μέλη.';
+  }
+
+  if(pref.dislikes>0){
+    return '👨‍👩‍👧‍👦 '+pref.dislikes+' μέλη δεν το προτιμούν.';
+  }
+
+  return '';
+}  
 function counts(){
   let c={
     drinks:0,
