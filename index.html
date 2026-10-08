@@ -325,17 +325,25 @@ function mealSuitability(meal){
 
     balanceScore=values.reduce((a,b)=>a+b,0)/values.length;
   }
+const familyPref=familyPreferenceForMeal(meal.name);
 
-  const total=
-    preferenceScore*0.45 +
-    categoryScore*0.20 +
-    balanceScore*0.35;
+let familyScore=3;
 
+familyScore+=familyPref.likes*0.5;
+familyScore-=familyPref.dislikes*0.8;
+
+familyScore=Math.max(1,Math.min(5,familyScore));
+const total=
+  preferenceScore*0.35 +
+  categoryScore*0.15 +
+  balanceScore*0.35 +
+  familyScore*0.15;
   return {
     total:Number(total.toFixed(2)),
     preference:Number(preferenceScore.toFixed(2)),
     category:Number(categoryScore.toFixed(2)),
     balance:Number(balanceScore.toFixed(2))
+    family:Number(familyScore.toFixed(2)),
   };
 }  
 function bestKnownMealForToday(){
