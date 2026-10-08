@@ -478,31 +478,57 @@ function showTodaySuggestion(){
 
     return 'Είναι μια καλή διαφορετική επιλογή με βάση όσα έχω μάθει.';
   }
+  function familyNote(meal){
+  const pref=familyPreferenceForMeal(meal.name);
+
+  if(pref.likes>0 && pref.dislikes>0){
+    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+
+      ' μέλη · '+pref.dislikes+' μέλη δεν το προτιμούν.';
+  }
+
+  if(pref.likes>0){
+    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+' μέλη.';
+  }
+
+  if(pref.dislikes>0){
+    return '👨‍👩‍👧‍👦 '+pref.dislikes+' μέλη δεν το προτιμούν.';
+  }
+
+  return '';
+}
 
   box.classList.remove('hidden');
 
 box.innerHTML=
   '<b>⭐ Προτάσεις για σήμερα</b>'+
- meals.map((meal,i)=>
-  (familyNote(meal)
-  ? '<div class="small" style="margin-top:5px">'+familyNote(meal)+'</div>'
-  : '')+ 
-  '<div class="soft" style="margin-top:10px">'+
-    '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
-    '<div class="small" style="margin-top:5px">'+
-      reasonFor(meal)+
-    '</div>'+
-    '<div class="small" style="margin-top:5px">'+
-      'Score: '+meal.score.total+'/5'+
-    '</div>'+
-    '<button class="btn secondary" style="margin-top:8px" '+
-      'data-meal="'+encodeURIComponent(meal.name)+'" '+
-      'onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),\'recipePreview'+i+'\')">'+
-      '🍳 Βρες μου συνταγή'+
-    '</button>'+
-    '<div id="recipePreview'+i+'" style="margin-top:10px"></div>'+
-  '</div>'
-).join('');
+  meals.map((meal,i)=>
+    '<div class="soft" style="margin-top:10px">'+
+
+      '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
+
+      '<div class="small" style="margin-top:5px">'+
+        reasonFor(meal)+
+      '</div>'+
+(familyNote(meal)
+  ? '<div class="small" style="margin-top:5px">'+
+      familyNote(meal)+
+    '</div>'
+  : '')+
+     
+      '<div class="small" style="margin-top:5px">'+
+        'Score: '+meal.score.total+'/5'+
+      '</div>'+
+
+      '<button class="btn secondary" style="margin-top:8px" '+
+        'data-meal="'+encodeURIComponent(meal.name)+'" '+
+        'onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),\'recipePreview'+i+'\')">'+
+        '🍳 Βρες μου συνταγή'+
+      '</button>'+
+
+      '<div id="recipePreview'+i+'" style="margin-top:10px"></div>'+
+
+    '</div>'
+  ).join('');
 }
 async function findRecipeForMeal(name,targetId){
   const box=$(targetId);
