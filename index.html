@@ -437,6 +437,38 @@ function topKnownMealsForToday(limit=3){
     alternative ? {...alternative,choiceType:'alternative'} : null
   ].filter(Boolean);
 } 
+function findAlternativeMeal(meal){
+  const all=preferenceStats();
+
+  const originalCats=Array.isArray(meal.cats) ? meal.cats : [];
+
+  const candidates=all
+    .filter(x=>x.name!==meal.name)
+    .map(x=>{
+      const score=mealSuitability({
+        name:x.name,
+        cats:x.cats||[]
+      });
+
+      const sharedCats=(x.cats||[]).filter(c=>originalCats.includes(c)).length;
+
+      return {
+        name:x.name,
+        cats:x.cats||[],
+        sharedCats:sharedCats,
+        score:score
+      };
+    })
+    .filter(x=>x.sharedCats>0)
+    .sort((a,b)=>{
+      if(b.sharedCats!==a.sharedCats){
+        return b.sharedCats-a.sharedCats;
+      }
+      return b.score.total-a.score.total;
+    });
+
+  return candidates[0]||null;
+}  
 function getTodaySuggestionText(){
   const best=bestKnownMealForToday();
 
