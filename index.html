@@ -253,6 +253,40 @@ function saveMeal(){
     }))
     .sort((a,b)=>b.average-a.average);
 } 
+ function familyPreferenceForMeal(mealName){
+  const name=(mealName||'').toLowerCase().trim();
+  const members=Array.isArray(s.family.members) ? s.family.members : [];
+
+  let likes=0;
+  let dislikes=0;
+
+  members.forEach(m=>{
+    const liked=(m.likes||'')
+      .toLowerCase()
+      .split(',')
+      .map(x=>x.trim())
+      .filter(Boolean);
+
+    const disliked=(m.dislikes||'')
+      .toLowerCase()
+      .split(',')
+      .map(x=>x.trim())
+      .filter(Boolean);
+
+    if(liked.some(x=>name.includes(x) || x.includes(name))){
+      likes++;
+    }
+
+    if(disliked.some(x=>name.includes(x) || x.includes(name))){
+      dislikes++;
+    }
+  });
+
+  return {
+    likes:likes,
+    dislikes:dislikes
+  };
+} 
 function mealSuitability(meal){
   const prefStats=preferenceStats();
   const catStats=categoryPreferenceStats();
