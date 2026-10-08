@@ -528,7 +528,21 @@ function showTodaySuggestion(){
 
   return '';
 }
+function alternativeNote(meal){
+  const pref=familyPreferenceForMeal(meal.name);
 
+  if(pref.dislikes<=0){
+    return '';
+  }
+
+  const alt=findAlternativeMeal(meal);
+
+  if(!alt){
+    return '';
+  }
+
+  return '💡 Εναλλακτική: '+alt.name;
+}
   box.classList.remove('hidden');
 
 box.innerHTML=
@@ -546,7 +560,11 @@ box.innerHTML=
       familyNote(meal)+
     '</div>'
   : '')+
-     
+   (alternativeNote(meal)
+  ? '<div class="small" style="margin-top:5px">'+
+      alternativeNote(meal)+
+    '</div>'
+  : '')+  
       '<div class="small" style="margin-top:5px">'+
         'Score: '+meal.score.total+'/5'+
       '</div>'+
@@ -604,24 +622,6 @@ async function findRecipeForMeal(name,targetId){
       '<div class="small">⚠️ Υπήρξε πρόβλημα κατά την αναζήτηση.</div>';
   }
 }
-function familyNote(meal){
-  const pref=familyPreferenceForMeal(meal.name);
-
-  if(pref.likes>0 && pref.dislikes>0){
-    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+
-      ' μέλη · '+pref.dislikes+' μέλη δεν το προτιμούν.';
-  }
-
-  if(pref.likes>0){
-    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+' μέλη.';
-  }
-
-  if(pref.dislikes>0){
-    return '👨‍👩‍👧‍👦 '+pref.dislikes+' μέλη δεν το προτιμούν.';
-  }
-
-  return '';
-}  
 function counts(){
   let c={
     drinks:0,
