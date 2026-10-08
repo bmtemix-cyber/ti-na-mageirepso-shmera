@@ -560,11 +560,31 @@ box.innerHTML=
       familyNote(meal)+
     '</div>'
   : '')+
-   (alternativeNote(meal)
-  ? '<div class="small" style="margin-top:5px">'+
-      alternativeNote(meal)+
-    '</div>'
-  : '')+  
+(()=>{
+  const alt=findAlternativeMeal(meal);
+
+  if(!alt){
+    return '';
+  }
+
+  const pref=familyPreferenceForMeal(meal.name);
+
+  if(pref.dislikes<=0){
+    return '';
+  }
+
+  return (
+    '<div class="small" style="margin-top:5px">'+
+      '💡 Εναλλακτική: '+alt.name+
+    '</div>'+
+    '<button class="btn ghost" style="margin-top:6px" '+
+      'data-meal="'+encodeURIComponent(alt.name)+'" '+
+      'onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),\'recipePreviewAlt'+i+'\')">'+
+      '🍳 Βρες συνταγή για την εναλλακτική'+
+    '</button>'+
+    '<div id="recipePreviewAlt'+i+'" style="margin-top:10px"></div>'
+  );
+})()+
       '<div class="small" style="margin-top:5px">'+
         'Score: '+meal.score.total+'/5'+
       '</div>'+
