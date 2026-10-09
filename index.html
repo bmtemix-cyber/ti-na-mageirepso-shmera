@@ -1080,4 +1080,216 @@ function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learning
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');render()}
 function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();}
 render();if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js?v=7').then(r=>r.update()).catch(()=>{})}
+</script><style>
+#welcomeScreen{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  overflow-y:auto;
+  background:#fffaf0;
+  padding:18px 14px 28px;
+}
+
+.welcomeInner{
+  max-width:520px;
+  margin:auto;
+  text-align:center;
+}
+
+.welcomeTitle{
+  font-size:30px;
+  font-weight:900;
+  color:#315c3a;
+  margin:6px 0;
+}
+
+.welcomeSubtitle{
+  color:#68716b;
+  margin-bottom:16px;
+}
+
+.welcomeVideoCard{
+  border-radius:20px;
+  overflow:hidden;
+  margin:12px 0;
+  background:white;
+  box-shadow:0 4px 15px rgba(0,0,0,.08);
+}
+
+.welcomeVideoTitle{
+  text-align:left;
+  font-size:18px;
+  font-weight:900;
+  padding:10px 12px;
+}
+
+.welcomeVideoTitle.bad{
+  background:#fbe2de;
+  color:#9d3026;
+}
+
+.welcomeVideoTitle.good{
+  background:#e3f3df;
+  color:#315c3a;
+}
+
+.welcomeVideo{
+  width:100%;
+  display:block;
+  background:#111;
+}
+
+.welcomeInfo{
+  padding:10px;
+  font-size:13px;
+  color:#68716b;
+}
+
+#welcomeStart{
+  width:100%;
+  border:0;
+  border-radius:18px;
+  padding:16px;
+  margin-top:14px;
+  font-size:20px;
+  font-weight:900;
+  background:#315c3a;
+  color:white;
+}
+
+.welcomeSkip{
+  font-size:12px;
+  color:#68716b;
+  margin-top:8px;
+}
+</style>
+
+<div id="welcomeScreen">
+  <div class="welcomeInner">
+
+    <div style="font-size:46px">🍳</div>
+
+    <div class="welcomeTitle">
+      Τι να μαγειρέψω σήμερα;
+    </div>
+
+    <div class="welcomeSubtitle">
+      Δες σε λίγα δευτερόλεπτα πώς η σωστή διατροφή
+      μπορεί να αλλάξει την καθημερινότητα μιας οικογένειας.
+    </div>
+
+    <div class="welcomeVideoCard">
+      <div class="welcomeVideoTitle bad">
+        ☹️ Χωρίς πρόγραμμα
+      </div>
+
+      <video
+        id="welcomeBadVideo"
+        class="welcomeVideo"
+        autoplay
+        muted
+        playsinline
+        preload="auto">
+        <source src="family-unhealthy.mp4" type="video/mp4">
+      </video>
+
+      <div class="welcomeInfo">
+        Πρόχειρες επιλογές • χωρίς ισορροπία • χωρίς πρόγραμμα
+      </div>
+    </div>
+
+    <div class="welcomeVideoCard">
+      <div class="welcomeVideoTitle good">
+        🙂 Με τη βοήθεια της εφαρμογής
+      </div>
+
+      <video
+        id="welcomeGoodVideo"
+        class="welcomeVideo"
+        autoplay
+        muted
+        playsinline
+        preload="auto">
+        <source src="family-healthy.mp4" type="video/mp4">
+      </video>
+
+      <div class="welcomeInfo">
+        Ισορροπημένη διατροφή • οικογενειακές προτιμήσεις • καλύτερες επιλογές
+      </div>
+    </div>
+
+    <button id="welcomeStart" type="button">
+      Ξεκινήστε ›
+    </button>
+
+    <div class="welcomeSkip">
+      Πατήστε «Ξεκινήστε» για παράκαμψη των βίντεο και άμεση είσοδο.
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+
+  const screen=document.getElementById('welcomeScreen');
+  const bad=document.getElementById('welcomeBadVideo');
+  const good=document.getElementById('welcomeGoodVideo');
+  const start=document.getElementById('welcomeStart');
+
+  let badEnded=false;
+  let goodEnded=false;
+  let entered=false;
+
+  function enterApplication(){
+    if(entered)return;
+
+    entered=true;
+
+    if(bad)bad.pause();
+    if(good)good.pause();
+
+    if(screen){
+      screen.style.opacity='0';
+      screen.style.transition='opacity .35s ease';
+
+      setTimeout(()=>{
+        screen.style.display='none';
+      },350);
+    }
+  }
+
+  function videosFinished(){
+    if(badEnded && goodEnded){
+      enterApplication();
+    }
+  }
+
+  if(start){
+    start.addEventListener('click',enterApplication);
+  }
+
+  if(bad){
+    bad.addEventListener('ended',()=>{
+      badEnded=true;
+      videosFinished();
+    });
+  }
+
+  if(good){
+    good.addEventListener('ended',()=>{
+      goodEnded=true;
+      videosFinished();
+    });
+  }
+
+  if(bad){
+    bad.play().catch(()=>{});
+  }
+
+  if(good){
+    good.play().catch(()=>{});
+  }
+
+})();
 </script></body></html>
