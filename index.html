@@ -20,7 +20,268 @@
   height:24px;
   margin:0;
   flex:0 0 24px;
-}</style></head><body><div class="app"><header><div class="brand">Τι να μαγειρέψω σήμερα; 🍳</div><div class="sub" id="date"></div></header><main>
+}</style><style>
+:root{
+  --green:#2f6b3a;
+  --green2:#3f8b4d;
+  --soft-green:#e9f6e8;
+  --soft-red:#fde7e4;
+  --paper:#fffdf7;
+  --line:#e6e2d8;
+  --text:#243126;
+  --muted:#6a7467;
+}
+
+.welcome-screen{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  overflow:auto;
+  background:linear-gradient(180deg,#fffdf7 0%,#f7f3e9 100%);
+  padding:18px 14px 30px;
+}
+
+.welcome-screen.hidden{
+  display:none;
+}
+
+.welcome-wrap{
+  max-width:720px;
+  margin:0 auto;
+}
+
+.welcome-hero{
+  text-align:center;
+  margin-bottom:18px;
+}
+
+.welcome-logo{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.welcome-logo-badge{
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+  font-size:32px;
+}
+
+.welcome-title{
+  font-size:clamp(28px,5vw,44px);
+  line-height:1.05;
+  font-weight:900;
+  color:#175b45;
+  letter-spacing:-0.5px;
+}
+
+.welcome-title span{
+  color:#5b2f16;
+}
+
+.welcome-sub{
+  margin-top:10px;
+  color:#325044;
+  font-size:18px;
+  line-height:1.35;
+}
+
+.welcome-videos{
+  display:grid;
+  gap:18px;
+  margin-top:18px;
+}
+
+.video-panel{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:26px;
+  overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.06);
+}
+
+.video-head{
+  padding:14px 16px;
+  font-weight:800;
+  font-size:20px;
+}
+
+.video-head.bad{
+  background:var(--soft-red);
+  color:#a22e2a;
+}
+
+.video-head.good{
+  background:var(--soft-green);
+  color:#2b7439;
+}
+
+.video-panel video{
+  display:block;
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  background:#000;
+}
+
+.video-caption{
+  padding:12px 14px;
+  text-align:center;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.4;
+}
+
+.welcome-note{
+  margin-top:18px;
+  background:#edf7e9;
+  color:#264a2f;
+  border:1px solid #d7ead1;
+  border-radius:16px;
+  padding:14px 16px;
+  text-align:center;
+  font-size:17px;
+  font-weight:600;
+}
+
+.welcome-actions{
+  margin-top:18px;
+}
+
+.welcome-start{
+  width:100%;
+  font-size:22px;
+  font-weight:900;
+  padding:18px 20px;
+  border:none;
+  border-radius:24px;
+  background:linear-gradient(180deg,#34b24d,#148234);
+  color:#fff;
+  box-shadow:0 10px 24px rgba(20,130,52,.25);
+}
+
+.welcome-skip{
+  margin-top:10px;
+  text-align:center;
+  color:#5d675b;
+  font-size:14px;
+}
+
+.welcome-features{
+  margin-top:18px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+
+.welcome-feature{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:14px 10px;
+  text-align:center;
+  color:#29422f;
+}
+
+.welcome-feature .icon{
+  font-size:28px;
+  display:block;
+  margin-bottom:6px;
+}
+
+@media (max-width:640px){
+  .welcome-features{
+    grid-template-columns:1fr;
+  }
+
+  .video-head{
+    font-size:18px;
+  }
+
+  .welcome-sub{
+    font-size:16px;
+  }
+
+  .welcome-start{
+    font-size:20px;
+  }
+}
+</style></head><body> <section id="welcomeScreen" class="welcome-screen">
+  <div class="welcome-wrap">
+
+    <div class="welcome-hero">
+      <div class="welcome-logo">
+        <div class="welcome-logo-badge">🍲</div>
+        <div class="welcome-title">Τι να μαγειρέψω <span>σήμερα;</span></div>
+      </div>
+
+      <div class="welcome-sub">
+        Υγιεινή διατροφή για όλη την οικογένεια<br>
+        εύκολα, νόστιμα, κάθε μέρα!
+      </div>
+    </div>
+
+    <div class="welcome-videos">
+
+      <div class="video-panel">
+        <div class="video-head bad">☹️ Χωρίς πρόγραμμα</div>
+        <video id="introBadVideo" autoplay muted playsinline controls preload="auto">
+          <source src="family-unhealthy.mp4" type="video/mp4">
+        </video>
+        <div class="video-caption">
+          Πρόχειρες επιλογές • χωρίς ισορροπία • χωρίς πρόγραμμα
+        </div>
+      </div>
+
+      <div class="video-panel">
+        <div class="video-head good">🙂 Με τη βοήθεια της εφαρμογής</div>
+        <video id="introGoodVideo" autoplay muted playsinline controls preload="auto">
+          <source src="family-healthy.mp4" type="video/mp4">
+        </video>
+        <div class="video-caption">
+          Ισορροπημένη διατροφή • καλύτερες επιλογές • πιο υγιής οικογένεια
+        </div>
+      </div>
+
+    </div>
+
+    <div class="welcome-note">
+      🎬 Τα βίντεο παίζουν αυτόματα και μόλις ολοκληρωθούν μπαίνετε στην εφαρμογή.
+    </div>
+
+    <div class="welcome-actions">
+      <button class="welcome-start" onclick="enterApp()">Ξεκινήστε ›</button>
+    </div>
+
+    <div class="welcome-skip">
+      Πατήστε για παράκαμψη των βίντεο και άμεση είσοδο στην εφαρμογή.
+    </div>
+
+    <div class="welcome-features">
+      <div class="welcome-feature">
+        <span class="icon">🍽️</span>
+        Νόστιμες συνταγές
+      </div>
+      <div class="welcome-feature">
+        <span class="icon">⏱️</span>
+        Εύκολα και γρήγορα
+      </div>
+      <div class="welcome-feature">
+        <span class="icon">🥗</span>
+        Υγιεινή διατροφή για όλη την οικογένεια
+      </div>
+    </div>
+
+  </div>
+</section> <div class="app"><header><div class="brand">Τι να μαγειρέψω σήμερα; 🍳</div><div class="sub" id="date"></div></header><main>
 <section id="home" class="view active"><div id="banner" class="card banner"></div><div id="learningHome">
 <div class="card learn"><div class="eyebrow">🌅 Πρωινό</div><div class="meal">Τι φάγατε το πρωί;</div><p class="reason">Κατέγραψε το πραγματικό πρωινό, ακόμη κι αν είναι κάτι πολύ απλό.</p><button class="btn primary" onclick="openLog('breakfast')">+ Καταχώρισε πρωινό</button></div>
 <div class="card learn"><div class="eyebrow">☀️ Μεσημεριανό</div><div class="meal">Τι μαγειρέψατε σήμερα;</div><p class="reason">Στην περίοδο εκμάθησης δεν μαντεύω. Μαθαίνω από τα πραγματικά γεύματα.</p><button class="btn primary" onclick="openLog('lunch')">+ Καταχώρισε μεσημεριανό</button></div>
@@ -184,7 +445,41 @@ function saveMeal(){
   $('hint').textContent='';
   document.querySelectorAll('#cat input[type="checkbox"]').forEach(x=>x.checked=false);
   $('saveStatus').textContent='✅ Το γεύμα καταγράφηκε.';
+function enterApp(){
+  const welcome=$('welcomeScreen');
+  if(!welcome)return;
 
+  welcome.classList.add('hidden');
+}
+
+function initWelcomeScreen(){
+  const welcome=$('welcomeScreen');
+  const bad=$('introBadVideo');
+  const good=$('introGoodVideo');
+
+  if(!welcome || !bad || !good)return;
+
+  let endedCount=0;
+
+  function handleEnded(){
+    endedCount++;
+    if(endedCount>=2){
+      enterApp();
+    }
+  }
+
+  [bad,good].forEach(v=>{
+    v.muted=true;
+    v.playsInline=true;
+
+    v.addEventListener('ended',handleEnded,{once:true});
+
+    const p=v.play();
+    if(p && typeof p.catch==='function'){
+      p.catch(()=>{});
+    }
+  });
+}
   render();
   show('learn');
 }
@@ -1079,7 +1374,14 @@ function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((
 function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');render()}
 function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();}
-render();if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js?v=7').then(r=>r.update()).catch(()=>{})}
+render();
+initWelcomeScreen();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js?v=6')
+    .then(r=>r.update())
+    .catch(()=>{});
+}
 </script><style>
 #welcomeScreen{
   position:fixed;
