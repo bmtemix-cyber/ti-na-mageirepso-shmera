@@ -214,6 +214,35 @@
     font-size:20px;
   }
 }
+</style><style>
+/* Compact welcome layout with an always-visible mobile entry button. */
+@media (max-width:640px){
+  .welcome-screen{
+    padding:10px 12px calc(90px + env(safe-area-inset-bottom,0px));
+    -webkit-overflow-scrolling:touch;
+  }
+  .welcome-hero{margin-bottom:10px}
+  .welcome-logo{gap:8px;margin-bottom:6px}
+  .welcome-logo-badge{width:42px;height:42px;flex:0 0 42px;border-radius:13px;font-size:25px}
+  .welcome-title{font-size:25px;line-height:1.08}
+  .welcome-sub{margin-top:6px;font-size:14px;line-height:1.3}
+  .welcome-videos{gap:10px;margin-top:10px}
+  .video-panel{border-radius:18px}
+  .video-head{padding:9px 12px;font-size:16px}
+  .video-caption{padding:7px 10px;font-size:12px;line-height:1.3}
+  .welcome-note{margin-top:10px;padding:9px 10px;font-size:13px;border-radius:12px}
+  .welcome-actions{
+    position:fixed;left:0;right:0;bottom:0;z-index:2;margin:0;
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));
+    background:#fffdf7;border-top:1px solid #e6e2d8;
+    box-shadow:0 -4px 16px rgba(0,0,0,.06);
+  }
+  .welcome-start{display:block;max-width:520px;margin:auto;padding:13px 18px;font-size:19px;border-radius:16px}
+  .welcome-skip{margin-top:8px;font-size:12px}
+  .welcome-features{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+  .welcome-feature{padding:9px 5px;font-size:11px;border-radius:12px;overflow-wrap:anywhere}
+  .welcome-feature .icon{font-size:22px;margin-bottom:4px}
+}
 </style></head><body> <section id="welcomeScreen" class="welcome-screen">
   <div class="welcome-wrap">
 
