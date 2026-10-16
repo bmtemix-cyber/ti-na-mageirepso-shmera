@@ -41,12 +41,12 @@
   padding:18px 14px 30px;
 }
 
-.welcome-screen.hidden{
+.welcome-screen.hden{
   display:none;
 }
 
 .welcome-wrap{
-  max-width:720px;
+  max-wth:720px;
   margin:0 auto;
 }
 
@@ -64,7 +64,7 @@
 }
 
 .welcome-logo-badge{
-  width:58px;
+  wth:58px;
   height:58px;
   border-radius:18px;
   background:#fff;
@@ -94,45 +94,45 @@
   line-height:1.35;
 }
 
-.welcome-videos{
-  display:grid;
+.welcome-veos{
+  display:gr;
   gap:18px;
   margin-top:18px;
 }
 
-.video-panel{
+.veo-panel{
   background:#fff;
-  border:1px solid var(--line);
+  border:1px sol var(--line);
   border-radius:26px;
-  overflow:hidden;
+  overflow:hden;
   box-shadow:0 8px 24px rgba(0,0,0,.06);
 }
 
-.video-head{
+.veo-head{
   padding:14px 16px;
   font-weight:800;
   font-size:20px;
 }
 
-.video-head.bad{
+.veo-head.bad{
   background:var(--soft-red);
   color:#a22e2a;
 }
 
-.video-head.good{
+.veo-head.good{
   background:var(--soft-green);
   color:#2b7439;
 }
 
-.video-panel video{
+.veo-panel veo{
   display:block;
-  width:100%;
+  wth:100%;
   aspect-ratio:16/9;
   object-fit:cover;
   background:#000;
 }
 
-.video-caption{
+.veo-caption{
   padding:12px 14px;
   text-align:center;
   color:var(--muted);
@@ -144,7 +144,7 @@
   margin-top:18px;
   background:#edf7e9;
   color:#264a2f;
-  border:1px solid #d7ead1;
+  border:1px sol #d7ead1;
   border-radius:16px;
   padding:14px 16px;
   text-align:center;
@@ -157,7 +157,7 @@
 }
 
 .welcome-start{
-  width:100%;
+  wth:100%;
   font-size:22px;
   font-weight:900;
   padding:18px 20px;
@@ -177,14 +177,14 @@
 
 .welcome-features{
   margin-top:18px;
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
+  display:gr;
+  gr-template-columns:repeat(3,1fr);
   gap:10px;
 }
 
 .welcome-feature{
   background:#fff;
-  border:1px solid var(--line);
+  border:1px sol var(--line);
   border-radius:18px;
   padding:14px 10px;
   text-align:center;
@@ -197,12 +197,12 @@
   margin-bottom:6px;
 }
 
-@media (max-width:640px){
+@media (max-wth:640px){
   .welcome-features{
-    grid-template-columns:1fr;
+    gr-template-columns:1fr;
   }
 
-  .video-head{
+  .veo-head{
     font-size:18px;
   }
 
@@ -327,7 +327,7 @@
 <div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
 <section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
-<section id="settings" class="view">
+<section  class="view">
   <div class="card">
     <h2>⚙️ Ρυθμίσεις</h2>
 
@@ -365,7 +365,6 @@
       Για πραγματική αναζήτηση θα χρειαστεί backend/API.
     </div>
   </div>
-</section><div class="card"><h2>⚙️ Ρυθμίσεις</h2><div class="field"><label>Περίοδος εκμάθησης</label><select id="learnDays" onchange="changeLearn()"><option value="21">3 εβδομάδες</option><option value="14">2 εβδομάδες</option><option value="0">Προτάσεις από τώρα</option></select></div><div class="notice">Η online «δημοφιλής συνταγή στην περιοχή» είναι έτοιμη ως UI. Για πραγματική αναζήτηση θα χρειαστεί backend/API.</div></div></section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
  function changeEveningReminder(){
@@ -1416,6 +1415,10 @@ function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').
 function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
 function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');render()}
+function markAppOpenedToday(){
+  const today=new Date().toISOString().slice(0,10);
+  localStorage.setItem('lastOpenedDate',today);
+}  
 function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();const reminderEnabled=
   localStorage.getItem('eveningReminder')==='1';
 
@@ -1456,6 +1459,7 @@ function initWelcomeScreen(){
   });
 }
 
+markAppOpenedToday();
 render();
 initWelcomeScreen();
 
