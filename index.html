@@ -327,9 +327,58 @@
 <div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
 <section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
-<section id="settings" class="view"><div class="card"><h2>⚙️ Ρυθμίσεις</h2><div class="field"><label>Περίοδος εκμάθησης</label><select id="learnDays" onchange="changeLearn()"><option value="21">3 εβδομάδες</option><option value="14">2 εβδομάδες</option><option value="0">Προτάσεις από τώρα</option></select></div><div class="notice">Η online «δημοφιλής συνταγή στην περιοχή» είναι έτοιμη ως UI. Για πραγματική αναζήτηση θα χρειαστεί backend/API.</div></div></section>
+<section id="settings" class="view">
+  <div class="card">
+    <h2>⚙️ Ρυθμίσεις</h2>
+
+    <div class="field">
+      <label>Περίοδος εκμάθησης</label>
+      <select id="learnDays" onchange="changeLearn()">
+        <option value="21">3 εβδομάδες</option>
+        <option value="14">2 εβδομάδες</option>
+        <option value="0">Προτάσεις από τώρα</option>
+      </select>
+    </div>
+
+    <div class="soft" style="margin-top:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <b>🔔 Βραδινή υπενθύμιση</b>
+          <div class="small" style="margin-top:4px">
+            Ειδοποίηση το βράδυ αν δεν έχει ανοίξει η εφαρμογή μέσα στη μέρα.
+          </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px">
+          <input
+            id="eveningReminder"
+            type="checkbox"
+            onchange="changeEveningReminder()"
+          >
+          <span id="eveningReminderStatus">OFF</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="notice" style="margin-top:12px">
+      Η online «δημοφιλής συνταγή στην περιοχή» είναι έτοιμη ως UI.
+      Για πραγματική αναζήτηση θα χρειαστεί backend/API.
+    </div>
+  </div>
+</section><div class="card"><h2>⚙️ Ρυθμίσεις</h2><div class="field"><label>Περίοδος εκμάθησης</label><select id="learnDays" onchange="changeLearn()"><option value="21">3 εβδομάδες</option><option value="14">2 εβδομάδες</option><option value="0">Προτάσεις από τώρα</option></select></div><div class="notice">Η online «δημοφιλής συνταγή στην περιοχή» είναι έτοιμη ως UI. Για πραγματική αναζήτηση θα χρειαστεί backend/API.</div></div></section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
+ function changeEveningReminder(){
+  const enabled=$('eveningReminder').checked;
+
+  localStorage.setItem(
+    'eveningReminder',
+    enabled ? '1' : '0'
+  );
+
+  $('eveningReminderStatus').textContent=
+    enabled ? 'ON' : 'OFF';
+} 
 const defaults={created:new Date().toISOString().slice(0,10),learningDays:21,history:[],pantry:[],family:{
   adults:2,
   children:0,
@@ -1367,7 +1416,17 @@ function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').
 function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
 function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');render()}
-function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();}
+function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();const reminderEnabled=
+  localStorage.getItem('eveningReminder')==='1';
+
+if($('eveningReminder')){
+  $('eveningReminder').checked=reminderEnabled;
+}
+
+if($('eveningReminderStatus')){
+  $('eveningReminderStatus').textContent=
+    reminderEnabled ? 'ON' : 'OFF';
+} }
 
 let welcomeEntered=false;
 function enterApp(){
