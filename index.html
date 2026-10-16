@@ -327,7 +327,7 @@
 <div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
 <section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
-<section  class="view">
+<section id="settings" class="view">
   <div class="card">
     <h2>⚙️ Ρυθμίσεις</h2>
 
@@ -365,6 +365,7 @@
       Για πραγματική αναζήτηση θα χρειαστεί backend/API.
     </div>
   </div>
+  </section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
  function changeEveningReminder(){
