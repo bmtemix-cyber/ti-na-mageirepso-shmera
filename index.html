@@ -368,16 +368,62 @@
   </section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
- function changeEveningReminder(){
-  const enabled=$('eveningReminder').checked;
+ async function changeEveningReminder(){
+  const checkbox=$('eveningReminder');
+  const status=$('eveningReminderStatus');
 
-  localStorage.setItem(
-    'eveningReminder',
-    enabled ? '1' : '0'
-  );
+  if(!checkbox)return;
 
-  $('eveningReminderStatus').textContent=
-    enabled ? 'ON' : 'OFF';
+  if(checkbox.checked){
+
+    if(!('Notification' in window)){
+      alert('Αυτή η συσκευή δεν υποστηρίζει ειδοποιήσεις.');
+      checkbox.checked=false;
+      if(status)status.textContent='OFF';
+      return;
+    }
+
+    try{
+      const permission=await Notification.requestPermission();
+
+      if(permission!=='granted'){
+        checkbox.checked=false;
+
+        localStorage.setItem('eveningReminder','0');
+
+        if(status){
+          status.textContent='OFF';
+        }
+
+        alert('Δεν δόθηκε άδεια για ειδοποιήσεις.');
+        return;
+      }
+
+      localStorage.setItem('eveningReminder','1');
+
+      if(status){
+        status.textContent='ON';
+      }
+
+    }catch(e){
+      checkbox.checked=false;
+      localStorage.setItem('eveningReminder','0');
+
+      if(status){
+        status.textContent='OFF';
+      }
+
+      alert('Δεν ήταν δυνατή η ενεργοποίηση των ειδοποιήσεων.');
+    }
+
+  }else{
+
+    localStorage.setItem('eveningReminder','0');
+
+    if(status){
+      status.textContent='OFF';
+    }
+  }
 } 
 const defaults={created:new Date().toISOString().slice(0,10),learningDays:21,history:[],pantry:[],family:{
   adults:2,
