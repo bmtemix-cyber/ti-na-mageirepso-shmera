@@ -47,8 +47,37 @@ function instructionText(x) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
+if (url.pathname === "/api/save-subscription" && request.method === "POST") {
+  try {
+    const body = await request.json();
+
+    if (!body.subscription || !body.id) {
+      return Response.json(
+        { ok: false, error: "Λείπουν στοιχεία subscription." },
+        { status: 400 }
+      );
+    }
+
+    await env.REMINDERS.put(
+      "subscription:" + body.id,
+      JSON.stringify({
+        subscription: body.subscription,
+        lastOpenedDate: body.lastOpenedDate || "",
+        enabled: true
+      })
+    );
+
+    return Response.json({ ok: true });
+
+  } catch (e) {
+    return Response.json(
+      { ok: false, error: "Αποτυχία αποθήκευσης subscription." },
+      { status: 500 }
+    );
+  }
+}    
 if (url.pathname === "/api/search-recipe") {
   const q = (url.searchParams.get("q") || "").trim();
 
