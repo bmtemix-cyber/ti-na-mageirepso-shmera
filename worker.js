@@ -71,13 +71,17 @@ if (url.pathname === "/api/save-subscription" && request.method === "POST") {
 
     return Response.json({ ok: true });
 
-  } catch (e) {
-    return Response.json(
-      { ok: false, error: "Αποτυχία αποθήκευσης subscription." },
-      { status: 500 }
-    );
-  }
-}    
+  } }catch(e){
+  return Response.json(
+    {
+      ok:false,
+      error:"Αποτυχία αποθήκευσης subscription.",
+      details:e.message || String(e)
+    },
+    {status:500}
+  );
+}
+  
 if (url.pathname === "/api/search-recipe") {
   const q = (url.searchParams.get("q") || "").trim();
 
