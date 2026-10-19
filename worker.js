@@ -81,7 +81,7 @@ if (url.pathname === "/api/save-subscription" && request.method === "POST") {
     {status:500}
   );
 }
-  
+}  
 if (url.pathname === "/api/search-recipe") {
   const q = (url.searchParams.get("q") || "").trim();
 
