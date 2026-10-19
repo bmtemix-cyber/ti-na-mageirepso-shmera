@@ -71,7 +71,7 @@ if (url.pathname === "/api/save-subscription" && request.method === "POST") {
 
     return Response.json({ ok: true });
 
-  } }catch(e){
+   }catch(e){
   return Response.json(
     {
       ok:false,
