@@ -480,7 +480,7 @@ async function changeEveningReminder(){
         status.textContent='OFF';
       }
 
-      alert('Δεν ήταν δυνατή η ενεργοποίηση της υπενθύμισης.');
+      alert('Σφάλμα: '+(e.message||e));
     }
 
   }else{
