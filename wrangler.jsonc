@@ -2,6 +2,14 @@
   "name": "ti-na-mageirepso-shmera",
   "main": "worker.js",
   "compatibility_date": "2026-08-28",
+
+  "kv_namespaces": [
+    {
+      "binding": "REMINDERS",
+      "id": "b39b8cc74e834999a6fb4d83f3feefc4"
+    }
+  ],
+
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
