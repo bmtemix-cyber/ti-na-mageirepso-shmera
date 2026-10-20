@@ -41,3 +41,40 @@ self.addEventListener('fetch',event=>{
     })
   );
 });
+self.addEventListener('push', event => {
+  const title = '🍳 Τι να μαγειρέψω σήμερα;';
+
+  const options = {
+    body: 'Μην ξεχάσεις να καταγράψεις τα σημερινά γεύματα.',
+    icon: './icon.svg',
+    badge: './icon.svg',
+    tag: 'evening-reminder',
+    renotify: true
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then(windowClients => {
+
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
+  );
+});
