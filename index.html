@@ -365,6 +365,9 @@
       Για πραγματική αναζήτηση θα χρειαστεί backend/API.
     </div>
   </div>
+  <button class="btn secondary" style="margin-top:12px" onclick="sendTestPush()">
+  🔔 Στείλε δοκιμαστική ειδοποίηση
+</button>
   </section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
@@ -432,6 +435,40 @@ const VAPID_PUBLIC_KEY =
 
   return true;
 }
+ async function sendTestPush(){
+  try{
+    const id=localStorage.getItem('reminderDeviceId');
+
+    if(!id){
+      alert('Δεν υπάρχει αποθηκευμένο device id. Ενεργοποίησε πρώτα τη βραδινή υπενθύμιση.');
+      return;
+    }
+
+    const r=await fetch('/api/test-push',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({id})
+    });
+
+    const data=await r.json();
+
+    if(!data.ok){
+      alert(
+        'Σφάλμα: '+
+        (data.error||'Αποτυχία δοκιμαστικής ειδοποίησης')+
+        (data.details ? ' - '+data.details : '')
+      );
+      return;
+    }
+
+    alert('Η δοκιμαστική ειδοποίηση στάλθηκε.');
+
+  }catch(e){
+    alert('Σφάλμα: '+(e.message||e));
+  }
+} 
 async function changeEveningReminder(){
   const checkbox=$('eveningReminder');
   const status=$('eveningReminderStatus');
