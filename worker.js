@@ -1,3 +1,4 @@
+import webpush from "web-push";
 function findRecipeJsonLd(html) {
   const matches = [...html.matchAll(
     /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
@@ -49,6 +50,69 @@ function instructionText(x) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/test-push" && request.method === "POST") {
+  try {
+    const body = await request.json();
+    const id = body.id;
+
+    if (!id) {
+      return Response.json(
+        { ok:false, error:"Λείπει το device id." },
+        { status:400 }
+      );
+    }
+
+    const raw = await env.REMINDERS.get("subscription:" + id);
+
+    if (!raw) {
+      return Response.json(
+        { ok:false, error:"Δεν βρέθηκε push subscription." },
+        { status:404 }
+      );
+    }
+
+    const saved = JSON.parse(raw);
+
+    if (!saved.subscription) {
+      return Response.json(
+        { ok:false, error:"Το subscription δεν είναι έγκυρο." },
+        { status:400 }
+      );
+    }
+
+    webpush.setVapidDetails(
+      env.VAPID_SUBJECT,
+      env.VAPID_PUBLIC_KEY,
+      env.VAPID_PRIVATE_KEY
+    );
+
+    await webpush.sendNotification(
+      saved.subscription,
+      JSON.stringify({
+        title:"🍳 Τι να μαγειρέψω σήμερα;",
+        body:"Η δοκιμαστική ειδοποίηση λειτουργεί!",
+        tag:"test-reminder"
+      })
+    );
+
+    return Response.json({
+      ok:true,
+      message:"Η δοκιμαστική ειδοποίηση στάλθηκε."
+    });
+
+  } catch(e) {
+    console.error("TEST PUSH ERROR", e);
+
+    return Response.json(
+      {
+        ok:false,
+        error:"Αποτυχία αποστολής push.",
+        details:e.message || String(e)
+      },
+      { status:500 }
+    );
+  }
+}
 if (url.pathname === "/api/save-subscription" && request.method === "POST") {
   try {
     const body = await request.json();
