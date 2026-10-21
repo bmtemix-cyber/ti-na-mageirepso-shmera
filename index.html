@@ -469,20 +469,110 @@ const VAPID_PUBLIC_KEY =
     alert('Σφάλμα: '+(e.message||e));
   }
 } 
-async  function changeEveningReminder(){
+async function changeEveningReminder(){
   const checkbox=$('eveningReminder');
   const status=$('eveningReminderStatus');
 
   if(!checkbox)return;
 
-  if(checkbox.checked){
+  try{
 
-    if(!('Notification' in window)){
-      alert('Αυτή η συσκευή δεν υποστηρίζει ειδοποιήσεις.');
-      checkbox.checked=false;
-      if(status)status.textContent='OFF';
-      return;
+    if(checkbox.checked){
+
+      if(!('Notification' in window)){
+        alert('Αυτή η συσκευή δεν υποστηρίζει ειδοποιήσεις.');
+        checkbox.checked=false;
+        if(status)status.textContent='OFF';
+        return;
+      }
+
+      const permission=await Notification.requestPermission();
+
+      if(permission!=='granted'){
+        checkbox.checked=false;
+        localStorage.setItem('eveningReminder','0');
+
+        if(status)status.textContent='OFF';
+
+        alert('Δεν δόθηκε άδεια για ειδοποιήσεις.');
+        return;
+      }
+
+      await registerPushSubscription();
+
+      const id=localStorage.getItem('reminderDeviceId');
+
+      if(id){
+        const r=await fetch('/api/reminder-setting',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json'
+          },
+          body:JSON.stringify({
+            id:id,
+            enabled:true
+          })
+        });
+
+        const data=await r.json();
+
+        if(!data.ok){
+          throw new Error(data.error||'Δεν αποθηκεύτηκε η ρύθμιση.');
+        }
+      }
+
+      localStorage.setItem('eveningReminder','1');
+
+      if(status){
+        status.textContent='ON';
+      }
+
+      alert('🔔 Η βραδινή υπενθύμιση ενεργοποιήθηκε.');
+
+    }else{
+
+      const id=localStorage.getItem('reminderDeviceId');
+
+      if(id){
+        const r=await fetch('/api/reminder-setting',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json'
+          },
+          body:JSON.stringify({
+            id:id,
+            enabled:false
+          })
+        });
+
+        const data=await r.json();
+
+        if(!data.ok){
+          throw new Error(data.error||'Δεν αποθηκεύτηκε η ρύθμιση.');
+        }
+      }
+
+      localStorage.setItem('eveningReminder','0');
+
+      if(status){
+        status.textContent='OFF';
+      }
     }
+
+  }catch(e){
+
+    console.error(e);
+
+    checkbox.checked=false;
+    localStorage.setItem('eveningReminder','0');
+
+    if(status){
+      status.textContent='OFF';
+    }
+
+    alert('Σφάλμα: '+(e.message||e));
+  }
+}
 
     try{
       const permission=await Notification.requestPermission();
