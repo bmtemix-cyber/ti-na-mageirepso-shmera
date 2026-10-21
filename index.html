@@ -573,52 +573,6 @@ async function changeEveningReminder(){
     alert('Σφάλμα: '+(e.message||e));
   }
 }
-
-    try{
-      const permission=await Notification.requestPermission();
-
-      if(permission!=='granted'){
-        checkbox.checked=false;
-        localStorage.setItem('eveningReminder','0');
-
-        if(status)status.textContent='OFF';
-
-        alert('Δεν δόθηκε άδεια για ειδοποιήσεις.');
-        return;
-      }
-
-      await registerPushSubscription();
-
-      localStorage.setItem('eveningReminder','1');
-
-      if(status){
-        status.textContent='ON';
-      }
-
-      alert('🔔 Η βραδινή υπενθύμιση ενεργοποιήθηκε.');
-
-    }catch(e){
-      console.error(e);
-
-      checkbox.checked=false;
-      localStorage.setItem('eveningReminder','0');
-
-      if(status){
-        status.textContent='OFF';
-      }
-
-      alert('Σφάλμα: '+(e.message||e));
-    }
-
-  }else{
-
-    localStorage.setItem('eveningReminder','0');
-
-    if(status){
-      status.textContent='OFF';
-    }
-  }
-}
 const defaults={created:new Date().toISOString().slice(0,10),learningDays:21,history:[],pantry:[],family:{
   adults:2,
   children:0,
