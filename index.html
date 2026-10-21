@@ -373,7 +373,7 @@
 <script>
 const VAPID_PUBLIC_KEY =
   'BHPnukdmQV-MaQgh4khYKMPzIOJ3VnpOpDL2LZjCHUUEFVyK_jhWYmtZfF3WD4fltID__2xGgY4EmV86PF54cdw';  
-   urlBase64ToUint8Array(base64String){
+   function urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
   const base64=(base64String+padding)
     .replace(/-/g,'+')
@@ -385,7 +385,7 @@ const VAPID_PUBLIC_KEY =
     [...rawData].map(char=>char.charCodeAt(0))
   );
 }
-  async  registerPushSubscription(){
+  async  function registerPushSubscription(){
   if(!('serviceWorker' in navigator)){
     throw new Error('Δεν υποστηρίζεται Service Worker');
   }
@@ -435,7 +435,7 @@ const VAPID_PUBLIC_KEY =
 
   return true;
 }
- async  sendTestPush(){
+ async  function sendTestPush(){
   try{
     const id=localStorage.getItem('reminderDeviceId');
 
@@ -469,7 +469,7 @@ const VAPID_PUBLIC_KEY =
     alert('Σφάλμα: '+(e.message||e));
   }
 } 
-async  changeEveningReminder(){
+async  function changeEveningReminder(){
   const checkbox=$('eveningReminder');
   const status=$('eveningReminderStatus');
 
@@ -545,7 +545,7 @@ let s=JSON.parse(localStorage.getItem('cookv2')||'null')||defaults;s.history=s.h
 const $=id=>document.getElementById(id);const save=()=>localStorage.setItem('cookv2',JSON.stringify(s));const day=x=>Math.max(0,Math.floor((new Date()-new Date(x+'T12:00:00'))/86400000));const rem=()=>Math.max(0,s.learningDays-day(s.created));
 const targets={drinks:7,eggs:3,dairy:7,sweets:2,grains:7,seafood:2,meat:3,vegetables:7,legumes:2,pasta:3,fruit:7};
 const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά',dairy:'🥛 Γαλακτοκομικά',sweets:'🍰 Γλυκά',grains:'🌾 Δημητριακά',seafood:'🐟 Θαλασσινά',meat:'🥩 Κρέατα',vegetables:'🥬 Λαχανικά',legumes:'🫘 Όσπρια',pasta:'🍝 Ζυμαρικά',fruit:'🍎 Φρούτα'};
- detect(text){
+ function detect(text){
   const t=(text||'').toLowerCase();
   const rules=[
     ['drinks',['αναψυκ','χυμ','κρασ','μπυρ','ποτο','καφε','τσαι']],
@@ -562,7 +562,7 @@ const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά'
   ];
   return rules.filter(([c,arr])=>arr.some(x=>t.includes(x))).map(([c])=>c);
 }
- autoCategory(){
+ function autoCategory(){
   const cats=detect($('mealName').value);
   const boxes=document.querySelectorAll('#cat input[type="checkbox"]');
 
@@ -574,9 +574,9 @@ const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά'
     $('hint').textContent='Δεν είμαι σίγουρη για τις κατηγορίες. Διάλεξε μία ή περισσότερες.';
   }
 }
- openLog(t){$('type').value=t;show('learn');setTimeout(()=>$('mealName').focus(),100)}
- searchName(x){let t=(x||'').toLowerCase().trim();const m={'μακαρόνια με κιμά':'spaghetti bolognese','μακαρονια με κιμα':'spaghetti bolognese','μακαρόνια':'spaghetti','μακαρονια':'spaghetti','κοτόπουλο':'chicken','κοτοπουλο':'chicken','πατάτες':'potato','πατατες':'potato','ομελέτα':'omelette','ομελετα':'omelette'};return m[t]||x}
-async  suggestRecipe(){
+ function openLog(t){$('type').value=t;show('learn');setTimeout(()=>$('mealName').focus(),100)}
+ function searchName(x){let t=(x||'').toLowerCase().trim();const m={'μακαρόνια με κιμά':'spaghetti bolognese','μακαρονια με κιμα':'spaghetti bolognese','μακαρόνια':'spaghetti','μακαρονια':'spaghetti','κοτόπουλο':'chicken','κοτοπουλο':'chicken','πατάτες':'potato','πατατες':'potato','ομελέτα':'omelette','ομελετα':'omelette'};return m[t]||x}
+async  function suggestRecipe(){
   const meal=$('mealName').value.trim();
   const box=$('recipeSuggestion');
 
@@ -641,8 +641,8 @@ async  suggestRecipe(){
     box.innerHTML='<b>⚠️ Πρόβλημα κατά την αναζήτηση της ελληνικής συνταγής.</b>';
   }
 }
- useRecipe(){if(!window.foundRecipe)return;$('recipe').value=window.foundRecipe.ingredients.join('\n')+'\n\nΟδηγίες:\n'+window.foundRecipe.instructions}
- saveMeal(){
+ function useRecipe(){if(!window.foundRecipe)return;$('recipe').value=window.foundRecipe.ingredients.join('\n')+'\n\nΟδηγίες:\n'+window.foundRecipe.instructions}
+ function saveMeal(){
   const mealName=$('mealName').value.trim();
   if(!mealName){
     $('saveStatus').textContent='⚠️ Γράψε πρώτα το γεύμα.';
@@ -676,7 +676,7 @@ async  suggestRecipe(){
   render();
   show('learn');
 }
-  preferenceStats(){
+  function preferenceStats(){
   const meals={};
 
   s.history.forEach(h=>{
@@ -711,7 +711,7 @@ async  suggestRecipe(){
     cats:[...m.cats]
   }));
 } 
-  categoryPreferenceStats(){
+  function categoryPreferenceStats(){
   const stats={};
 
   Object.keys(labels).forEach(c=>{
@@ -741,7 +741,7 @@ async  suggestRecipe(){
     }))
     .sort((a,b)=>b.average-a.average);
 } 
-  familyPreferenceForMeal(mealName){
+  function familyPreferenceForMeal(mealName){
   const name=(mealName||'').toLowerCase().trim();
   const members=Array.isArray(s.family.members) ? s.family.members : [];
 
@@ -775,7 +775,7 @@ async  suggestRecipe(){
     dislikes:dislikes
   };
 } 
- mealSuitability(meal){
+ function mealSuitability(meal){
   const prefStats=preferenceStats();
   const catStats=categoryPreferenceStats();
   const week=counts();
@@ -834,7 +834,7 @@ const total=
   family: Number(familyScore.toFixed(2))
 };
 }  
- bestKnownMealForToday(){
+ function bestKnownMealForToday(){
   const stats=preferenceStats();
 
   if(!stats.length){
@@ -859,7 +859,7 @@ const total=
 
   return candidates[0]||null;
 }
- topKnownMealsForToday(limit=3){
+ function topKnownMealsForToday(limit=3){
   const stats=preferenceStats();
 
   if(!stats.length){
@@ -884,7 +884,7 @@ const total=
 
   return candidates.slice(0,limit);
 } 
-  smartTodayChoices(){
+  function smartTodayChoices(){
   const stats=preferenceStats();
 
   if(!stats.length){
@@ -925,7 +925,7 @@ const total=
     alternative ? {...alternative,choiceType:'alternative'} : null
   ].filter(Boolean);
 } 
- findAlternativeMeal(meal){
+ function findAlternativeMeal(meal){
   const all=preferenceStats();
 
   const originalCats=Array.isArray(meal.cats) ? meal.cats : [];
@@ -957,7 +957,7 @@ const total=
 
   return candidates[0]||null;
 }  
- getTodaySuggestionText(){
+ function getTodaySuggestionText(){
   const best=bestKnownMealForToday();
 
   if(!best){
@@ -967,7 +967,7 @@ const total=
   return '⭐ '+best.name+
     ' · score '+best.score.total+'/5';
 } 
- showTodaySuggestion(){
+ function showTodaySuggestion(){
   const box=$('todaySuggestion');
   const meals=smartTodayChoices();
 
@@ -981,13 +981,13 @@ const total=
     return;
   }
 
-   titleFor(type){
+   function titleFor(type){
     if(type==='favorite')return '❤️ Αγαπημένη επιλογή';
     if(type==='balanced')return '🥗 Ισορροπημένη επιλογή';
     return '🔄 Εναλλακτική επιλογή';
   }
 
-   reasonFor(meal){
+   function reasonFor(meal){
     if(meal.choiceType==='favorite'){
       return 'Είναι από τα γεύματα που σας αρέσουν περισσότερο.';
     }
@@ -998,7 +998,7 @@ const total=
 
     return 'Είναι μια καλή διαφορετική επιλογή με βάση όσα έχω μάθει.';
   }
-   familyNote(meal){
+   function familyNote(meal){
   const pref=familyPreferenceForMeal(meal.name);
 
   if(pref.likes>0 && pref.dislikes>0){
@@ -1016,7 +1016,7 @@ const total=
 
   return '';
 }
- alternativeNote(meal){
+ function alternativeNote(meal){
   const pref=familyPreferenceForMeal(meal.name);
 
   if(pref.dislikes<=0){
@@ -1088,7 +1088,7 @@ box.innerHTML=
     '</div>'
   ).join('');
 }
-async  findRecipeForMeal(name,targetId){
+async  function findRecipeForMeal(name,targetId){
   const box=$(targetId);
 
   if(!box)return;
@@ -1130,7 +1130,7 @@ async  findRecipeForMeal(name,targetId){
       '<div class="small">⚠️ Υπήρξε πρόβλημα κατά την αναζήτηση.</div>';
   }
 }
- counts(){
+ function counts(){
   let c={
     drinks:0,
     eggs:0,
@@ -1156,8 +1156,8 @@ async  findRecipeForMeal(name,targetId){
 
   return c;
 }
- renderBars(){const c=counts(),recent=s.history.filter(h=>day(h.date)<7),days=new Set(recent.map(h=>h.date)).size,ready=recent.length>=4&&days>=3;$('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';$('weekStatus').textContent=ready?`Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`:`Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες.`;$('bars').innerHTML=Object.keys(targets).map(k=>{const p=Math.min(100,Math.round(c[k]/targets[k]*100));return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`}).join('')}
- renderInsights(){
+ function renderBars(){const c=counts(),recent=s.history.filter(h=>day(h.date)<7),days=new Set(recent.map(h=>h.date)).size,ready=recent.length>=4&&days>=3;$('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';$('weekStatus').textContent=ready?`Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`:`Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες.`;$('bars').innerHTML=Object.keys(targets).map(k=>{const p=Math.min(100,Math.round(c[k]/targets[k]*100));return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`}).join('')}
+ function renderInsights(){
   $('learnCount').textContent=s.history.length+' γεύματα';
 
   if(!s.history.length){
@@ -1178,7 +1178,7 @@ async  findRecipeForMeal(name,targetId){
   const neutral=stats.filter(x=>x.average>2.5 && x.average<3.5);
   const disliked=stats.filter(x=>x.average<=2.5);
 
-   mealChips(list){
+   function mealChips(list){
     if(!list.length){
       return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
     }
@@ -1193,7 +1193,7 @@ async  findRecipeForMeal(name,targetId){
     }).join('');
   }
 
-   categoryChips(){
+   function categoryChips(){
     if(!categoryStats.length){
       return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
     }
@@ -1232,7 +1232,7 @@ async  findRecipeForMeal(name,targetId){
       '<div class="chips" style="margin-top:7px">'+categoryChips()+'</div>'+
     '</div>';
 }
- renderHistory(){
+ function renderHistory(){
   const historyEl=$('history');
 
   if(!s.history.length){
@@ -1259,8 +1259,8 @@ async  findRecipeForMeal(name,targetId){
     </div>`;
   }).join('');
 }
- deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
- renderFamily(){
+ function deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
+ function renderFamily(){
   const members=s.family.members||[];
 
   $('familyInfo').innerHTML=
@@ -1329,7 +1329,7 @@ async  findRecipeForMeal(name,targetId){
 
     '<div id="familyEditor" class="hidden" style="margin-top:10px"></div>';
 }
-  showFamilyEditor(){
+  function showFamilyEditor(){
   const box=$('familyEditor');
 
   box.classList.remove('hidden');
@@ -1368,7 +1368,7 @@ async  findRecipeForMeal(name,targetId){
       '</button>'+
     '</div>';
 } 
- saveFamilySettings(){
+ function saveFamilySettings(){
   s.family.adults=Number($('editAdults').value)||0;
   s.family.children=Number($('editChildren').value)||0;
   s.family.cookFor=Number($('editCookFor').value)||1;
@@ -1378,7 +1378,7 @@ async  findRecipeForMeal(name,targetId){
   save();
   renderFamily();
 }
-  showAddMember(){
+  function showAddMember(){
   const box=$('memberEditor');
 
   box.classList.remove('hidden');
@@ -1431,7 +1431,7 @@ async  findRecipeForMeal(name,targetId){
       '</button>'+
     '</div>';
 } 
-  saveFamilyMember(){
+  function saveFamilyMember(){
   const name=$('memberName').value.trim();
   const age=$('memberAge').value;
   const sex=$('memberSex').value;
@@ -1461,7 +1461,7 @@ dislikes:$('memberDislikes').value.trim()
   renderFamily();
 } 
 
- editFamilyMember(index){
+ function editFamilyMember(index){
   const m=s.family.members[index];
   const box=$('memberEditor');
 
@@ -1522,7 +1522,7 @@ dislikes:$('memberDislikes').value.trim()
       '</button>'+
     '</div>';
 }
- updateFamilyMember(index){
+ function updateFamilyMember(index){
   const m=s.family.members[index];
 
   if(!m)return;
@@ -1549,7 +1549,7 @@ dislikes:$('memberDislikes').value.trim()
   renderFamily();
 }
 
- deleteFamilyMember(index){
+ function deleteFamilyMember(index){
   const m=s.family.members[index];
   if(!m)return;
 
@@ -1562,10 +1562,10 @@ dislikes:$('memberDislikes').value.trim()
   save();
   renderFamily();
 } 
- addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
- renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
- changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
- show(id){
+ function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
+ function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
+ function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
+ function show(id){
   const target=$(id);
 
   if(!target){
