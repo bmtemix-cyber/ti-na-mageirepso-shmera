@@ -6,6 +6,12 @@
   "VAPID_SUBJECT": "mailto:bmtemix@hotmail.com",
   "VAPID_PUBLIC_KEY": "BHPnukdmQV-MaQgh4khYKMPzIOJ3VnpOpDL2LZjCHUUEFVyK_jhWYmtZfF3WD4fltID__2xGgY4EmV86PF54cdw"
 },
+"triggers": {
+  "crons": [
+    "*/30 * * * *"
+  ]
+},
+
   "kv_namespaces": [
     {
       "binding": "REMINDERS",
