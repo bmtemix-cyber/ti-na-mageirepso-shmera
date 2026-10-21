@@ -373,7 +373,7 @@
 <script>
 const VAPID_PUBLIC_KEY =
   'BHPnukdmQV-MaQgh4khYKMPzIOJ3VnpOpDL2LZjCHUUEFVyK_jhWYmtZfF3WD4fltID__2xGgY4EmV86PF54cdw';  
-  function urlBase64ToUint8Array(base64String){
+   urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
   const base64=(base64String+padding)
     .replace(/-/g,'+')
@@ -385,7 +385,7 @@ const VAPID_PUBLIC_KEY =
     [...rawData].map(char=>char.charCodeAt(0))
   );
 }
-  async function registerPushSubscription(){
+  async  registerPushSubscription(){
   if(!('serviceWorker' in navigator)){
     throw new Error('Δεν υποστηρίζεται Service Worker');
   }
@@ -435,7 +435,7 @@ const VAPID_PUBLIC_KEY =
 
   return true;
 }
- async function sendTestPush(){
+ async  sendTestPush(){
   try{
     const id=localStorage.getItem('reminderDeviceId');
 
@@ -469,7 +469,7 @@ const VAPID_PUBLIC_KEY =
     alert('Σφάλμα: '+(e.message||e));
   }
 } 
-async function changeEveningReminder(){
+async  changeEveningReminder(){
   const checkbox=$('eveningReminder');
   const status=$('eveningReminderStatus');
 
@@ -545,7 +545,7 @@ let s=JSON.parse(localStorage.getItem('cookv2')||'null')||defaults;s.history=s.h
 const $=id=>document.getElementById(id);const save=()=>localStorage.setItem('cookv2',JSON.stringify(s));const day=x=>Math.max(0,Math.floor((new Date()-new Date(x+'T12:00:00'))/86400000));const rem=()=>Math.max(0,s.learningDays-day(s.created));
 const targets={drinks:7,eggs:3,dairy:7,sweets:2,grains:7,seafood:2,meat:3,vegetables:7,legumes:2,pasta:3,fruit:7};
 const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά',dairy:'🥛 Γαλακτοκομικά',sweets:'🍰 Γλυκά',grains:'🌾 Δημητριακά',seafood:'🐟 Θαλασσινά',meat:'🥩 Κρέατα',vegetables:'🥬 Λαχανικά',legumes:'🫘 Όσπρια',pasta:'🍝 Ζυμαρικά',fruit:'🍎 Φρούτα'};
-function detect(text){
+ detect(text){
   const t=(text||'').toLowerCase();
   const rules=[
     ['drinks',['αναψυκ','χυμ','κρασ','μπυρ','ποτο','καφε','τσαι']],
@@ -562,7 +562,7 @@ function detect(text){
   ];
   return rules.filter(([c,arr])=>arr.some(x=>t.includes(x))).map(([c])=>c);
 }
-function autoCategory(){
+ autoCategory(){
   const cats=detect($('mealName').value);
   const boxes=document.querySelectorAll('#cat input[type="checkbox"]');
 
@@ -574,9 +574,9 @@ function autoCategory(){
     $('hint').textContent='Δεν είμαι σίγουρη για τις κατηγορίες. Διάλεξε μία ή περισσότερες.';
   }
 }
-function openLog(t){$('type').value=t;show('learn');setTimeout(()=>$('mealName').focus(),100)}
-function searchName(x){let t=(x||'').toLowerCase().trim();const m={'μακαρόνια με κιμά':'spaghetti bolognese','μακαρονια με κιμα':'spaghetti bolognese','μακαρόνια':'spaghetti','μακαρονια':'spaghetti','κοτόπουλο':'chicken','κοτοπουλο':'chicken','πατάτες':'potato','πατατες':'potato','ομελέτα':'omelette','ομελετα':'omelette'};return m[t]||x}
-async function suggestRecipe(){
+ openLog(t){$('type').value=t;show('learn');setTimeout(()=>$('mealName').focus(),100)}
+ searchName(x){let t=(x||'').toLowerCase().trim();const m={'μακαρόνια με κιμά':'spaghetti bolognese','μακαρονια με κιμα':'spaghetti bolognese','μακαρόνια':'spaghetti','μακαρονια':'spaghetti','κοτόπουλο':'chicken','κοτοπουλο':'chicken','πατάτες':'potato','πατατες':'potato','ομελέτα':'omelette','ομελετα':'omelette'};return m[t]||x}
+async  suggestRecipe(){
   const meal=$('mealName').value.trim();
   const box=$('recipeSuggestion');
 
@@ -641,8 +641,8 @@ async function suggestRecipe(){
     box.innerHTML='<b>⚠️ Πρόβλημα κατά την αναζήτηση της ελληνικής συνταγής.</b>';
   }
 }
-function useRecipe(){if(!window.foundRecipe)return;$('recipe').value=window.foundRecipe.ingredients.join('\n')+'\n\nΟδηγίες:\n'+window.foundRecipe.instructions}
-function saveMeal(){
+ useRecipe(){if(!window.foundRecipe)return;$('recipe').value=window.foundRecipe.ingredients.join('\n')+'\n\nΟδηγίες:\n'+window.foundRecipe.instructions}
+ saveMeal(){
   const mealName=$('mealName').value.trim();
   if(!mealName){
     $('saveStatus').textContent='⚠️ Γράψε πρώτα το γεύμα.';
@@ -676,7 +676,7 @@ function saveMeal(){
   render();
   show('learn');
 }
- function preferenceStats(){
+  preferenceStats(){
   const meals={};
 
   s.history.forEach(h=>{
@@ -711,7 +711,7 @@ function saveMeal(){
     cats:[...m.cats]
   }));
 } 
- function categoryPreferenceStats(){
+  categoryPreferenceStats(){
   const stats={};
 
   Object.keys(labels).forEach(c=>{
@@ -741,7 +741,7 @@ function saveMeal(){
     }))
     .sort((a,b)=>b.average-a.average);
 } 
- function familyPreferenceForMeal(mealName){
+  familyPreferenceForMeal(mealName){
   const name=(mealName||'').toLowerCase().trim();
   const members=Array.isArray(s.family.members) ? s.family.members : [];
 
@@ -775,7 +775,7 @@ function saveMeal(){
     dislikes:dislikes
   };
 } 
-function mealSuitability(meal){
+ mealSuitability(meal){
   const prefStats=preferenceStats();
   const catStats=categoryPreferenceStats();
   const week=counts();
@@ -834,7 +834,7 @@ const total=
   family: Number(familyScore.toFixed(2))
 };
 }  
-function bestKnownMealForToday(){
+ bestKnownMealForToday(){
   const stats=preferenceStats();
 
   if(!stats.length){
@@ -859,7 +859,7 @@ function bestKnownMealForToday(){
 
   return candidates[0]||null;
 }
-function topKnownMealsForToday(limit=3){
+ topKnownMealsForToday(limit=3){
   const stats=preferenceStats();
 
   if(!stats.length){
@@ -884,7 +884,7 @@ function topKnownMealsForToday(limit=3){
 
   return candidates.slice(0,limit);
 } 
- function smartTodayChoices(){
+  smartTodayChoices(){
   const stats=preferenceStats();
 
   if(!stats.length){
@@ -925,7 +925,7 @@ function topKnownMealsForToday(limit=3){
     alternative ? {...alternative,choiceType:'alternative'} : null
   ].filter(Boolean);
 } 
-function findAlternativeMeal(meal){
+ findAlternativeMeal(meal){
   const all=preferenceStats();
 
   const originalCats=Array.isArray(meal.cats) ? meal.cats : [];
@@ -957,7 +957,7 @@ function findAlternativeMeal(meal){
 
   return candidates[0]||null;
 }  
-function getTodaySuggestionText(){
+ getTodaySuggestionText(){
   const best=bestKnownMealForToday();
 
   if(!best){
@@ -967,7 +967,7 @@ function getTodaySuggestionText(){
   return '⭐ '+best.name+
     ' · score '+best.score.total+'/5';
 } 
-function showTodaySuggestion(){
+ showTodaySuggestion(){
   const box=$('todaySuggestion');
   const meals=smartTodayChoices();
 
@@ -981,13 +981,13 @@ function showTodaySuggestion(){
     return;
   }
 
-  function titleFor(type){
+   titleFor(type){
     if(type==='favorite')return '❤️ Αγαπημένη επιλογή';
     if(type==='balanced')return '🥗 Ισορροπημένη επιλογή';
     return '🔄 Εναλλακτική επιλογή';
   }
 
-  function reasonFor(meal){
+   reasonFor(meal){
     if(meal.choiceType==='favorite'){
       return 'Είναι από τα γεύματα που σας αρέσουν περισσότερο.';
     }
@@ -998,7 +998,7 @@ function showTodaySuggestion(){
 
     return 'Είναι μια καλή διαφορετική επιλογή με βάση όσα έχω μάθει.';
   }
-  function familyNote(meal){
+   familyNote(meal){
   const pref=familyPreferenceForMeal(meal.name);
 
   if(pref.likes>0 && pref.dislikes>0){
@@ -1016,7 +1016,7 @@ function showTodaySuggestion(){
 
   return '';
 }
-function alternativeNote(meal){
+ alternativeNote(meal){
   const pref=familyPreferenceForMeal(meal.name);
 
   if(pref.dislikes<=0){
@@ -1088,7 +1088,7 @@ box.innerHTML=
     '</div>'
   ).join('');
 }
-async function findRecipeForMeal(name,targetId){
+async  findRecipeForMeal(name,targetId){
   const box=$(targetId);
 
   if(!box)return;
@@ -1130,7 +1130,7 @@ async function findRecipeForMeal(name,targetId){
       '<div class="small">⚠️ Υπήρξε πρόβλημα κατά την αναζήτηση.</div>';
   }
 }
-function counts(){
+ counts(){
   let c={
     drinks:0,
     eggs:0,
@@ -1156,8 +1156,8 @@ function counts(){
 
   return c;
 }
-function renderBars(){const c=counts(),recent=s.history.filter(h=>day(h.date)<7),days=new Set(recent.map(h=>h.date)).size,ready=recent.length>=4&&days>=3;$('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';$('weekStatus').textContent=ready?`Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`:`Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες.`;$('bars').innerHTML=Object.keys(targets).map(k=>{const p=Math.min(100,Math.round(c[k]/targets[k]*100));return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`}).join('')}
-function renderInsights(){
+ renderBars(){const c=counts(),recent=s.history.filter(h=>day(h.date)<7),days=new Set(recent.map(h=>h.date)).size,ready=recent.length>=4&&days>=3;$('weekScore').textContent=ready?'Αξιολόγηση ενεργή':'Μαθαίνω…';$('weekStatus').textContent=ready?`Βασίζεται σε ${recent.length} γεύματα από ${days} ημέρες.`:`Δεν έχω ακόμη αρκετά δεδομένα για αξιόπιστο σκορ. Έχω ${recent.length} γεύματα από ${days} ημέρες.`;$('bars').innerHTML=Object.keys(targets).map(k=>{const p=Math.min(100,Math.round(c[k]/targets[k]*100));return `<div style="margin-top:10px"><div class=row><span>${labels[k]}</span><span class=small>${c[k]}/${targets[k]}</span></div><div class=progress><div class=bar style="width:${p}%"></div></div></div>`}).join('')}
+ renderInsights(){
   $('learnCount').textContent=s.history.length+' γεύματα';
 
   if(!s.history.length){
@@ -1178,7 +1178,7 @@ function renderInsights(){
   const neutral=stats.filter(x=>x.average>2.5 && x.average<3.5);
   const disliked=stats.filter(x=>x.average<=2.5);
 
-  function mealChips(list){
+   mealChips(list){
     if(!list.length){
       return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
     }
@@ -1193,7 +1193,7 @@ function renderInsights(){
     }).join('');
   }
 
-  function categoryChips(){
+   categoryChips(){
     if(!categoryStats.length){
       return '<span class="small">Δεν έχω αρκετά δεδομένα ακόμη.</span>';
     }
@@ -1232,7 +1232,7 @@ function renderInsights(){
       '<div class="chips" style="margin-top:7px">'+categoryChips()+'</div>'+
     '</div>';
 }
-function renderHistory(){
+ renderHistory(){
   const historyEl=$('history');
 
   if(!s.history.length){
@@ -1259,8 +1259,8 @@ function renderHistory(){
     </div>`;
   }).join('');
 }
-function deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
-function renderFamily(){
+ deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
+ renderFamily(){
   const members=s.family.members||[];
 
   $('familyInfo').innerHTML=
@@ -1329,7 +1329,7 @@ function renderFamily(){
 
     '<div id="familyEditor" class="hidden" style="margin-top:10px"></div>';
 }
- function showFamilyEditor(){
+  showFamilyEditor(){
   const box=$('familyEditor');
 
   box.classList.remove('hidden');
@@ -1368,7 +1368,7 @@ function renderFamily(){
       '</button>'+
     '</div>';
 } 
-function saveFamilySettings(){
+ saveFamilySettings(){
   s.family.adults=Number($('editAdults').value)||0;
   s.family.children=Number($('editChildren').value)||0;
   s.family.cookFor=Number($('editCookFor').value)||1;
@@ -1378,7 +1378,7 @@ function saveFamilySettings(){
   save();
   renderFamily();
 }
- function showAddMember(){
+  showAddMember(){
   const box=$('memberEditor');
 
   box.classList.remove('hidden');
@@ -1431,7 +1431,7 @@ function saveFamilySettings(){
       '</button>'+
     '</div>';
 } 
- function saveFamilyMember(){
+  saveFamilyMember(){
   const name=$('memberName').value.trim();
   const age=$('memberAge').value;
   const sex=$('memberSex').value;
@@ -1461,7 +1461,7 @@ dislikes:$('memberDislikes').value.trim()
   renderFamily();
 } 
 
-function editFamilyMember(index){
+ editFamilyMember(index){
   const m=s.family.members[index];
   const box=$('memberEditor');
 
@@ -1522,7 +1522,7 @@ function editFamilyMember(index){
       '</button>'+
     '</div>';
 }
-function updateFamilyMember(index){
+ updateFamilyMember(index){
   const m=s.family.members[index];
 
   if(!m)return;
@@ -1549,7 +1549,7 @@ function updateFamilyMember(index){
   renderFamily();
 }
 
-function deleteFamilyMember(index){
+ deleteFamilyMember(index){
   const m=s.family.members[index];
   if(!m)return;
 
@@ -1562,10 +1562,10 @@ function deleteFamilyMember(index){
   save();
   renderFamily();
 } 
-function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
-function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
-function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
-function show(id){
+ addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
+ renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
+ changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
+ show(id){
   const target=$(id);
 
   if(!target){
@@ -1581,10 +1581,30 @@ function show(id){
 
   render();
 }
-function markAppOpenedToday(){
+async function markAppOpenedToday(){
   const today=new Date().toISOString().slice(0,10);
+
   localStorage.setItem('lastOpenedDate',today);
-}  
+
+  const id=localStorage.getItem('reminderDeviceId');
+
+  if(!id)return;
+
+  try{
+    await fetch('/api/mark-opened',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        id:id,
+        date:today
+      })
+    });
+  }catch(e){
+    console.warn('Δεν ενημερώθηκε το lastOpenedDate στον server.',e);
+  }
+}
 function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();const reminderEnabled=
   localStorage.getItem('eveningReminder')==='1';
 
