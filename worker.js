@@ -50,6 +50,49 @@ function instructionText(x) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/mark-opened" && request.method === "POST") {
+  try {
+    const body = await request.json();
+
+    if (!body.id || !body.date) {
+      return Response.json(
+        { ok:false, error:"Λείπουν στοιχεία." },
+        { status:400 }
+      );
+    }
+
+    const key="subscription:"+body.id;
+    const raw=await env.REMINDERS.get(key);
+
+    if (!raw) {
+      return Response.json(
+        { ok:false, error:"Δεν βρέθηκε subscription." },
+        { status:404 }
+      );
+    }
+
+    const saved=JSON.parse(raw);
+
+    saved.lastOpenedDate=body.date;
+
+    await env.REMINDERS.put(
+      key,
+      JSON.stringify(saved)
+    );
+
+    return Response.json({ok:true});
+
+  } catch(e) {
+    return Response.json(
+      {
+        ok:false,
+        error:"Αποτυχία ενημέρωσης lastOpenedDate.",
+        details:e.message || String(e)
+      },
+      {status:500}
+    );
+  }
+}
     if (url.pathname === "/api/test-push" && request.method === "POST") {
   try {
     const body = await request.json();
