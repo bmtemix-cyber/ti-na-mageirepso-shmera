@@ -50,6 +50,52 @@ function instructionText(x) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/reminder-setting" && request.method === "POST") {
+  try {
+    const body = await request.json();
+
+    if (!body.id || typeof body.enabled !== "boolean") {
+      return Response.json(
+        { ok:false, error:"Λείπουν στοιχεία." },
+        { status:400 }
+      );
+    }
+
+    const key = "subscription:" + body.id;
+    const raw = await env.REMINDERS.get(key);
+
+    if (!raw) {
+      return Response.json(
+        { ok:false, error:"Δεν βρέθηκε subscription." },
+        { status:404 }
+      );
+    }
+
+    const saved = JSON.parse(raw);
+
+    saved.enabled = body.enabled;
+
+    await env.REMINDERS.put(
+      key,
+      JSON.stringify(saved)
+    );
+
+    return Response.json({
+      ok:true,
+      enabled:saved.enabled
+    });
+
+  } catch(e) {
+    return Response.json(
+      {
+        ok:false,
+        error:"Αποτυχία αλλαγής ρύθμισης.",
+        details:e.message || String(e)
+      },
+      { status:500 }
+    );
+  }
+}
     if (url.pathname === "/api/mark-opened" && request.method === "POST") {
   try {
     const body = await request.json();
