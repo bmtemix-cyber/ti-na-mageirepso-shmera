@@ -1626,23 +1626,70 @@ function enterApp(){
   if(welcome)welcome.classList.add('hidden');
 }
 function initWelcomeScreen(){
-  const videos=['introBadVideo','introGoodVideo'].map(id=>document.getElementById(id));
+  const videos=[
+    document.getElementById('introBadVideo'),
+    document.getElementById('introGoodVideo')
+  ].filter(Boolean);
+
+  if(!videos.length){
+    enterApp();
+    return;
+  }
+
   const finished=new Set();
+
+  function markFinished(v){
+    finished.add(v.id);
+
+    if(finished.size>=videos.length){
+      enterApp();
+    }
+  }
+
   videos.forEach(v=>{
-    if(!v)return;
-    const done=()=>{finished.add(v.id);if(finished.size===videos.length)enterApp();};
     v.muted=true;
     v.playsInline=true;
-    v.addEventListener('ended',done,{once:true});
-    v.addEventListener('error',done,{once:true});
-    v.querySelectorAll('source').forEach(source=>source.addEventListener('error',done,{once:true}));
-    if(v.ended || v.error){done();return;}
-    const playing=v.play();
-    if(playing && typeof playing.catch==='function')playing.catch(()=>{
-      const note=document.querySelector('.welcome-note');
-      if(note && !welcomeEntered)note.textContent='Πατήστε ▶ στα βίντεο ή «Ξεκινήστε» για άμεση είσοδο.';
+
+    v.addEventListener('ended',()=>{
+      markFinished(v);
     });
+
+    v.addEventListener('timeupdate',()=>{
+      if(
+        Number.isFinite(v.duration) &&
+        v.duration>0 &&
+        v.currentTime>=v.duration-0.25
+      ){
+        markFinished(v);
+      }
+    });
+
+    v.addEventListener('error',()=>{
+      markFinished(v);
+    });
+
+    const playing=v.play();
+
+    if(playing && typeof playing.catch==='function'){
+      playing.catch(()=>{
+        const note=document.querySelector('.welcome-note');
+
+        if(note && !welcomeEntered){
+          note.textContent=
+            'Πατήστε ▶ στα βίντεο ή «Ξεκινήστε» για άμεση είσοδο.';
+        }
+      });
+    }
   });
+
+  // Εφεδρική προστασία ειδικά για Safari/iPhone:
+  // αν για κάποιο λόγο δεν έρθει το ended event,
+  // μετά από 12 δευτερόλεπτα μπαίνει στην εφαρμογή.
+  setTimeout(()=>{
+    if(!welcomeEntered){
+      enterApp();
+    }
+  },12000);
 }
 
 markAppOpenedToday();
