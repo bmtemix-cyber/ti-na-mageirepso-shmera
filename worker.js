@@ -396,6 +396,86 @@ if (url.pathname === "/api/search-recipe") {
       }
     }
 
-    return new Response("Not found", { status: 404 });
+     return new Response("Not found", { status: 404 });
+  },
+
+  async scheduled(controller, env, ctx) {
+    const now = new Date(controller.scheduledTime);
+
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Athens',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(now);
+
+    const get = type =>
+      parts.find(x => x.type === type)?.value || '';
+
+    const today =
+      get('year') + '-' +
+      get('month') + '-' +
+      get('day');
+
+    const hour = get('hour');
+    const minute = get('minute');
+
+    // Στέλνουμε μόνο στις 20:30 ώρα Ελλάδας
+    if (hour !== '20' || minute !== '30') {
+      return;
+    }
+
+    webpush.setVapidDetails(
+      env.VAPID_SUBJECT,
+      env.VAPID_PUBLIC_KEY,
+      env.VAPID_PRIVATE_KEY
+    );
+
+    let cursor;
+
+    do {
+      const list = await env.REMINDERS.list({
+        prefix: 'subscription:',
+        cursor
+      });
+
+      for (const key of list.keys) {
+        try {
+          const raw = await env.REMINDERS.get(key.name);
+
+          if (!raw) continue;
+
+          const saved = JSON.parse(raw);
+
+          if (!saved.enabled) continue;
+          if (!saved.subscription) continue;
+
+          // Αν άνοιξε σήμερα, δεν στέλνουμε ειδοποίηση
+          if (saved.lastOpenedDate === today) continue;
+
+          await webpush.sendNotification(
+            saved.subscription,
+            JSON.stringify({
+              title: '🍳 Τι να μαγειρέψω σήμερα;',
+              body: 'Μην ξεχάσεις να καταγράψεις τα σημερινά γεύματα.',
+              tag: 'evening-reminder'
+            })
+          );
+
+        } catch(e) {
+          console.error(
+            'REMINDER ERROR',
+            key.name,
+            e.message || e
+          );
+        }
+      }
+
+      cursor = list.list_complete ? undefined : list.cursor;
+
+    } while (cursor);
   }
 };
