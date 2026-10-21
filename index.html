@@ -1620,10 +1620,30 @@ if($('eveningReminderStatus')){
 let welcomeEntered=false;
 function enterApp(){
   if(welcomeEntered)return;
+
   welcomeEntered=true;
-  document.querySelectorAll('#welcomeScreen video').forEach(v=>v.pause());
+
+  document
+    .querySelectorAll('#welcomeScreen video')
+    .forEach(v=>v.pause());
+
   const welcome=document.getElementById('welcomeScreen');
-  if(welcome)welcome.classList.add('hidden');
+
+  if(welcome){
+    welcome.style.display='none';
+  }
+
+  const home=document.getElementById('home');
+
+  if(home){
+    document.querySelectorAll('.view').forEach(v=>{
+      v.classList.remove('active');
+    });
+
+    home.classList.add('active');
+  }
+
+  render();
 }
 function initWelcomeScreen(){
   const videos=[
