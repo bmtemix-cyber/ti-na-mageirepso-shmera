@@ -419,7 +419,7 @@ const VAPID_PUBLIC_KEY =
   }
 
   if(status){
-    status.textContent='🔎 Διαβάζω την απόδειξη...';
+    status.textContent='📷 Επεξεργάζομαι τη φωτογραφία...';
   }
 
   if(results){
@@ -427,71 +427,176 @@ const VAPID_PUBLIC_KEY =
   }
 
   try{
+
     const image=await new Promise((resolve,reject)=>{
+
       const reader=new FileReader();
 
       reader.onload=()=>{
-        resolve(reader.result);
+
+        const img=new Image();
+
+        img.onload=()=>{
+
+          const MAX_SIZE=1600;
+
+          let width=img.width;
+          let height=img.height;
+
+          if(width>height && width>MAX_SIZE){
+            height=Math.round(height*(MAX_SIZE/width));
+            width=MAX_SIZE;
+          }
+          else if(height>MAX_SIZE){
+            width=Math.round(width*(MAX_SIZE/height));
+            height=MAX_SIZE;
+          }
+
+          const canvas=document.createElement('canvas');
+
+          canvas.width=width;
+          canvas.height=height;
+
+          const ctx=canvas.getContext('2d');
+
+          ctx.drawImage(
+            img,
+            0,
+            0,
+            width,
+            height
+          );
+
+          const compressed=
+            canvas.toDataURL(
+              'image/jpeg',
+              0.78
+            );
+
+          resolve(compressed);
+        };
+
+        img.onerror=()=>{
+          reject(
+            new Error(
+              'Δεν μπόρεσα να ανοίξω τη φωτογραφία.'
+            )
+          );
+        };
+
+        img.src=reader.result;
       };
 
       reader.onerror=()=>{
-        reject(new Error('Δεν μπόρεσα να διαβάσω τη φωτογραφία.'));
+        reject(
+          new Error(
+            'Δεν μπόρεσα να διαβάσω τη φωτογραφία.'
+          )
+        );
       };
 
       reader.readAsDataURL(file);
     });
 
-    const response=await fetch('/api/read-receipt',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify({
-        image:image
-      })
-    });
+
+    if(status){
+      status.textContent='🔎 Διαβάζω την απόδειξη...';
+    }
+
+
+    const response=await fetch(
+      '/api/read-receipt',
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          image:image
+        })
+      }
+    );
+
 
     const data=await response.json();
 
+
     if(!data.ok){
+
       throw new Error(
-        (data.error||'Αποτυχία ανάγνωσης απόδειξης.')+
-        (data.details ? ' - '+data.details : '')
+        (data.error||
+          'Αποτυχία ανάγνωσης απόδειξης.')+
+        (
+          data.details
+            ? ' - '+data.details
+            : ''
+        )
       );
     }
 
+
     if(status){
+
       status.textContent=
-        '✅ Βρέθηκαν '+data.items.length+' προϊόντα.';
+        '✅ Βρέθηκαν '+
+        data.items.length+
+        ' προϊόντα.';
     }
 
+
     if(!data.items.length){
+
       results.innerHTML=
-        '<div class="soft">Δεν αναγνώρισα τρόφιμα στην απόδειξη.</div>';
+        '<div class="soft">'+
+        'Δεν αναγνώρισα τρόφιμα στην απόδειξη.'+
+        '</div>';
+
       return;
     }
 
+
     results.innerHTML=
       '<div class="soft">'+
+
         '<b>🧾 Προϊόντα που αναγνώρισα</b>'+
-        data.items.map((item,i)=>
+
+        data.items.map(item=>
+
           '<div class="item" style="margin-top:8px">'+
-            '<b>'+(item.name||'Άγνωστο προϊόν')+'</b>'+
+
+            '<b>'+
+              (item.name||'Άγνωστο προϊόν')+
+            '</b>'+
+
             '<div class="small">'+
               (item.quantity||'')+
             '</div>'+
-            (item.raw
-              ? '<div class="small">Απόδειξη: '+item.raw+'</div>'
-              : '')+
+
+            (
+              item.raw
+              ?
+              '<div class="small">'+
+                'Απόδειξη: '+
+                item.raw+
+              '</div>'
+              :
+              ''
+            )+
+
           '</div>'
+
         ).join('')+
+
       '</div>';
 
+
   }catch(e){
+
     console.error(e);
 
     if(status){
-      status.textContent='❌ Δεν μπόρεσα να διαβάσω την απόδειξη.';
+      status.textContent=
+        '❌ Δεν μπόρεσα να διαβάσω την απόδειξη.';
     }
 
     if(results){
