@@ -407,81 +407,90 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
 
     if (!body.image) {
       return Response.json(
-        { ok:false, error:"Δεν στάλθηκε εικόνα απόδειξης." },
-        { status:400 }
+        {
+          ok: false,
+          error: "Δεν στάλθηκε εικόνα απόδειξης."
+        },
+        { status: 400 }
       );
     }
 
-const prompt = `
-Κάνε OCR στην απόδειξη.
-
-Διάβασε ΜΟΝΟ τις πραγματικές γραμμές προϊόντων που φαίνονται στην εικόνα.
-
-ΜΗΝ:
-- εφευρίσκεις προϊόντα
-- επαναλαμβάνεις προϊόντα
-- συμπληρώνεις προϊόντα που δεν φαίνονται
-- μαντεύεις από γενικές γνώσεις
-
-Αγνόησε:
-- εκπτώσεις
-- ΦΠΑ
-- σύνολα
-- περιβαλλοντικά τέλη
-- μη τρόφιμα
-
-Για κάθε πραγματική γραμμή τροφίμου ή ποτού γράψε:
-
-ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΑΡΧΙΚΗ ΓΡΑΜΜΗ
-
-Μία γραμμή για κάθε προϊόν.
-`;
-
     const result = await env.AI.run(
-  "@cf/moondream/moondream3.1-9B-A2B",
-  {
-    task: "query",
-    image: body.image,
-    question: `
-Διάβασε την απόδειξη σούπερ μάρκετ.
+      "@cf/moondream/moondream3.1-9B-A2B",
+      {
+        task: "query",
+        image: body.image,
+        question: `
+Διάβασε προσεκτικά αυτή την ελληνική απόδειξη σούπερ μάρκετ.
 
-Γράψε μόνο τις πραγματικές γραμμές τροφίμων και ποτών που βλέπεις.
-
-Αγνόησε:
-- εκπτώσεις
-- ΦΠΑ
-- σύνολα
-- εργαλεία
-- σακούλες
-- είδη σπιτιού
-- περιβαλλοντικά τέλη
+Θέλω να καταγράψεις ΜΟΝΟ τα πραγματικά τρόφιμα και ποτά που βλέπεις στην απόδειξη.
 
 Μην εφευρίσκεις προϊόντα.
 Μην επαναλαμβάνεις προϊόντα.
+Μην προσθέτεις προϊόντα που δεν φαίνονται.
 
-Για κάθε πραγματικό προϊόν γράψε μία γραμμή:
+Αγνόησε:
+- εκπτώσεις
+- ΦΠΑ
+- σύνολα
+- κάρτα / πληρωμή
+- περιβαλλοντικά τέλη
+- εργαλεία
+- ψαλίδια
+- σακούλες
+- είδη σπιτιού
+- αποθηκευτικά είδη
+- μη τρόφιμα
 
-ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΑΡΧΙΚΟ ΚΕΙΜΕΝΟ
+Για κάθε πραγματικό τρόφιμο ή ποτό γράψε ΑΚΡΙΒΩΣ μία γραμμή έτσι:
 
-Χωρίς JSON και χωρίς εξηγήσεις.
-`
-  }
-);
+ΚΑΘΑΡΟ ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΑΚΡΙΒΕΣ ΚΕΙΜΕΝΟ ΑΠΟΔΕΙΞΗΣ
+
+Παράδειγμα:
+Μπισκότα|200 g|ΜΠΙΣ.COOK.WH/CR.200G
+Σοκολάτα|100 g|ΣΟ.ΓΑΛ.ΚΟΜ.ΚΑΣ.100G
+
+Μην γράψεις JSON.
+Μην γράψεις εξηγήσεις.
+Μην γράψεις τίτλο.
+Μόνο τις γραμμές προϊόντων.
+`,
+        reasoning: false,
+        stream: false,
+        max_tokens: 2000,
+        temperature: 0.1
+      }
+    );
 
     const text =
-  result.answer ||
-  result.response ||
-  result.result ||
-  "";
+      typeof result?.answer === "string"
+        ? result.answer.trim()
+        : "";
+
+    console.log("RECEIPT RAW ANSWER:", text);
+
+    if (!text) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Το AI δεν επέστρεψε κείμενο."
+        },
+        { status: 500 }
+      );
+    }
 
     const items = text
       .split("\n")
       .map(line => line.trim())
-      .filter(Boolean)
+      .filter(line => line && !line.startsWith("```"))
       .map(line => {
+        line = line.replace(/^[-•*]\s*/, "");
+
         const parts = line.split("|");
 
-        if (parts.length < 3) return null;
+        if (parts.length < 3) {
+          return null;
+        }
 
         return {
           name: parts[0].trim(),
@@ -491,21 +500,32 @@ const prompt = `
       })
       .filter(Boolean);
 
+    if (!items.length) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Το AI διάβασε την απόδειξη αλλά δεν επέστρεψε προϊόντα στη σωστή μορφή.",
+          details: text.slice(0, 1500)
+        },
+        { status: 422 }
+      );
+    }
+
     return Response.json({
-      ok:true,
-      items:items
+      ok: true,
+      items: items
     });
 
-  } catch(e) {
+  } catch (e) {
     console.error("RECEIPT ERROR", e);
 
     return Response.json(
       {
-        ok:false,
-        error:"Δεν μπόρεσα να διαβάσω την απόδειξη.",
-        details:e.message || String(e)
+        ok: false,
+        error: "Δεν μπόρεσα να διαβάσω την απόδειξη.",
+        details: e.message || String(e)
       },
-      { status:500 }
+      { status: 500 }
     );
   }
 }
