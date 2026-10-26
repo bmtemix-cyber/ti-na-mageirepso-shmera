@@ -1,4 +1,4 @@
-const CACHE='cook-v2-7';
+const CACHE='cook-v2-8';
 
 const ASSETS=[
   './manifest.webmanifest',
@@ -26,6 +26,24 @@ self.addEventListener('activate',event=>{
 });
 
 self.addEventListener('fetch',event=>{
+
+  if(event.request.mode==='navigate'){
+    event.respondWith(
+      fetch(event.request)
+  self.addEventListener('fetch',event=>{
+
+  const url=new URL(event.request.url);
+
+  // Τα API requests πάνε απευθείας στον Worker.
+  // Δεν τα αγγίζει καθόλου το Service Worker.
+  if(url.pathname.startsWith('/api/')){
+    return;
+  }
+
+  // Δεν κάνουμε cache POST ή άλλα non-GET requests.
+  if(event.request.method!=='GET'){
+    return;
+  }
 
   if(event.request.mode==='navigate'){
     event.respondWith(
