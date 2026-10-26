@@ -464,70 +464,87 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
       }
     );
 
-    const inner =
-      result && result.result !== undefined
-        ? result.result
-        : result;
+   const inner =
+  result && result.result !== undefined
+    ? result.result
+    : result;
 
-    let text = "";
+let parsed = null;
 
-    if (typeof inner === "string") {
-      text = inner;
+// 1. Αν το AI επέστρεψε ήδη object με products
+if (
+  inner &&
+  typeof inner === "object" &&
+  Array.isArray(inner.products)
+) {
+  parsed = inner;
+}
 
-    } else if (inner && typeof inner.answer === "string") {
-      text = inner.answer;
+// 2. Αν επέστρεψε object με answer
+else if (
+  inner &&
+  typeof inner === "object" &&
+  typeof inner.answer === "string"
+) {
+  let text = inner.answer.trim();
 
-    } else if (inner && typeof inner.response === "string") {
-      text = inner.response;
+  text = text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
 
-    } else if (inner && typeof inner.text === "string") {
-      text = inner.text;
+  try {
+    parsed = JSON.parse(text);
+  } catch (_) {
+    const match = text.match(/\{[\s\S]*\}/);
 
-    } else if (inner && typeof inner === "object") {
-      text = JSON.stringify(inner);
-    }
-
-    text = String(text || "").trim();
-
-    text = text
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/```$/i, "")
-      .trim();
-
-    let parsed;
-
-    try {
-      parsed = JSON.parse(text);
-
-    } catch (_) {
-      const match = text.match(/\{[\s\S]*\}/);
-
-      if (!match) {
-        return Response.json(
-          {
-            ok:false,
-            error:"Το AI διάβασε την απόδειξη αλλά δεν επέστρεψε JSON.",
-            details:text.slice(0,1500)
-          },
-          { status:422 }
-        );
-      }
-
+    if (match) {
       parsed = JSON.parse(match[0]);
     }
+  }
+}
 
-    let products = [];
+// 3. Αν επέστρεψε κατευθείαν string
+else if (typeof inner === "string") {
+  let text = inner.trim();
 
-    if (Array.isArray(parsed.products)) {
-      products = parsed.products;
+  text = text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
 
-    } else if (Array.isArray(parsed.items)) {
-      products = parsed.items;
+  try {
+    parsed = JSON.parse(text);
+  } catch (_) {
+    const match = text.match(/\{[\s\S]*\}/);
 
-    } else if (Array.isArray(parsed)) {
-      products = parsed;
+    if (match) {
+      parsed = JSON.parse(match[0]);
     }
+  }
+}
+
+// Αν δεν καταφέραμε να πάρουμε JSON
+if (!parsed) {
+  return Response.json(
+    {
+      ok:false,
+      error:"Το AI διάβασε την απόδειξη αλλά δεν μπόρεσα να επεξεργαστώ το αποτέλεσμα.",
+      details:JSON.stringify(inner).slice(0,1500)
+    },
+    {status:422}
+  );
+}
+
+let products = [];
+
+if (Array.isArray(parsed.products)) {
+  products = parsed.products;
+} else if (Array.isArray(parsed.items)) {
+  products = parsed.items;
+}
 
     const seen = new Set();
 
