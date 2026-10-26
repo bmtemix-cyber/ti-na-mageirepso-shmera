@@ -348,7 +348,20 @@
             Ειδοποίηση το βράδυ αν δεν έχει ανοίξει η εφαρμογή μέσα στη μέρα.
           </div>
         </div>
-
+<div class="field" style="margin-top:12px">
+  <label>Ώρα υπενθύμισης</label>
+  <select id="reminderTime" onchange="changeReminderTime()">
+    <option value="18:00">18:00</option>
+    <option value="18:30">18:30</option>
+    <option value="19:00">19:00</option>
+    <option value="19:30">19:30</option>
+    <option value="20:00">20:00</option>
+    <option value="20:30">20:30</option>
+    <option value="21:00">21:00</option>
+    <option value="21:30">21:30</option>
+    <option value="22:00">22:00</option>
+  </select>
+</div>
         <label style="display:flex;align-items:center;gap:8px">
           <input
             id="eveningReminder"
@@ -365,9 +378,7 @@
       Για πραγματική αναζήτηση θα χρειαστεί backend/API.
     </div>
   </div>
-  <button class="btn secondary" style="margin-top:12px" onclick="sendTestPush()">
-  🔔 Στείλε δοκιμαστική ειδοποίηση
-</button>
+
   </section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
@@ -385,6 +396,37 @@ const VAPID_PUBLIC_KEY =
     [...rawData].map(char=>char.charCodeAt(0))
   );
 }
+async function changeReminderTime(){
+  const time=$('reminderTime').value;
+
+  localStorage.setItem('reminderTime',time);
+
+  const id=localStorage.getItem('reminderDeviceId');
+
+  if(!id)return;
+
+  try{
+    const r=await fetch('/api/reminder-setting',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        id:id,
+        time:time
+      })
+    });
+
+    const data=await r.json();
+
+    if(!data.ok){
+      throw new Error(data.error||'Δεν αποθηκεύτηκε η ώρα.');
+    }
+
+  }catch(e){
+    alert('Σφάλμα αποθήκευσης ώρας: '+(e.message||e));
+  }
+}  
   async  function registerPushSubscription(){
   if(!('serviceWorker' in navigator)){
     throw new Error('Δεν υποστηρίζεται Service Worker');
@@ -435,40 +477,7 @@ const VAPID_PUBLIC_KEY =
 
   return true;
 }
- async  function sendTestPush(){
-  try{
-    const id=localStorage.getItem('reminderDeviceId');
 
-    if(!id){
-      alert('Δεν υπάρχει αποθηκευμένο device id. Ενεργοποίησε πρώτα τη βραδινή υπενθύμιση.');
-      return;
-    }
-
-    const r=await fetch('/api/test-push',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify({id})
-    });
-
-    const data=await r.json();
-
-    if(!data.ok){
-      alert(
-        'Σφάλμα: '+
-        (data.error||'Αποτυχία δοκιμαστικής ειδοποίησης')+
-        (data.details ? ' - '+data.details : '')
-      );
-      return;
-    }
-
-    alert('Η δοκιμαστική ειδοποίηση στάλθηκε.');
-
-  }catch(e){
-    alert('Σφάλμα: '+(e.message||e));
-  }
-} 
 async function changeEveningReminder(){
   const checkbox=$('eveningReminder');
   const status=$('eveningReminderStatus');
@@ -1625,6 +1634,12 @@ dislikes:$('memberDislikes').value.trim()
 
   render();
 }
+ const reminderTime=
+  localStorage.getItem('reminderTime') || '20:30';
+
+if($('reminderTime')){
+  $('reminderTime').value=reminderTime;
+} 
 async function markAppOpenedToday(){
   const today=new Date().toISOString().slice(0,10);
 
