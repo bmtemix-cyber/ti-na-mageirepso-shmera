@@ -19,6 +19,10 @@
     }
   ],
 
+"ai": {
+  "binding": "AI"
+},
+
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
