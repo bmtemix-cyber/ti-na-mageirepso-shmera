@@ -412,134 +412,170 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
       );
     }
 
-    const result = await env.AI.run(
-      "@cf/moondream/moondream3.1-9B-A2B",
-      {
-        task: "query",
-        image: body.image,
-        stream: false,
-question: `
-Κάνε OCR στην απόδειξη που βλέπεις στην εικόνα.
+// ---------------------------------------------------
+// 1ο ΒΗΜΑ: OCR - διαβάζουμε μόνο το κείμενο
+// ---------------------------------------------------
 
-Πρώτα διάβασε τις πραγματικές γραμμές της απόδειξης.
-Μετά κράτησε μόνο τις γραμμές που είναι τρόφιμα ή ποτά.
-
-ΜΗΝ:
-- αντιγράφεις τις οδηγίες μου
-- επιστρέφεις παραδείγματα
-- γράφεις placeholder κείμενο
-- εφευρίσκεις προϊόντα
-- επαναλαμβάνεις προϊόντα
-
-Αγνόησε:
-εκπτώσεις, σύνολα, ΦΠΑ, πληρωμές, σακούλες,
-εργαλεία, ψαλίδια, είδη σπιτιού,
-αποθηκευτικά είδη και περιβαλλοντικά τέλη.
-
-Επέστρεψε JSON με αυτή τη δομή:
-
-{
-  "products": []
-}
-
-Μέσα στο products βάλε ΜΟΝΟ προϊόντα που διάβασες πραγματικά από την εικόνα.
-
-Κάθε προϊόν πρέπει να έχει:
-"name"
-"quantity"
-"source_text"
-
-Το name να είναι κατανοητό ελληνικό όνομα.
-Το quantity να είναι η ποσότητα που φαίνεται.
-Το source_text να είναι η πραγματική γραμμή της απόδειξης.
-
-Αν δεν είσαι βέβαιος ότι μια γραμμή είναι τρόφιμο ή ποτό, μην την προσθέσεις.
-Χωρίς εξηγήσεις.
-`
-      }
-    );
-    
-   const inner =
-  result && result.result !== undefined
-    ? result.result
-    : result;
-
-let parsed = null;
-
-// 1. Αν το AI επέστρεψε ήδη object με products
-if (
-  inner &&
-  typeof inner === "object" &&
-  Array.isArray(inner.products)
-) {
-  parsed = inner;
-}
-
-// 2. Αν επέστρεψε object με answer
-else if (
-  inner &&
-  typeof inner === "object" &&
-  typeof inner.answer === "string"
-) {
-  let text = inner.answer.trim();
-
-  text = text
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```$/i, "")
-    .trim();
-
-  try {
-    parsed = JSON.parse(text);
-  } catch (_) {
-    const match = text.match(/\{[\s\S]*\}/);
-
-    if (match) {
-      parsed = JSON.parse(match[0]);
-    }
+const ocrResult = await env.AI.run(
+  "@cf/moondream/moondream3.1-9B-A2B",
+  {
+    task: "query",
+    image: body.image,
+    question:
+      "Transcribe ALL text visible in this supermarket receipt image. " +
+      "Preserve each receipt line on a separate line. " +
+      "Do not explain anything. Return only the text printed on the receipt.",
+    reasoning: false,
+    stream: false,
+    temperature: 0
   }
+);
+
+const ocrInner =
+  ocrResult && ocrResult.result !== undefined
+    ? ocrResult.result
+    : ocrResult;
+
+let receiptText = "";
+
+if (typeof ocrInner === "string") {
+  receiptText = ocrInner;
+
+} else if (
+  ocrInner &&
+  typeof ocrInner.answer === "string"
+) {
+  receiptText = ocrInner.answer;
+
+} else if (
+  ocrInner &&
+  typeof ocrInner.response === "string"
+) {
+  receiptText = ocrInner.response;
 }
 
-// 3. Αν επέστρεψε κατευθείαν string
-else if (typeof inner === "string") {
-  let text = inner.trim();
+receiptText = String(receiptText || "").trim();
 
-  text = text
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```$/i, "")
-    .trim();
-
-  try {
-    parsed = JSON.parse(text);
-  } catch (_) {
-    const match = text.match(/\{[\s\S]*\}/);
-
-    if (match) {
-      parsed = JSON.parse(match[0]);
-    }
-  }
-}
-
-// Αν δεν καταφέραμε να πάρουμε JSON
-if (!parsed) {
+if (!receiptText) {
   return Response.json(
     {
       ok:false,
-      error:"Το AI διάβασε την απόδειξη αλλά δεν μπόρεσα να επεξεργαστώ το αποτέλεσμα.",
-      details:JSON.stringify(inner).slice(0,1500)
+      error:"Το OCR δεν μπόρεσε να διαβάσει την απόδειξη."
     },
     {status:422}
   );
 }
 
-let products = [];
 
-if (Array.isArray(parsed.products)) {
-  products = parsed.products;
-} else if (Array.isArray(parsed.items)) {
-  products = parsed.items;
+// ---------------------------------------------------
+// 2ο ΒΗΜΑ: βρίσκουμε τρόφιμα μέσα στο OCR κείμενο
+// ---------------------------------------------------
+
+const parseResult = await env.AI.run(
+  "@cf/mistralai/mistral-small-3.1-24b-instruct",
+  {
+    prompt: `
+Παρακάτω είναι OCR κείμενο από ελληνική απόδειξη σούπερ μάρκετ.
+
+Κράτησε ΜΟΝΟ τρόφιμα και ποτά.
+
+Αγνόησε:
+- εκπτώσεις
+- τιμές χωρίς προϊόν
+- ΦΠΑ
+- σύνολα
+- πληρωμές
+- σακούλες
+- ψαλίδια
+- εργαλεία
+- πανιά
+- αποθηκευτικά είδη
+- είδη σπιτιού
+- περιβαλλοντικά τέλη
+
+Μην εφευρίσκεις προϊόντα.
+
+Για κάθε προϊόν χρησιμοποίησε πραγματική γραμμή από το OCR.
+
+Επέστρεψε ΜΟΝΟ έγκυρο JSON:
+
+{
+  "products": [
+    {
+      "name": "κατανοητό ελληνικό όνομα",
+      "quantity": "ποσότητα αν φαίνεται",
+      "source_text": "πραγματική γραμμή OCR"
+    }
+  ]
 }
+
+OCR ΑΠΟΔΕΙΞΗΣ:
+
+${receiptText}
+`,
+    max_tokens: 1800,
+    temperature: 0
+  }
+);
+
+const parseInner =
+  parseResult && parseResult.result !== undefined
+    ? parseResult.result
+    : parseResult;
+
+let parseText = "";
+
+if (typeof parseInner === "string") {
+  parseText = parseInner;
+
+} else if (
+  parseInner &&
+  typeof parseInner.response === "string"
+) {
+  parseText = parseInner.response;
+
+} else if (
+  parseInner &&
+  typeof parseInner.answer === "string"
+) {
+  parseText = parseInner.answer;
+}
+
+parseText = String(parseText || "")
+  .replace(/^```json\s*/i,"")
+  .replace(/^```\s*/i,"")
+  .replace(/```$/i,"")
+  .trim();
+
+let parsed;
+
+try {
+
+  parsed = JSON.parse(parseText);
+
+} catch (_) {
+
+  const match = parseText.match(/\{[\s\S]*\}/);
+
+  if (!match) {
+    return Response.json(
+      {
+        ok:false,
+        error:"Το OCR διάβασε την απόδειξη αλλά δεν μπόρεσα να αναγνωρίσω τα προϊόντα.",
+        details:receiptText.slice(0,1500)
+      },
+      {status:422}
+    );
+  }
+
+  parsed = JSON.parse(match[0]);
+}
+
+let products =
+  Array.isArray(parsed.products)
+    ? parsed.products
+    : [];
+
 
     const seen = new Set();
 
