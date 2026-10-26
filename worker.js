@@ -54,7 +54,7 @@ export default {
   try {
     const body = await request.json();
 
-    if (!body.id || typeof body.enabled !== "boolean") {
+    if (!body.id) {
       return Response.json(
         { ok:false, error:"Λείπουν στοιχεία." },
         { status:400 }
@@ -72,7 +72,12 @@ export default {
     }
 
     const saved = JSON.parse(raw);
+if(typeof body.enabled === "boolean"){
+}
 
+if(body.time){
+  saved.reminderTime = body.time;
+}
     saved.enabled = body.enabled;
 
     await env.REMINDERS.put(
@@ -424,9 +429,7 @@ if (url.pathname === "/api/search-recipe") {
     const minute = get('minute');
 
     // Στέλνουμε μόνο στις 20:30 ώρα Ελλάδας
-    if (hour !== '20' || minute !== '30') {
-      return;
-    }
+   
 
     webpush.setVapidDetails(
       env.VAPID_SUBJECT,
@@ -449,7 +452,10 @@ if (url.pathname === "/api/search-recipe") {
           if (!raw) continue;
 
           const saved = JSON.parse(raw);
+const currentTime=hour+':'+minute;
+const reminderTime=saved.reminderTime || '20:30';
 
+if(currentTime !== reminderTime) continue;
           if (!saved.enabled) continue;
           if (!saved.subscription) continue;
 
