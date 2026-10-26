@@ -458,6 +458,20 @@ if (typeof result === "string") {
 
 } else if (
   result &&
+  result.result &&
+  typeof result.result.answer === "string"
+) {
+  text = result.result.answer;
+
+} else if (
+  result &&
+  result.result &&
+  typeof result.result.response === "string"
+) {
+  text = result.result.response;
+
+} else if (
+  result &&
   typeof result.response === "string"
 ) {
   text = result.response;
@@ -467,8 +481,9 @@ if (typeof result === "string") {
   typeof result.result === "string"
 ) {
   text = result.result;
+}
 
-} else if (result instanceof Response) {
+text = String(text || "").trim(); else if (result instanceof Response) {
 
   const raw = await result.text();
 
