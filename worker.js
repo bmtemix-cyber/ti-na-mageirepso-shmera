@@ -456,7 +456,9 @@ question: `
 Αν δεν είσαι βέβαιος ότι μια γραμμή είναι τρόφιμο ή ποτό, μην την προσθέσεις.
 Χωρίς εξηγήσεις.
 `
-
+      }
+    );
+    
    const inner =
   result && result.result !== undefined
     ? result.result
