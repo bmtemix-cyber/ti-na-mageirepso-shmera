@@ -349,6 +349,7 @@
   </button>
 
   <div id="receiptStatus" class="small" style="margin-top:10px"></div>
+  <div id="receiptResults" style="margin-top:10px"></div>
 </div><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
 <section id="settings" class="view">
   <div class="card">
@@ -407,9 +408,10 @@
 <script>
 const VAPID_PUBLIC_KEY =
   'BHPnukdmQV-MaQgh4khYKMPzIOJ3VnpOpDL2LZjCHUUEFVyK_jhWYmtZfF3WD4fltID__2xGgY4EmV86PF54cdw'; 
-  function handleReceiptPhoto(event){
+ async function handleReceiptPhoto(event){
   const file=event.target.files[0];
   const status=$('receiptStatus');
+  const results=$('receiptResults');
 
   if(!file){
     if(status)status.textContent='';
@@ -417,7 +419,87 @@ const VAPID_PUBLIC_KEY =
   }
 
   if(status){
-    status.textContent='✅ Επιλέχθηκε φωτογραφία: '+file.name;
+    status.textContent='🔎 Διαβάζω την απόδειξη...';
+  }
+
+  if(results){
+    results.innerHTML='';
+  }
+
+  try{
+    const image=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+
+      reader.onload=()=>{
+        resolve(reader.result);
+      };
+
+      reader.onerror=()=>{
+        reject(new Error('Δεν μπόρεσα να διαβάσω τη φωτογραφία.'));
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    const response=await fetch('/api/read-receipt',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        image:image
+      })
+    });
+
+    const data=await response.json();
+
+    if(!data.ok){
+      throw new Error(
+        (data.error||'Αποτυχία ανάγνωσης απόδειξης.')+
+        (data.details ? ' - '+data.details : '')
+      );
+    }
+
+    if(status){
+      status.textContent=
+        '✅ Βρέθηκαν '+data.items.length+' προϊόντα.';
+    }
+
+    if(!data.items.length){
+      results.innerHTML=
+        '<div class="soft">Δεν αναγνώρισα τρόφιμα στην απόδειξη.</div>';
+      return;
+    }
+
+    results.innerHTML=
+      '<div class="soft">'+
+        '<b>🧾 Προϊόντα που αναγνώρισα</b>'+
+        data.items.map((item,i)=>
+          '<div class="item" style="margin-top:8px">'+
+            '<b>'+(item.name||'Άγνωστο προϊόν')+'</b>'+
+            '<div class="small">'+
+              (item.quantity||'')+
+            '</div>'+
+            (item.raw
+              ? '<div class="small">Απόδειξη: '+item.raw+'</div>'
+              : '')+
+          '</div>'
+        ).join('')+
+      '</div>';
+
+  }catch(e){
+    console.error(e);
+
+    if(status){
+      status.textContent='❌ Δεν μπόρεσα να διαβάσω την απόδειξη.';
+    }
+
+    if(results){
+      results.innerHTML=
+        '<div class="notice">'+
+          (e.message||e)+
+        '</div>';
+    }
   }
 }
    function urlBase64ToUint8Array(base64String){
