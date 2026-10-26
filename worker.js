@@ -477,11 +477,10 @@ const parseResult = await env.AI.run(
     prompt: `
 Παρακάτω είναι OCR κείμενο από ελληνική απόδειξη σούπερ μάρκετ.
 
-Κράτησε ΜΟΝΟ τρόφιμα και ποτά.
+Βρες ΜΟΝΟ τρόφιμα και ποτά που πραγματικά υπάρχουν στο κείμενο.
 
 Αγνόησε:
 - εκπτώσεις
-- τιμές χωρίς προϊόν
 - ΦΠΑ
 - σύνολα
 - πληρωμές
@@ -489,30 +488,43 @@ const parseResult = await env.AI.run(
 - ψαλίδια
 - εργαλεία
 - πανιά
-- αποθηκευτικά είδη
 - είδη σπιτιού
+- είδη αποθήκευσης
 - περιβαλλοντικά τέλη
 
 Μην εφευρίσκεις προϊόντα.
 
-Για κάθε προϊόν χρησιμοποίησε πραγματική γραμμή από το OCR.
-
-Επέστρεψε ΜΟΝΟ έγκυρο JSON:
-
-{
-  "products": [
-    {
-      "name": "κατανοητό ελληνικό όνομα",
-      "quantity": "ποσότητα αν φαίνεται",
-      "source_text": "πραγματική γραμμή OCR"
-    }
-  ]
-}
-
-OCR ΑΠΟΔΕΙΞΗΣ:
-
+OCR:
 ${receiptText}
 `,
+    guided_json: {
+      type: "object",
+      properties: {
+        products: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string"
+              },
+              quantity: {
+                type: "string"
+              },
+              source_text: {
+                type: "string"
+              }
+            },
+            required: [
+              "name",
+              "quantity",
+              "source_text"
+            ]
+          }
+        }
+      },
+      required: ["products"]
+    },
     max_tokens: 1800,
     temperature: 0
   }
@@ -525,14 +537,16 @@ const parseInner =
 
 let parseText = "";
 
-if (typeof parseInner === "string") {
-  parseText = parseInner;
-
-} else if (
+if (
   parseInner &&
   typeof parseInner.response === "string"
 ) {
   parseText = parseInner.response;
+
+} else if (
+  typeof parseInner === "string"
+) {
+  parseText = parseInner;
 
 } else if (
   parseInner &&
@@ -550,25 +564,16 @@ parseText = String(parseText || "")
 let parsed;
 
 try {
-
   parsed = JSON.parse(parseText);
-
-} catch (_) {
-
-  const match = parseText.match(/\{[\s\S]*\}/);
-
-  if (!match) {
-    return Response.json(
-      {
-        ok:false,
-        error:"Το OCR διάβασε την απόδειξη αλλά δεν μπόρεσα να αναγνωρίσω τα προϊόντα.",
-        details:receiptText.slice(0,1500)
-      },
-      {status:422}
-    );
-  }
-
-  parsed = JSON.parse(match[0]);
+} catch(e) {
+  return Response.json(
+    {
+      ok:false,
+      error:"Το OCR διάβασε την απόδειξη αλλά η ανάλυση προϊόντων απέτυχε.",
+      details:parseText.slice(0,1500)
+    },
+    {status:422}
+  );
 }
 
 let products =
