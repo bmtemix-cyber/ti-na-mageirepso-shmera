@@ -438,19 +438,41 @@ const prompt = `
 `;
 
     const result = await env.AI.run(
-      "@cf/moondream/moondream3.1-9B-A2B",
-      {
-        prompt: prompt,
-        image: body.image,
-        max_tokens: 1400,
-        temperature: 0.1
-      }
-    );
+  "@cf/moondream/moondream3.1-9B-A2B",
+  {
+    task: "query",
+    image: body.image,
+    question: `
+Διάβασε την απόδειξη σούπερ μάρκετ.
+
+Γράψε μόνο τις πραγματικές γραμμές τροφίμων και ποτών που βλέπεις.
+
+Αγνόησε:
+- εκπτώσεις
+- ΦΠΑ
+- σύνολα
+- εργαλεία
+- σακούλες
+- είδη σπιτιού
+- περιβαλλοντικά τέλη
+
+Μην εφευρίσκεις προϊόντα.
+Μην επαναλαμβάνεις προϊόντα.
+
+Για κάθε πραγματικό προϊόν γράψε μία γραμμή:
+
+ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΑΡΧΙΚΟ ΚΕΙΜΕΝΟ
+
+Χωρίς JSON και χωρίς εξηγήσεις.
+`
+  }
+);
 
     const text =
-      typeof result.response === "string"
-        ? result.response
-        : "";
+  result.answer ||
+  result.response ||
+  result.result ||
+  "";
 
     const items = text
       .split("\n")
