@@ -400,7 +400,97 @@ if (url.pathname === "/api/search-recipe") {
         );
       }
     }
+    
+if (url.pathname === "/api/read-receipt" && request.method === "POST") {
+  try {
+    const body = await request.json();
 
+    if (!body.image) {
+      return Response.json(
+        { ok:false, error:"Δεν στάλθηκε εικόνα απόδειξης." },
+        { status:400 }
+      );
+    }
+
+    const prompt = `
+Διάβασε αυτή την απόδειξη σούπερ μάρκετ.
+
+Θέλω να αναγνωρίσεις μόνο τρόφιμα και ποτά που μπορούν να μπουν στην αποθήκη τροφίμων.
+
+Αγνόησε:
+- απορρυπαντικά
+- χαρτικά
+- σακούλες
+- είδη καθαρισμού
+- καλλυντικά
+- μη τρόφιμα
+
+Για κάθε προϊόν δώσε:
+- name: καθαρό ελληνικό όνομα προϊόντος
+- quantity: ποσότητα όπως φαίνεται ή λογική ποσότητα συσκευασίας
+- raw: το αρχικό κείμενο της απόδειξης
+
+Απάντησε ΜΟΝΟ με έγκυρο JSON αυτού του σχήματος:
+
+{
+  "items": [
+    {
+      "name": "Γάλα",
+      "quantity": "1 L",
+      "raw": "ΓΑΛΑ 1,5% 1L"
+    }
+  ]
+}
+`;
+
+    const result = await env.AI.run(
+      "@cf/meta/llama-3.2-11b-vision-instruct",
+      {
+        prompt: prompt,
+        image: body.image,
+        max_tokens: 1200,
+        temperature: 0.1
+      }
+    );
+
+    const text =
+      result.response ||
+      result.result ||
+      result.output ||
+      "";
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch (_) {
+      const match = text.match(/\{[\s\S]*\}/);
+
+      if (!match) {
+        throw new Error("Το AI δεν επέστρεψε έγκυρο JSON.");
+      }
+
+      parsed = JSON.parse(match[0]);
+    }
+
+    return Response.json({
+      ok:true,
+      items:Array.isArray(parsed.items) ? parsed.items : []
+    });
+
+  } catch(e) {
+    console.error("RECEIPT ERROR", e);
+
+    return Response.json(
+      {
+        ok:false,
+        error:"Δεν μπόρεσα να διαβάσω την απόδειξη.",
+        details:e.message || String(e)
+      },
+      { status:500 }
+    );
+  }
+}
      return new Response("Not found", { status: 404 });
   },
 
