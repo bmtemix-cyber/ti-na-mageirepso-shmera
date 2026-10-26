@@ -483,27 +483,7 @@ if (typeof result === "string") {
   text = result.result;
 }
 
-text = String(text || "").trim(); else if (result instanceof Response) {
-
-  const raw = await result.text();
-
-  try {
-    const parsed = JSON.parse(raw);
-
-    text =
-      parsed.answer ||
-      parsed.response ||
-      parsed.result ||
-      raw;
-
-  } catch (_) {
-    text = raw;
-  }
-}
-
 text = String(text || "").trim();
-
-    console.log("RECEIPT RAW ANSWER:", text);
 
     if (!text) {
   return Response.json(
