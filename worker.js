@@ -415,70 +415,95 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
       );
     }
 
-    const result = await env.AI.run(
-      "@cf/moondream/moondream3.1-9B-A2B",
-      {
-        task: "query",
-        image: body.image,
-        question: `
+  const result = await env.AI.run(
+  "@cf/moondream/moondream3.1-9B-A2B",
+  {
+    task: "query",
+    image: body.image,
+    question: `
 Διάβασε προσεκτικά αυτή την ελληνική απόδειξη σούπερ μάρκετ.
 
-Θέλω να καταγράψεις ΜΟΝΟ τα πραγματικά τρόφιμα και ποτά που βλέπεις στην απόδειξη.
+Θέλω ΜΟΝΟ τα πραγματικά τρόφιμα και ποτά που βλέπεις.
 
 Μην εφευρίσκεις προϊόντα.
 Μην επαναλαμβάνεις προϊόντα.
-Μην προσθέτεις προϊόντα που δεν φαίνονται.
 
-Αγνόησε:
-- εκπτώσεις
-- ΦΠΑ
-- σύνολα
-- κάρτα / πληρωμή
-- περιβαλλοντικά τέλη
-- εργαλεία
-- ψαλίδια
-- σακούλες
-- είδη σπιτιού
-- αποθηκευτικά είδη
-- μη τρόφιμα
+Αγνόησε εκπτώσεις, ΦΠΑ, σύνολα, εργαλεία,
+σακούλες, είδη σπιτιού και περιβαλλοντικά τέλη.
 
-Για κάθε πραγματικό τρόφιμο ή ποτό γράψε ΑΚΡΙΒΩΣ μία γραμμή έτσι:
+Για κάθε τρόφιμο γράψε μία γραμμή:
 
-ΚΑΘΑΡΟ ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΑΚΡΙΒΕΣ ΚΕΙΜΕΝΟ ΑΠΟΔΕΙΞΗΣ
+ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΑΚΡΙΒΕΣ ΚΕΙΜΕΝΟ ΑΠΟΔΕΙΞΗΣ
 
-Παράδειγμα:
-Μπισκότα|200 g|ΜΠΙΣ.COOK.WH/CR.200G
-Σοκολάτα|100 g|ΣΟ.ΓΑΛ.ΚΟΜ.ΚΑΣ.100G
-
-Μην γράψεις JSON.
-Μην γράψεις εξηγήσεις.
-Μην γράψεις τίτλο.
-Μόνο τις γραμμές προϊόντων.
+Χωρίς JSON.
+Χωρίς εξηγήσεις.
 `,
-        reasoning: false,
-        stream: false,
-        max_tokens: 2000,
-        temperature: 0.1
-      }
-    );
+    reasoning: false,
+    stream: false,
+    max_tokens: 2000,
+    temperature: 0.1
+  }
+);
 
-    const text =
-      typeof result?.answer === "string"
-        ? result.answer.trim()
-        : "";
+let text = "";
+
+if (typeof result === "string") {
+  text = result;
+
+} else if (
+  result &&
+  typeof result.answer === "string"
+) {
+  text = result.answer;
+
+} else if (
+  result &&
+  typeof result.response === "string"
+) {
+  text = result.response;
+
+} else if (
+  result &&
+  typeof result.result === "string"
+) {
+  text = result.result;
+
+} else if (result instanceof Response) {
+
+  const raw = await result.text();
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    text =
+      parsed.answer ||
+      parsed.response ||
+      parsed.result ||
+      raw;
+
+  } catch (_) {
+    text = raw;
+  }
+}
+
+text = String(text || "").trim();
 
     console.log("RECEIPT RAW ANSWER:", text);
 
     if (!text) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Το AI δεν επέστρεψε κείμενο."
-        },
-        { status: 500 }
-      );
-    }
-
+  return Response.json(
+    {
+      ok:false,
+      error:"Το AI δεν επέστρεψε κείμενο.",
+      details:
+        "Τύπος αποτελέσματος: " +
+        (result?.constructor?.name || typeof result) +
+        " | πεδία: " +
+        Object.keys(result || {}).join(", ")
+    },
+    {status:500}
+  );
+}
     const items = text
       .split("\n")
       .map(line => line.trim())
