@@ -407,145 +407,180 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
 
     if (!body.image) {
       return Response.json(
-        {
-          ok: false,
-          error: "Δεν στάλθηκε εικόνα απόδειξης."
-        },
-        { status: 400 }
+        { ok:false, error:"Δεν στάλθηκε εικόνα απόδειξης." },
+        { status:400 }
       );
     }
 
-  const result = await env.AI.run(
-  "@cf/moondream/moondream3.1-9B-A2B",
-  {
-    task: "query",
-    image: body.image,
-    question: `
+    const result = await env.AI.run(
+      "@cf/moondream/moondream3.1-9B-A2B",
+      {
+        task: "query",
+        image: body.image,
+        stream: false,
+        question: `
 Διάβασε προσεκτικά αυτή την ελληνική απόδειξη σούπερ μάρκετ.
 
-Θέλω ΜΟΝΟ τα πραγματικά τρόφιμα και ποτά που βλέπεις.
+Θέλω ΜΟΝΟ τα τρόφιμα και τα ποτά που πραγματικά εμφανίζονται στην απόδειξη.
+
+Αγνόησε:
+- εκπτώσεις
+- ΦΠΑ
+- σύνολα
+- τρόπους πληρωμής
+- περιβαλλοντικά τέλη
+- σακούλες
+- ψαλίδια
+- εργαλεία
+- πανιά
+- είδη καθαρισμού
+- είδη αποθήκευσης
+- είδη σπιτιού
+- οποιοδήποτε μη τρόφιμο
 
 Μην εφευρίσκεις προϊόντα.
-Μην επαναλαμβάνεις προϊόντα.
+Μην επαναλαμβάνεις το ίδιο προϊόν χωρίς λόγο.
 
-Αγνόησε εκπτώσεις, ΦΠΑ, σύνολα, εργαλεία,
-σακούλες, είδη σπιτιού και περιβαλλοντικά τέλη.
+Απάντησε ΜΟΝΟ με JSON ακριβώς σε αυτή τη μορφή:
 
-Για κάθε τρόφιμο γράψε μία γραμμή:
-
-ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΑΚΡΙΒΕΣ ΚΕΙΜΕΝΟ ΑΠΟΔΕΙΞΗΣ
-
-Χωρίς JSON.
-Χωρίς εξηγήσεις.
-`,
-    reasoning: false,
-    stream: false,
-    max_tokens: 2000,
-    temperature: 0.1
-  }
-);
-
-let text = "";
-
-if (typeof result === "string") {
-  text = result;
-
-} else if (
-  result &&
-  typeof result.answer === "string"
-) {
-  text = result.answer;
-
-} else if (
-  result &&
-  result.result &&
-  typeof result.result.answer === "string"
-) {
-  text = result.result.answer;
-
-} else if (
-  result &&
-  result.result &&
-  typeof result.result.response === "string"
-) {
-  text = result.result.response;
-
-} else if (
-  result &&
-  typeof result.response === "string"
-) {
-  text = result.response;
-
-} else if (
-  result &&
-  typeof result.result === "string"
-) {
-  text = result.result;
-}
-
-text = String(text || "").trim();
-
-    if (!text) {
-  return Response.json(
+{
+  "products": [
     {
-      ok:false,
-      error:"Το AI δεν επέστρεψε κείμενο.",
-      details:
-        "Τύπος αποτελέσματος: " +
-        (result?.constructor?.name || typeof result) +
-        " | πεδία: " +
-        Object.keys(result || {}).join(", ")
-    },
-    {status:500}
-  );
+      "name": "καθαρό ελληνικό όνομα",
+      "quantity": "ποσότητα ή συσκευασία",
+      "source_text": "ακριβές κείμενο που διάβασες στην απόδειξη"
+    }
+  ]
 }
-    const items = text
-      .split("\n")
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith("```"))
-      .map(line => {
-        line = line.replace(/^[-•*]\s*/, "");
 
-        const parts = line.split("|");
+Αν δεν αναγνωρίζεις την ποσότητα βάλε "".
+Αν δεν υπάρχουν τρόφιμα επέστρεψε:
+{"products":[]}
 
-        if (parts.length < 3) {
-          return null;
-        }
+Χωρίς markdown.
+Χωρίς εξηγήσεις.
+Χωρίς άλλο κείμενο.
+`
+      }
+    );
 
-        return {
-          name: parts[0].trim(),
-          quantity: parts[1].trim(),
-          raw: parts.slice(2).join("|").trim()
-        };
-      })
-      .filter(Boolean);
+    const inner =
+      result && result.result !== undefined
+        ? result.result
+        : result;
 
-    if (!items.length) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Το AI διάβασε την απόδειξη αλλά δεν επέστρεψε προϊόντα στη σωστή μορφή.",
-          details: text.slice(0, 1500)
-        },
-        { status: 422 }
-      );
+    let text = "";
+
+    if (typeof inner === "string") {
+      text = inner;
+
+    } else if (inner && typeof inner.answer === "string") {
+      text = inner.answer;
+
+    } else if (inner && typeof inner.response === "string") {
+      text = inner.response;
+
+    } else if (inner && typeof inner.text === "string") {
+      text = inner.text;
+
+    } else if (inner && typeof inner === "object") {
+      text = JSON.stringify(inner);
     }
 
+    text = String(text || "").trim();
+
+    text = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+
+    } catch (_) {
+      const match = text.match(/\{[\s\S]*\}/);
+
+      if (!match) {
+        return Response.json(
+          {
+            ok:false,
+            error:"Το AI διάβασε την απόδειξη αλλά δεν επέστρεψε JSON.",
+            details:text.slice(0,1500)
+          },
+          { status:422 }
+        );
+      }
+
+      parsed = JSON.parse(match[0]);
+    }
+
+    let products = [];
+
+    if (Array.isArray(parsed.products)) {
+      products = parsed.products;
+
+    } else if (Array.isArray(parsed.items)) {
+      products = parsed.items;
+
+    } else if (Array.isArray(parsed)) {
+      products = parsed;
+    }
+
+    const seen = new Set();
+
+    const items = products
+      .map(p => ({
+        name: String(p.name || p.title || "").trim(),
+
+        quantity: String(
+          p.quantity ||
+          p.amount ||
+          p.weight ||
+          ""
+        ).trim(),
+
+        raw: String(
+          p.source_text ||
+          p.raw ||
+          p.original_text ||
+          ""
+        ).trim()
+      }))
+
+      .filter(p => p.name)
+
+      .filter(p => {
+        const key =
+          p.name.toLowerCase() +
+          "|" +
+          p.quantity.toLowerCase() +
+          "|" +
+          p.raw.toLowerCase();
+
+        if (seen.has(key)) return false;
+
+        seen.add(key);
+        return true;
+      });
+
     return Response.json({
-      ok: true,
-      items: items
+      ok:true,
+      items:items
     });
 
-  } catch (e) {
+  } catch(e) {
     console.error("RECEIPT ERROR", e);
 
     return Response.json(
       {
-        ok: false,
-        error: "Δεν μπόρεσα να διαβάσω την απόδειξη.",
-        details: e.message || String(e)
+        ok:false,
+        error:"Δεν μπόρεσα να διαβάσω την απόδειξη.",
+        details:e.message || String(e)
       },
-      { status: 500 }
+      { status:500 }
     );
   }
 }
