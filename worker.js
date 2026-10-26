@@ -413,6 +413,90 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
     }
 
     const prompt = `
+Διάβασε προσεκτικά την ελληνική απόδειξη σούπερ μάρκετ.
+
+Αναγνώρισε ΜΟΝΟ τρόφιμα και ποτά.
+
+Αγνόησε:
+- έπιπλα
+- εργαλεία
+- ψαλίδια
+- σακούλες
+- αποθηκευτικά είδη
+- χαρτικά
+- απορρυπαντικά
+- καθαριστικά
+- καλλυντικά
+- περιβαλλοντικά τέλη
+- εκπτώσεις
+- σύνολα και ΦΠΑ
+
+Για κάθε τρόφιμο ή ποτό γράψε ΑΚΡΙΒΩΣ μία γραμμή με τη μορφή:
+
+ΚΑΘΑΡΟ ΟΝΟΜΑ|ΠΟΣΟΤΗΤΑ|ΚΕΙΜΕΝΟ ΑΠΟΔΕΙΞΗΣ
+
+Παράδειγμα:
+Γιαούρτι|500 g|ΓΥΡΟΣ ΧΟΙΡ.ΠΡΟΨ.500G
+Μοσχάρι|0.668 kg|ΣΥΚΩΤΙ ΜΟΣΧΑΡ.ΚΙΛΟ
+Μπισκότα|200 g|ΜΠΙΣ.COOK.WH/CR.200G
+
+Μην γράψεις εξηγήσεις.
+Μην γράψεις JSON.
+Μία γραμμή για κάθε προϊόν.
+`;
+
+    const result = await env.AI.run(
+      "@cf/mistralai/mistral-small-3.1-24b-instruct",
+      {
+        prompt: prompt,
+        image: body.image,
+        max_tokens: 1400,
+        temperature: 0.1
+      }
+    );
+
+    const text =
+      typeof result.response === "string"
+        ? result.response
+        : "";
+
+    const items = text
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => {
+        const parts = line.split("|");
+
+        if (parts.length < 3) return null;
+
+        return {
+          name: parts[0].trim(),
+          quantity: parts[1].trim(),
+          raw: parts.slice(2).join("|").trim()
+        };
+      })
+      .filter(Boolean);
+
+    return Response.json({
+      ok:true,
+      items:items
+    });
+
+  } catch(e) {
+    console.error("RECEIPT ERROR", e);
+
+    return Response.json(
+      {
+        ok:false,
+        error:"Δεν μπόρεσα να διαβάσω την απόδειξη.",
+        details:e.message || String(e)
+      },
+      { status:500 }
+    );
+  }
+}
+
+    const prompt = `
 Διάβασε αυτή την απόδειξη σούπερ μάρκετ.
 
 Θέλω να αναγνωρίσεις μόνο τρόφιμα και ποτά που μπορούν να μπουν στην αποθήκη τροφίμων.
