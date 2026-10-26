@@ -326,7 +326,30 @@
 <button class="btn primary" onclick="saveMeal()">Καταχώριση γεύματος</button><div id="saveStatus" class="small" style="margin-top:10px"></div></div>
 <div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
-<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
+<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div class="card">
+  <h3>🧾 Απόδειξη σούπερ μάρκετ</h3>
+  <p class="small">
+    Φωτογράφισε ή διάλεξε φωτογραφία απόδειξης για να αναγνωρίσουμε αυτόματα τα τρόφιμα.
+  </p>
+
+  <input
+    id="receiptPhoto"
+    type="file"
+    accept="image/*"
+    capture="environment"
+    style="display:none"
+    onchange="handleReceiptPhoto(event)"
+  >
+
+  <button
+    class="btn secondary"
+    onclick="document.getElementById('receiptPhoto').click()"
+  >
+    📷 Σκάναρε απόδειξη σούπερ μάρκετ
+  </button>
+
+  <div id="receiptStatus" class="small" style="margin-top:10px"></div>
+</div><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
 <section id="settings" class="view">
   <div class="card">
     <h2>⚙️ Ρυθμίσεις</h2>
@@ -383,7 +406,20 @@
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
 const VAPID_PUBLIC_KEY =
-  'BHPnukdmQV-MaQgh4khYKMPzIOJ3VnpOpDL2LZjCHUUEFVyK_jhWYmtZfF3WD4fltID__2xGgY4EmV86PF54cdw';  
+  'BHPnukdmQV-MaQgh4khYKMPzIOJ3VnpOpDL2LZjCHUUEFVyK_jhWYmtZfF3WD4fltID__2xGgY4EmV86PF54cdw'; 
+  function handleReceiptPhoto(event){
+  const file=event.target.files[0];
+  const status=$('receiptStatus');
+
+  if(!file){
+    if(status)status.textContent='';
+    return;
+  }
+
+  if(status){
+    status.textContent='✅ Επιλέχθηκε φωτογραφία: '+file.name;
+  }
+}
    function urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
   const base64=(base64String+padding)
