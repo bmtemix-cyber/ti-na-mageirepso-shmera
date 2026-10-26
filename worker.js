@@ -444,7 +444,7 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
 `;
 
     const result = await env.AI.run(
-      "@cf/meta/llama-3.2-11b-vision-instruct",
+     "@cf/mistralai/mistral-small-3.1-24b-instruct",
       {
         prompt: prompt,
         image: body.image,
