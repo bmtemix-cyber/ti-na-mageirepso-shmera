@@ -328,18 +328,35 @@
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
 <section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div class="card">
   <div class="card" style="margin-top:12px">
+ <div class="card" style="margin-top:12px">
   <h3>📦 Barcode προϊόντος</h3>
 
   <p class="small">
-    Σκάναρε το barcode ενός προϊόντος για να το προσθέσεις στα Υλικά.
+    Φωτογράφισε το barcode του προϊόντος.
   </p>
+
+  <input
+    id="barcodePhoto"
+    type="file"
+    accept="image/*"
+    capture="environment"
+    style="display:none"
+    onchange="handleBarcodePhoto(event)"
+  >
 
   <button
     class="btn secondary"
-    onclick="startBarcodeScanner()"
+    onclick="document.getElementById('barcodePhoto').click()"
   >
-    ▥ Σκάναρε barcode προϊόντος
+    📷 Φωτογράφισε barcode
   </button>
+
+  <div
+    id="barcodeStatus"
+    class="small"
+    style="margin-top:8px"
+  ></div>
+</div>
 
   <div
     id="barcodeReader"
