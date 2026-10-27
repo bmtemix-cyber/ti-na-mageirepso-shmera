@@ -1,4 +1,80 @@
 import webpush from "web-push";
+function looksLikeFood(sourceText) {
+  const t = (sourceText || '').toUpperCase();
+
+  const NON_FOOD = [
+    'ΨΑΛΙΔΙ',
+    'ΣΑΚΟΥΛ',
+    'ΠΑΝΙΑ',
+    'ΘΗΚΗ',
+    'ΑΠΟΘΗΚ',
+    'ΠΡΟΣΘΗΚ',
+    'ΠΕΡΙΒΑΝ',
+    'ΤΕΛΟΣ',
+    'ΕΚΠΤΩΣ',
+    'ΣΥΝΟΛΟ',
+    'ΚΑΡΤΑ',
+    'ΦΠΑ',
+    'ΠΛΗΡΩΜ',
+    'ΑΠΟΔΕΙΞΗ'
+  ];
+
+  if (NON_FOOD.some(x => t.includes(x))) return false;
+
+  const FOOD_HINTS = [
+    'CHICK',
+    'ΧΟΙΡ',
+    'ΓΥΡΟΣ',
+    'ΜΟΣΧ',
+    'ΣΥΚΩΤΙ',
+    'ΡΥΖΟΓΑΛ',
+    'TEA',
+    'LEMON',
+    'ΜΠΙΣ',
+    'COOK',
+    'SOFT',
+    'ΓΑΛ',
+    'ΤΟΡΤ',
+    'ΛΟΥΚΟΥΜ',
+    'ΑΡΤ',
+    'ΠΟΛΥΣΠΟΡ'
+  ];
+
+  return FOOD_HINTS.some(x => t.includes(x));
+}
+
+function normalizeFoodName(sourceText, fallbackName) {
+  const t = (sourceText || '').toUpperCase();
+
+  if (t.includes('CHICK')) return 'Κοτόπουλο στήθος';
+  if (t.includes('ΓΥΡΟΣ') && t.includes('ΧΟΙΡ')) return 'Γύρος χοιρινός';
+  if (t.includes('ΣΥΚΩΤΙ') && t.includes('ΜΟΣΧ')) return 'Συκώτι μοσχαρίσιο';
+  if (t.includes('ΡΥΖΟΓΑΛ')) return 'Ρυζόγαλο';
+  if (t.includes('TEA') || t.includes('LEMON')) return 'Τσάι λεμόνι';
+  if (t.includes('WH/CR')) return 'Μπισκότα με λευκή κρέμα';
+  if (t.includes('SOFT')) return 'Μπισκότα μαλακά';
+  if (t.includes('ΓΑΛ')) return 'Γαλακτοκομικό';
+  if (t.includes('ΤΟΡΤ')) return 'Τορτίγια ολικής';
+  if (t.includes('ΛΟΥΚΟΥΜ')) return 'Λουκουμάδες';
+  if (t.includes('ΠΟΛΥΣΠΟΡ')) return 'Ψωμί πολύσπορο';
+
+  return fallbackName || 'Τρόφιμο';
+}
+
+function dedupeProducts(products) {
+  const seen = new Set();
+
+  return products.filter(p => {
+    const key =
+      (p.name || '').trim().toUpperCase() + '|' +
+      (p.quantity || '').trim().toUpperCase() + '|' +
+      (p.source_text || '').trim().toUpperCase();
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 function findRecipeJsonLd(html) {
   const matches = [...html.matchAll(
     /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
@@ -566,10 +642,25 @@ source_text = η πραγματική γραμμή της απόδειξης
       parsed = JSON.parse(match[0]);
     }
 
-    const products =
-      Array.isArray(parsed.products)
-        ? parsed.products
-        : [];
+  let products = Array.isArray(parsed?.products)
+  ? parsed.products
+  : [];
+
+products = products
+  .map(p => ({
+    name: (p.name || '').trim(),
+    quantity: (p.quantity || '').trim(),
+    source_text: (p.source_text || '').trim()
+  }))
+  .filter(p => p.source_text)
+  .filter(p => looksLikeFood(p.source_text))
+  .map(p => ({
+    ...p,
+    name: normalizeFoodName(p.source_text, p.name)
+  }));
+
+products = dedupeProducts(products);
+
 
     const seen = new Set();
 
@@ -603,10 +694,10 @@ source_text = η πραγματική γραμμή της απόδειξης
         return true;
       });
 
-    return Response.json({
-      ok:true,
-      items:items
-    });
+   return Response.json({
+  ok: true,
+  products
+});
 
   } catch(e) {
 
