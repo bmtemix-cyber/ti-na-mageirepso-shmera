@@ -2083,15 +2083,11 @@ function enterApp(){
   render();
 }
 function initWelcomeScreen(){
-  const videos=[
-    document.getElementById('introBadVideo'),
-    document.getElementById('introGoodVideo')
-  ].filter(Boolean);
 
-  if(!videos.length){
-    enterApp();
-    return;
-  }
+  const videos=[
+    'introBadVideo',
+    'introGoodVideo'
+  ].map(id=>document.getElementById(id));
 
   const finished=new Set();
 
@@ -2102,6 +2098,56 @@ function initWelcomeScreen(){
       enterApp();
     }
   }
+
+  videos.forEach(v=>{
+
+    if(!v)return;
+
+    v.muted=true;
+    v.playsInline=true;
+
+    v.addEventListener('ended',()=>{
+      markFinished(v);
+    });
+
+    v.addEventListener('timeupdate',()=>{
+      if(
+        Number.isFinite(v.duration) &&
+        v.duration>0 &&
+        v.currentTime>=v.duration-0.25
+      ){
+        markFinished(v);
+      }
+    });
+
+    v.addEventListener('error',()=>{
+      markFinished(v);
+    });
+
+    const playing=v.play();
+
+    if(playing && typeof playing.catch==='function'){
+      playing.catch(()=>{
+        const note=document.querySelector('.welcome-note');
+
+        if(note && !welcomeEntered){
+          note.textContent=
+            'Πατήστε ▶ στα βίντεο ή «Ξεκινήστε» για άμεση είσοδο.';
+        }
+      });
+    }
+  });
+
+  setTimeout(()=>{
+    if(!welcomeEntered){
+      enterApp();
+    }
+  },12000);
+}
+
+
+// BARCODE - έξω από την initWelcomeScreen
+
 let barcodeScanner=null;
 
 async function startBarcodeScanner(){
@@ -2138,9 +2184,7 @@ async function startBarcodeScanner(){
     );
 
     await barcodeScanner.start(
-      {
-        facingMode:'environment'
-      },
+      {facingMode:'environment'},
       {
         fps:10,
         qrbox:{
@@ -2152,8 +2196,7 @@ async function startBarcodeScanner(){
       async decodedText=>{
 
         if(status){
-          status.textContent=
-            '✅ Barcode: '+decodedText;
+          status.textContent='✅ Barcode: '+decodedText;
         }
 
         try{
@@ -2182,61 +2225,11 @@ async function startBarcodeScanner(){
     }
   }
 }
-  videos.forEach(v=>{
-    v.muted=true;
-    v.playsInline=true;
+  
 
-    v.addEventListener('ended',()=>{
-      markFinished(v);
-    });
+</script>
 
-    v.addEventListener('timeupdate',()=>{
-      if(
-        Number.isFinite(v.duration) &&
-        v.duration>0 &&
-        v.currentTime>=v.duration-0.25
-      ){
-        markFinished(v);
-      }
-    });
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-    v.addEventListener('error',()=>{
-      markFinished(v);
-    });
-
-    const playing=v.play();
-
-    if(playing && typeof playing.catch==='function'){
-      playing.catch(()=>{
-        const note=document.querySelector('.welcome-note');
-
-        if(note && !welcomeEntered){
-          note.textContent=
-            'Πατήστε ▶ στα βίντεο ή «Ξεκινήστε» για άμεση είσοδο.';
-        }
-      });
-    }
-  });
-
-  // Εφεδρική προστασία ειδικά για Safari/iPhone:
-  // αν για κάποιο λόγο δεν έρθει το ended event,
-  // μετά από 12 δευτερόλεπτα μπαίνει στην εφαρμογή.
-  setTimeout(()=>{
-    if(!welcomeEntered){
-      enterApp();
-    }
-  },12000);
-}
-
-markAppOpenedToday();
-render();
-show('home');
-initWelcomeScreen();
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js?v=6')
-    .then(r=>r.update())
-    .catch(()=>{});
-}
- <script src="https://unpkg.com/html5-qrcode"></script> 
-</script></body></html>
+</body>
+</html>
