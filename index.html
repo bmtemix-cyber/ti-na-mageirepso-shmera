@@ -357,7 +357,7 @@
     style="margin-top:8px"
   ></div>
 </div>
-
+<div id="barcodeReaderTemp" style="display:none"></div>
   <div
     id="barcodeReader"
     style="margin-top:12px;display:none"
@@ -2166,6 +2166,44 @@ function initWelcomeScreen(){
 // BARCODE - έξω από την initWelcomeScreen
 
 let barcodeScanner=null;
+
+  async function handleBarcodePhoto(event){
+
+  const file=event.target.files[0];
+  const status=document.getElementById('barcodeStatus');
+
+  if(!file){
+    if(status)status.textContent='';
+    return;
+  }
+
+  if(status){
+    status.textContent='🔎 Διαβάζω το barcode...';
+  }
+
+  try{
+
+    const scanner=new Html5Qrcode('barcodeReaderTemp');
+
+    const result=await scanner.scanFile(
+      file,
+      true
+    );
+
+    if(status){
+      status.textContent='✅ Barcode: '+result;
+    }
+
+  }catch(e){
+
+    console.error(e);
+
+    if(status){
+      status.textContent=
+        '❌ Δεν μπόρεσα να διαβάσω το barcode.';
+    }
+  }
+}
 
 async function startBarcodeScanner(){
 
