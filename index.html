@@ -357,7 +357,7 @@
     style="margin-top:8px"
   ></div>
 </div>
-<div id="barcodeReaderTemp" style="display:none"></div>
+
   <div
     id="barcodeReader"
     style="margin-top:12px;display:none"
@@ -2167,7 +2167,7 @@ function initWelcomeScreen(){
 
 let barcodeScanner=null;
 
-  async function handleBarcodePhoto(event){
+ async function handleBarcodePhoto(event){
 
   const file=event.target.files[0];
   const status=document.getElementById('barcodeStatus');
@@ -2183,16 +2183,50 @@ let barcodeScanner=null;
 
   try{
 
-    const scanner=new Html5Qrcode('barcodeReaderTemp');
+    const imageUrl=URL.createObjectURL(file);
 
-    const result=await scanner.scanFile(
-      file,
-      true
-    );
+    const img=new Image();
 
-    if(status){
-      status.textContent='✅ Barcode: '+result;
-    }
+    img.onload=async()=>{
+
+      try{
+
+        const codeReader=
+          new ZXing.BrowserMultiFormatReader();
+
+        const result=
+          await codeReader.decodeFromImageElement(img);
+
+        if(status){
+          status.textContent=
+            '✅ Barcode: '+result.getText();
+        }
+
+      }catch(e){
+
+        console.error(e);
+
+        if(status){
+          status.textContent=
+            '❌ Δεν μπόρεσα να διαβάσω το barcode.';
+        }
+
+      }finally{
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+
+    img.onerror=()=>{
+
+      if(status){
+        status.textContent=
+          '❌ Δεν μπόρεσα να ανοίξω τη φωτογραφία.';
+      }
+
+      URL.revokeObjectURL(imageUrl);
+    };
+
+    img.src=imageUrl;
 
   }catch(e){
 
@@ -2284,7 +2318,7 @@ async function startBarcodeScanner(){
 
 </script>
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://unpkg.com/@zxing/library@latest"></script>
 
 </body>
 </html>
