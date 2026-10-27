@@ -694,9 +694,9 @@ products = dedupeProducts(products);
         return true;
       });
 
-   return Response.json({
+  return Response.json({
   ok: true,
-  products
+  items: items
 });
 
   } catch(e) {
