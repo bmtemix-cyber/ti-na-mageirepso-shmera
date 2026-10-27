@@ -555,11 +555,80 @@ const VAPID_PUBLIC_KEY =
     }
 
 
-    results.innerHTML=
-      '<div class="soft">'+
+   results.innerHTML=
+  '<div class="soft">'+
+    '<b>🧾 Προϊόντα που αναγνώρισα</b>'+
 
-        '<b>🧾 Προϊόντα που αναγνώρισα</b>'+
+    data.items.map((item,i)=>
 
+      '<div class="item receipt-item" style="margin-top:10px">'+
+
+        '<label style="display:flex;gap:8px;align-items:flex-start">'+
+          '<input '+
+            'type="checkbox" '+
+            'class="receipt-select" '+
+            'data-index="'+i+'" '+
+            'checked'+
+          '>'+
+          
+          '<div style="flex:1">'+
+
+            '<label class="small">Όνομα</label>'+
+            '<input '+
+              'type="text" '+
+              'class="receipt-name" '+
+              'data-index="'+i+'" '+
+              'value="'+
+                String(item.name||'')
+                  .replace(/"/g,'&quot;')+
+              '"'+
+            '>'+
+
+            '<label class="small" style="margin-top:8px">Ποσότητα</label>'+
+            '<input '+
+              'type="text" '+
+              'class="receipt-qty" '+
+              'data-index="'+i+'" '+
+              'value="'+
+                String(item.quantity||'')
+                  .replace(/"/g,'&quot;')+
+              '"'+
+            '>'+
+
+            '<label class="small" style="margin-top:8px">Ημερομηνία λήξης</label>'+
+            '<input '+
+              'type="date" '+
+              'class="receipt-expiry" '+
+              'data-index="'+i+'"'+
+            '>'+
+
+            (
+              item.raw
+              ?
+              '<div class="small" style="margin-top:8px">'+
+                'Απόδειξη: '+
+                item.raw+
+              '</div>'
+              :
+              ''
+            )+
+
+          '</div>'+
+        '</label>'+
+
+      '</div>'
+
+    ).join('')+
+
+    '<button '+
+      'class="btn" '+
+      'style="margin-top:14px;width:100%" '+
+      'onclick="addSelectedReceiptItems()"'+
+    '>'+
+      '➕ Προσθήκη επιλεγμένων στα Υλικά'+
+    '</button>'+
+
+  '</div>';
         data.items.map(item=>
 
           '<div class="item" style="margin-top:8px">'+
@@ -606,6 +675,67 @@ const VAPID_PUBLIC_KEY =
         '</div>';
     }
   }
+}
+  function addSelectedReceiptItems(){
+
+  const selected=
+    document.querySelectorAll('.receipt-select:checked');
+
+  if(!selected.length){
+    alert('Δεν έχεις επιλέξει κάποιο προϊόν.');
+    return;
+  }
+
+  let added=0;
+
+  selected.forEach(checkbox=>{
+
+    const i=checkbox.dataset.index;
+
+    const nameEl=
+      document.querySelector(
+        '.receipt-name[data-index="'+i+'"]'
+      );
+
+    const qtyEl=
+      document.querySelector(
+        '.receipt-qty[data-index="'+i+'"]'
+      );
+
+    const expEl=
+      document.querySelector(
+        '.receipt-expiry[data-index="'+i+'"]'
+      );
+
+    const name=
+      (nameEl?.value||'').trim();
+
+    const qty=
+      (qtyEl?.value||'').trim();
+
+    const exp=
+      expEl?.value||'';
+
+    if(!name)return;
+
+    s.pantry.push({
+      name:name,
+      qty:qty,
+      exp:exp
+    });
+
+    added++;
+  });
+
+  save();
+
+  render();
+
+  alert(
+    '✅ Προστέθηκαν '+
+    added+
+    ' προϊόντα στα Υλικά.'
+  );
 }
    function urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
