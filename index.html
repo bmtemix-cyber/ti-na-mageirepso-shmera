@@ -2197,10 +2197,59 @@ let barcodeScanner=null;
         const result=
           await codeReader.decodeFromImageElement(img);
 
-        if(status){
-          status.textContent=
-            '✅ Barcode: '+result.getText();
-        }
+        const barcode=result.getText();
+
+if(status){
+  status.textContent='🔎 Βρέθηκε barcode: '+barcode+' — αναζητώ προϊόν...';
+}
+
+try{
+
+  const r=await fetch(
+    'https://world.openfoodfacts.org/api/v2/product/'+
+    encodeURIComponent(barcode)+
+    '.json?fields=product_name,quantity,brands'
+  );
+
+  const data=await r.json();
+
+  if(data.status!==1 || !data.product){
+
+    if(status){
+      status.textContent=
+        '⚠️ Barcode: '+barcode+
+        ' — το προϊόν δεν βρέθηκε στη βάση.';
+    }
+
+    return;
+  }
+
+  const product=data.product;
+
+  const name=
+    product.product_name ||
+    product.brands ||
+    'Άγνωστο προϊόν';
+
+  const quantity=
+    product.quantity || '';
+
+  if(status){
+    status.innerHTML=
+      '✅ <b>'+name+'</b><br>'+
+      (quantity ? 'Ποσότητα: '+quantity+'<br>' : '')+
+      '<span class="small">Barcode: '+barcode+'</span>';
+  }
+
+}catch(err){
+
+  console.error(err);
+
+  if(status){
+    status.textContent=
+      '⚠️ Το barcode διαβάστηκε, αλλά δεν μπόρεσα να αναζητήσω το προϊόν.';
+  }
+}
 
       }catch(e){
 
