@@ -2102,7 +2102,86 @@ function initWelcomeScreen(){
       enterApp();
     }
   }
+let barcodeScanner=null;
 
+async function startBarcodeScanner(){
+
+  const reader=document.getElementById('barcodeReader');
+  const status=document.getElementById('barcodeStatus');
+
+  if(!reader)return;
+
+  reader.style.display='block';
+
+  if(status){
+    status.textContent='📷 Άνοιγμα κάμερας...';
+  }
+
+  try{
+
+    if(barcodeScanner){
+      try{
+        await barcodeScanner.stop();
+      }catch(_){}
+    }
+
+    barcodeScanner=new Html5Qrcode(
+      'barcodeReader',
+      {
+        formatsToSupport:[
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E
+        ]
+      }
+    );
+
+    await barcodeScanner.start(
+      {
+        facingMode:'environment'
+      },
+      {
+        fps:10,
+        qrbox:{
+          width:280,
+          height:140
+        }
+      },
+
+      async decodedText=>{
+
+        if(status){
+          status.textContent=
+            '✅ Barcode: '+decodedText;
+        }
+
+        try{
+          await barcodeScanner.stop();
+        }catch(_){}
+
+        reader.style.display='none';
+      },
+
+      ()=>{}
+    );
+
+    if(status){
+      status.textContent=
+        'Στόχευσε το barcode μέσα στο πλαίσιο.';
+    }
+
+  }catch(e){
+
+    console.error(e);
+
+    if(status){
+      status.textContent=
+        '❌ Δεν μπόρεσα να ανοίξω την κάμερα: '+
+        (e.message||e);
+    }
+  }
+}
   videos.forEach(v=>{
     v.muted=true;
     v.playsInline=true;
@@ -2159,4 +2238,5 @@ if('serviceWorker' in navigator){
     .then(r=>r.update())
     .catch(()=>{});
 }
+ <script src="https://unpkg.com/html5-qrcode"></script> 
 </script></body></html>
