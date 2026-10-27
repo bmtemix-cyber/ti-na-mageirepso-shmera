@@ -415,21 +415,24 @@ if (url.pathname === "/api/read-receipt" && request.method === "POST") {
       );
     }
 
-    const result = await env.AI.run(
-      "@cf/google/gemma-4-26b-a4b-it",
+  const result = await env.AI.run(
+  "@cf/google/gemma-4-26b-a4b-it",
+  {
+    messages: [
       {
-        messages: [
+        role: "system",
+        content:
+          "You accurately read supermarket receipts. " +
+          "Never invent products. " +
+          "Only extract products actually visible in the image."
+      },
+      {
+        role: "user",
+        content: [
           {
-            role: "system",
-            content:
-              "You accurately read supermarket receipts. " +
-              "Never invent products. " +
-              "Only extract products actually visible in the image."
-          },
-          {
-            role: "user",
-            content:
-              `Διάβασε αυτή την ελληνική απόδειξη σούπερ μάρκετ.
+            type: "text",
+            text: `
+Διάβασε αυτή την ελληνική απόδειξη σούπερ μάρκετ.
 
 Βρες ΜΟΝΟ τρόφιμα και ποτά που εμφανίζονται πραγματικά στην εικόνα.
 
@@ -452,7 +455,7 @@ name = κατανοητό ελληνικό όνομα
 quantity = ποσότητα ή βάρος αν φαίνεται
 source_text = η πραγματική γραμμή της απόδειξης
 
-Απάντησε ΜΟΝΟ με JSON:
+Απάντησε μόνο με JSON:
 
 {
   "products": [
@@ -465,27 +468,31 @@ source_text = η πραγματική γραμμή της απόδειξης
 }
 
 Μην γράψεις εξηγήσεις.
-Μην γράψεις markdown.
-Μην εφευρίσκεις προϊόντα.`
+Μην εφευρίσκεις προϊόντα.
+`
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: body.image
+            }
           }
-        ],
-
-        image: body.image,
-
-        stream: false,
-
-        temperature: 0,
-
-        max_completion_tokens: 1500,
-
-        chat_template_kwargs: {
-          enable_thinking: false
-        }
-      },
-      {
-        rejectIfBusy: true
+        ]
       }
-    );
+    ],
+
+    stream: false,
+    temperature: 0,
+    max_completion_tokens: 1500,
+
+    chat_template_kwargs: {
+      enable_thinking: false
+    }
+  },
+  {
+    rejectIfBusy: true
+  }
+);
 
     let text = "";
 
