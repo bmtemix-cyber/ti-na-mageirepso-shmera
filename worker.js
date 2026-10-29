@@ -1,8 +1,9 @@
 import webpush from "web-push";
 function looksLikeFood(sourceText) {
-  const t = (sourceText || '').toUpperCase();
 
-  const NON_FOOD = [
+  const t=(sourceText || '').toUpperCase();
+
+  const NON_FOOD=[
     'ΨΑΛΙΔΙ',
     'ΣΑΚΟΥΛ',
     'ΠΑΝΙΑ',
@@ -19,28 +20,11 @@ function looksLikeFood(sourceText) {
     'ΑΠΟΔΕΙΞΗ'
   ];
 
-  if (NON_FOOD.some(x => t.includes(x))) return false;
+  if(NON_FOOD.some(x=>t.includes(x))){
+    return false;
+  }
 
-  const FOOD_HINTS = [
-    'CHICK',
-    'ΧΟΙΡ',
-    'ΓΥΡΟΣ',
-    'ΜΟΣΧ',
-    'ΣΥΚΩΤΙ',
-    'ΡΥΖΟΓΑΛ',
-    'TEA',
-    'LEMON',
-    'ΜΠΙΣ',
-    'COOK',
-    'SOFT',
-    'ΓΑΛ',
-    'ΤΟΡΤ',
-    'ΛΟΥΚΟΥΜ',
-    'ΑΡΤ',
-    'ΠΟΛΥΣΠΟΡ'
-  ];
-
-  return FOOD_HINTS.some(x => t.includes(x));
+  return true;
 }
 
 function normalizeFoodName(sourceText, fallbackName) {
