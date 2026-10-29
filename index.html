@@ -480,7 +480,7 @@ const VAPID_PUBLIC_KEY =
 
         img.onload=()=>{
 
-          const MAX_SIZE=1600;
+          const MAX_SIZE=2400;
 
           let width=img.width;
           let height=img.height;
@@ -512,7 +512,7 @@ const VAPID_PUBLIC_KEY =
           const compressed=
             canvas.toDataURL(
               'image/jpeg',
-              0.78
+              0.90
             );
 
           resolve(compressed);
