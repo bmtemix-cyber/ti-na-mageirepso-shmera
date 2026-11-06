@@ -2152,7 +2152,23 @@ if($('eveningReminder')){
 if($('eveningReminderStatus')){
   $('eveningReminderStatus').textContent=
     reminderEnabled ? 'ON' : 'OFF';
-} }
+}
+ const pantryTab=document.querySelector('[onclick*="show(\'pantry\')"]');
+
+if(pantryTab){
+
+  const hasExpiryAlert=s.pantry.some(p=>{
+    const days=daysUntilExpiry(p.exp);
+
+    return days!==null && days<=4;
+  });
+
+  pantryTab.classList.toggle(
+    'pantry-alert',
+    hasExpiryAlert
+  );
+}                 
+                 }
 
 let welcomeEntered=false;
 function enterApp(){
@@ -2181,6 +2197,22 @@ function enterApp(){
   }
 
   render();
+  const pantryTab=
+  document.querySelector('button[onclick="show(\'pantry\')"]');
+
+if(pantryTab){
+
+  const hasExpiryAlert=s.pantry.some(p=>{
+    const days=daysUntilExpiry(p.exp);
+
+    return days!==null && days<=4;
+  });
+
+  if(hasExpiryAlert){
+    pantryTab.classList.add('pantry-alert');
+  }else{
+    pantryTab.classList.remove('pantry-alert');
+  }
 }
 function initWelcomeScreen(){
 
