@@ -2331,19 +2331,24 @@ let barcodeScanner=null;
 
     const img=new Image();
 
-    img.onload=async()=>{
+img.onload=async()=>{
 
-      try{
+  try{
 
- const codeReader=
-  new ZXing.BrowserMultiFormatReader();
+    const codeReader=
+      new ZXing.BrowserMultiFormatReader();
 
-const result=
-  await codeReader.decodeFromImageElement(img);
-}
+    const result=
+      await codeReader.decodeFromImageElement(img);
+
+    const barcode=result.getText();
+
+    if(status){
+      status.textContent=
+        '🔎 Βρέθηκε barcode: '+
+        barcode+
+        ' — αναζητώ προϊόν...';
     }
-        const barcode=result.getText();
-
 if(status){
   status.textContent='🔎 Βρέθηκε barcode: '+barcode+' — αναζητώ προϊόν...';
 }
