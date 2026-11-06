@@ -384,7 +384,7 @@
     accept="image/*"
     capture="environment"
     style="display:none"
-    onchange="handleBarcodePhoto(event)"
+    onchange=""
   >
 
   <button
@@ -2335,55 +2335,59 @@ let barcodeScanner=null;
 
       try{
 
-        const codeReader=
+    const codeReader=
   new ZXing.BrowserMultiFormatReader();
 
 let result=null;
 
-const rotations=[0,90,180,270];
+try{
 
-for(const angle of rotations){
+  // 1η προσπάθεια: κανονική φωτογραφία
+  result=
+    await codeReader.decodeFromImageElement(img);
 
-  try{
+}catch(_){
 
-    const canvas=document.createElement('canvas');
-    const ctx=canvas.getContext('2d');
+  // 2η προσπάθεια: μεγεθυμένο κεντρικό τμήμα
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d');
 
-    if(angle===90 || angle===270){
-      canvas.width=img.height;
-      canvas.height=img.width;
-    }else{
-      canvas.width=img.width;
-      canvas.height=img.height;
-    }
+  const cropWidth=img.width*0.75;
+  const cropHeight=img.height*0.75;
 
-    ctx.translate(
-      canvas.width/2,
-      canvas.height/2
-    );
+  const sx=(img.width-cropWidth)/2;
+  const sy=(img.height-cropHeight)/2;
 
-    ctx.rotate(
-      angle*Math.PI/180
-    );
+  canvas.width=cropWidth*2;
+  canvas.height=cropHeight*2;
 
-    ctx.drawImage(
-      img,
-      -img.width/2,
-      -img.height/2
-    );
+  ctx.drawImage(
+    img,
+    sx,
+    sy,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
 
-    result=
-      await codeReader.decodeFromImageElement(canvas);
+  const croppedImg=new Image();
 
-    if(result){
-      break;
-    }
+  await new Promise((resolve,reject)=>{
+    croppedImg.onload=resolve;
+    croppedImg.onerror=reject;
+    croppedImg.src=canvas.toDataURL('image/jpeg',0.95);
+  });
 
-  }catch(_){}
+  result=
+    await codeReader.decodeFromImageElement(croppedImg);
 }
 
 if(!result){
   throw new Error('Barcode not found');
+}
 }
         const barcode=result.getText();
 
