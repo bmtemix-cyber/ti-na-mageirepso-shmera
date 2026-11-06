@@ -2379,11 +2379,37 @@ try{
     product.quantity || '';
 
   if(status){
-    status.innerHTML=
-      '✅ <b>'+name+'</b><br>'+
-      (quantity ? 'Ποσότητα: '+quantity+'<br>' : '')+
-      '<span class="small">Barcode: '+barcode+'</span>';
-  }
+  status.innerHTML=
+    '<div class="soft">'+
+      '<b>✅ '+name+'</b><br>'+
+      (quantity ? '<div class="small">Ποσότητα: '+quantity+'</div>' : '')+
+      '<div class="small">Barcode: '+barcode+'</div>'+
+
+      '<label class="small" style="display:block;margin-top:10px">'+
+        'Ημερομηνία λήξης'+
+      '</label>'+
+
+      '<input '+
+        'id="barcodeExpiry" '+
+        'type="date" '+
+        'style="margin-top:5px"'+
+      '>'+
+
+      '<button '+
+        'class="btn primary" '+
+        'style="margin-top:10px" '+
+        'onclick="addBarcodeProductToPantry()"'+
+      '>'+
+        '➕ Προσθήκη στα Υλικά'+
+      '</button>'+
+    '</div>';
+
+  window.lastBarcodeProduct={
+    name:name,
+    qty:quantity,
+    barcode:barcode
+  };
+}
 
 }catch(err){
 
@@ -2431,7 +2457,36 @@ try{
     }
   }
 }
+function addBarcodeProductToPantry(){
 
+  if(!window.lastBarcodeProduct){
+    return;
+  }
+
+  const expEl=document.getElementById('barcodeExpiry');
+
+  const exp=
+    expEl ? expEl.value : '';
+
+  s.pantry.push({
+    name:window.lastBarcodeProduct.name,
+    qty:window.lastBarcodeProduct.qty || '',
+    exp:exp
+  });
+
+  save();
+  render();
+
+  alert('✅ Το προϊόν προστέθηκε στα Υλικά.');
+
+  window.lastBarcodeProduct=null;
+
+  const status=document.getElementById('barcodeStatus');
+
+  if(status){
+    status.innerHTML='';
+  }
+}
 async function startBarcodeScanner(){
 
   const reader=document.getElementById('barcodeReader');
