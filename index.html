@@ -2142,34 +2142,61 @@ async function markAppOpenedToday(){
     console.warn('Δεν ενημερώθηκε το lastOpenedDate στον server.',e);
   }
 }
-function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();const reminderEnabled=
+function render(){
+
+  $('date').textContent=
+    new Date().toLocaleDateString(
+      'el-GR',
+      {
+        weekday:'long',
+        day:'numeric',
+        month:'long'
+      }
+    );
+
+  $('learnDays').value=s.learningDays;
+
+  $('banner').innerHTML=
+    `<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b>
+    <div class="small" style="margin-top:6px">
+      Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.
+    </div>`;
+
+  renderInsights();
+  renderBars();
+  renderHistory();
+  renderFamily();
+  renderPantry();
+
   const reminderEnabled=
-  localStorage.getItem('eveningReminder')==='1';
-if($('eveningReminder')){
-  $('eveningReminder').checked=reminderEnabled;
+    localStorage.getItem('eveningReminder')==='1';
+
+  if($('eveningReminder')){
+    $('eveningReminder').checked=reminderEnabled;
+  }
+
+  if($('eveningReminderStatus')){
+    $('eveningReminderStatus').textContent=
+      reminderEnabled ? 'ON' : 'OFF';
+  }
+
+  const pantryTab=
+    document.querySelector('[onclick*="show(\'pantry\')"]');
+
+  if(pantryTab){
+
+    const hasExpiryAlert=s.pantry.some(p=>{
+      const days=daysUntilExpiry(p.exp);
+
+      return days!==null && days<=4;
+    });
+
+    pantryTab.classList.toggle(
+      'pantry-alert',
+      hasExpiryAlert
+    );
+  }
 }
-
-if($('eveningReminderStatus')){
-  $('eveningReminderStatus').textContent=
-    reminderEnabled ? 'ON' : 'OFF';
-}
- const pantryTab=document.querySelector('[onclick*="show(\'pantry\')"]');
-
-if(pantryTab){
-
-  const hasExpiryAlert=s.pantry.some(p=>{
-    const days=daysUntilExpiry(p.exp);
-
-    return days!==null && days<=4;
-  });
-
-  pantryTab.classList.toggle(
-    'pantry-alert',
-    hasExpiryAlert
-  );
-} 
-  }                  
-                 }
 
 let welcomeEntered=false;
 function enterApp(){
