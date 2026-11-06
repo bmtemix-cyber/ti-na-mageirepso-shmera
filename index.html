@@ -2386,15 +2386,23 @@ try{
       '<div class="small">Barcode: '+barcode+'</div>'+
 
  '<label class="small" style="display:block;margin-top:10px">'+
+'<label class="small" style="display:block;margin-top:10px">'+
   'Ημερομηνία λήξης'+
 '</label>'+
 
+'<input '+
+  'id="barcodeExpiry" '+
+  'type="date" '+
+  'style="margin-top:5px"'+
+'>'+
 
-        'class="btn primary" '+
-        'style="margin-top:10px" '+
-        'onclick="addBarcodeProductToPantry()"'+
-      '>'+
-        '➕ Προσθήκη στα Υλικά'+
+'<button '+
+  'class="btn primary" '+
+  'style="margin-top:10px" '+
+  'onclick="addBarcodeProductToPantry()"'+
+'>'+
+  '➕ Προσθήκη στα Υλικά'+
+'</button>'+
       '</button>'+
     '</div>';
 
