@@ -2335,59 +2335,11 @@ let barcodeScanner=null;
 
       try{
 
-    const codeReader=
+ const codeReader=
   new ZXing.BrowserMultiFormatReader();
 
-let result=null;
-
-try{
-
-  // 1η προσπάθεια: κανονική φωτογραφία
-  result=
-    await codeReader.decodeFromImageElement(img);
-
-}catch(_){
-
-  // 2η προσπάθεια: μεγεθυμένο κεντρικό τμήμα
-  const canvas=document.createElement('canvas');
-  const ctx=canvas.getContext('2d');
-
-  const cropWidth=img.width*0.75;
-  const cropHeight=img.height*0.75;
-
-  const sx=(img.width-cropWidth)/2;
-  const sy=(img.height-cropHeight)/2;
-
-  canvas.width=cropWidth*2;
-  canvas.height=cropHeight*2;
-
-  ctx.drawImage(
-    img,
-    sx,
-    sy,
-    cropWidth,
-    cropHeight,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  const croppedImg=new Image();
-
-  await new Promise((resolve,reject)=>{
-    croppedImg.onload=resolve;
-    croppedImg.onerror=reject;
-    croppedImg.src=canvas.toDataURL('image/jpeg',0.95);
-  });
-
-  result=
-    await codeReader.decodeFromImageElement(croppedImg);
-}
-
-if(!result){
-  throw new Error('Barcode not found');
-}
+const result=
+  await codeReader.decodeFromImageElement(img);
 }
         const barcode=result.getText();
 
