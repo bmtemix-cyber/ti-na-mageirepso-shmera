@@ -624,6 +624,87 @@ function closeBarcodeCamera(){
     box.style.display='none';
   }
 }
+  async function captureBarcodeCamera(){
+
+  const video=document.getElementById('barcodeCameraVideo');
+  const status=document.getElementById('barcodeStatus');
+
+  if(!video || !video.videoWidth){
+    if(status){
+      status.textContent='⚠️ Η κάμερα δεν είναι ακόμη έτοιμη.';
+    }
+    return;
+  }
+
+  if(status){
+    status.textContent='🔎 Διαβάζω το barcode...';
+  }
+
+  try{
+
+    const canvas=document.createElement('canvas');
+
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+
+    const ctx=canvas.getContext('2d');
+
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    const img=new Image();
+
+    img.onload=async()=>{
+
+      try{
+
+        const codeReader=
+          new ZXing.BrowserMultiFormatReader();
+
+        const result=
+          await codeReader.decodeFromImageElement(img);
+
+        const barcode=result.getText();
+
+        if(status){
+          status.textContent=
+            '✅ Barcode: '+barcode;
+        }
+
+        closeBarcodeCamera();
+
+      }catch(e){
+
+        console.error(e);
+
+        if(status){
+          status.textContent=
+            '❌ Δεν μπόρεσα να διαβάσω το barcode. Βάλ’ το μέσα στο πράσινο πλαίσιο και ξαναδοκίμασε.';
+        }
+      }
+    };
+
+    img.src=
+      canvas.toDataURL(
+        'image/jpeg',
+        0.95
+      );
+
+  }catch(e){
+
+    console.error(e);
+
+    if(status){
+      status.textContent=
+        '❌ Πρόβλημα κατά τη λήψη.';
+    }
+  }
+}
   function daysUntilExpiry(exp){
 
   if(!exp)return null;
