@@ -672,11 +672,94 @@ function closeBarcodeCamera(){
         const barcode=result.getText();
 
         if(status){
-          status.textContent=
-            '✅ Barcode: '+barcode;
-        }
+  status.textContent=
+    '🔎 Βρέθηκε barcode: '+
+    barcode+
+    ' — αναζητώ προϊόν...';
+}
 
-        closeBarcodeCamera();
+try{
+
+  const r=await fetch(
+    'https://world.openfoodfacts.org/api/v2/product/'+
+    encodeURIComponent(barcode)+
+    '.json?fields=product_name,quantity,brands'
+  );
+
+  const data=await r.json();
+
+  if(data.status!==1 || !data.product){
+
+    if(status){
+      status.textContent=
+        '⚠️ Barcode: '+
+        barcode+
+        ' — το προϊόν δεν βρέθηκε.';
+    }
+
+    closeBarcodeCamera();
+    return;
+  }
+
+  const product=data.product;
+
+  const name=
+    product.product_name ||
+    product.brands ||
+    'Άγνωστο προϊόν';
+
+  const quantity=
+    product.quantity || '';
+
+  if(status){
+
+    status.innerHTML=
+      '<div class="soft">'+
+        '<b>✅ '+name+'</b><br>'+
+        (quantity
+          ? '<div class="small">Ποσότητα: '+quantity+'</div>'
+          : '')+
+        '<div class="small">Barcode: '+barcode+'</div>'+
+
+        '<label class="small" style="display:block;margin-top:10px">'+
+          'Ημερομηνία λήξης'+
+        '</label>'+
+
+        '<input '+
+          'id="barcodeExpiry" '+
+          'type="date" '+
+          'style="margin-top:5px"'+
+        '>'+
+
+        '<button '+
+          'class="btn primary" '+
+          'style="margin-top:10px" '+
+          'onclick="addBarcodeProductToPantry()"'+
+        '>'+
+          '➕ Προσθήκη στα Υλικά'+
+        '</button>'+
+      '</div>';
+
+    window.lastBarcodeProduct={
+      name:name,
+      qty:quantity,
+      barcode:barcode
+    };
+  }
+
+  closeBarcodeCamera();
+
+}catch(err){
+
+  console.error(err);
+
+  if(status){
+    status.textContent=
+      '⚠️ Το barcode διαβάστηκε, αλλά δεν μπόρεσα να βρω το προϊόν.';
+  }
+
+  closeBarcodeCamera();
+}
 
       }catch(e){
 
