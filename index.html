@@ -566,7 +566,30 @@ async function openBarcodeCamera(){
         },
         audio:false
       });
+const track=
+  barcodeCameraStream.getVideoTracks()[0];
 
+if(track && typeof track.getCapabilities==='function'){
+
+  const caps=track.getCapabilities();
+
+  if(caps.zoom){
+
+    const zoomValue=
+      Math.min(
+        3,
+        caps.zoom.max
+      );
+
+    await track.applyConstraints({
+      advanced:[
+        {
+          zoom:zoomValue
+        }
+      ]
+    });
+  }
+}
     video.srcObject=barcodeCameraStream;
 
     box.style.display='block';
