@@ -2143,8 +2143,8 @@ async function markAppOpenedToday(){
   }
 }
 function render(){$('date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});$('learnDays').value=s.learningDays;$('banner').innerHTML=`<b>🧠 Περίοδος εκμάθησης: απομένουν ${rem()} ημέρες</b><div class=small style="margin-top:6px">Μαθαίνω από τα πραγματικά γεύματα της οικογένειας.</div>`;renderInsights();renderBars();renderHistory();renderFamily();renderPantry();const reminderEnabled=
+  const reminderEnabled=
   localStorage.getItem('eveningReminder')==='1';
-
 if($('eveningReminder')){
   $('eveningReminder').checked=reminderEnabled;
 }
