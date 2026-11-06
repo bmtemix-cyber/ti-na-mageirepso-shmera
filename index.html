@@ -2385,19 +2385,14 @@ try{
       (quantity ? '<div class="small">Ποσότητα: '+quantity+'</div>' : '')+
       '<div class="small">Barcode: '+barcode+'</div>'+
 
-     '<label class="small" style="display:block;margin-top:10px">'+
+ '<label class="small" style="display:block;margin-top:10px">'+
   'Ημερομηνία λήξης'+
 '</label>'+
 
-'<input id="barcodeExpiry" type="date" style="margin-top:5px">'+
-
 '<input '+
-  'id="expiryPhoto" '+
-  'type="file" '+
-  'accept="image/*" '+
-  'capture="environment" '+
-  'style="display:none" '+
-  'onchange="handleExpiryPhoto(event)"'+
+  'id="barcodeExpiry" '+
+  'type="date" '+
+  'style="margin-top:5px"'+
 '>'+
 
 '<button '+
