@@ -389,9 +389,10 @@
 
   <button
     class="btn secondary"
- onclick="const f=document.getElementById('barcodePhoto');f.value='';f.click()"
-  >
-    📷 Φωτογράφισε barcode
+  onclick="openBarcodeCamera()"
+>
+  📷 Φωτογράφισε barcode
+</button>
     <div id="barcodeCameraBox" style="display:none;margin-top:12px">
 
   <div style="
@@ -547,6 +548,59 @@
   </section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
+  let barcodeCameraStream=null;
+
+async function openBarcodeCamera(){
+
+  const box=document.getElementById('barcodeCameraBox');
+  const video=document.getElementById('barcodeCameraVideo');
+
+  try{
+
+    barcodeCameraStream=
+      await navigator.mediaDevices.getUserMedia({
+        video:{
+          facingMode:{
+            ideal:'environment'
+          }
+        },
+        audio:false
+      });
+
+    video.srcObject=barcodeCameraStream;
+
+    box.style.display='block';
+
+  }catch(e){
+
+    console.error(e);
+
+    alert('Δεν μπόρεσα να ανοίξω την κάμερα.');
+  }
+}
+
+function closeBarcodeCamera(){
+
+  const box=document.getElementById('barcodeCameraBox');
+  const video=document.getElementById('barcodeCameraVideo');
+
+  if(barcodeCameraStream){
+
+    barcodeCameraStream
+      .getTracks()
+      .forEach(track=>track.stop());
+
+    barcodeCameraStream=null;
+  }
+
+  if(video){
+    video.srcObject=null;
+  }
+
+  if(box){
+    box.style.display='none';
+  }
+}
   function daysUntilExpiry(exp){
 
   if(!exp)return null;
