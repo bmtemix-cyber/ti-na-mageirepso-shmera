@@ -21,6 +21,49 @@
   margin:0;
   flex:0 0 24px;
 }</style><style>
+  /* Λήξη σε 3-4 ημέρες */
+.expiry-warning{
+  border:2px solid #f59e0b !important;
+  background:#fff7ed !important;
+}
+
+/* Λήξη σε 0-2 ημέρες */
+.expiry-urgent{
+  border:3px solid #f97316 !important;
+  background:#ffedd5 !important;
+}
+
+/* Έχει λήξει */
+.expiry-expired{
+  border:3px solid #dc2626 !important;
+  background:#fee2e2 !important;
+  animation:expiredBlink 1s infinite;
+}
+
+@keyframes expiredBlink{
+  0%,100%{
+    opacity:1;
+  }
+  50%{
+    opacity:0.55;
+  }
+}
+
+/* Προειδοποίηση στη λέξη Υλικά */
+.pantry-alert{
+  color:#f97316 !important;
+  font-weight:800 !important;
+  animation:pantryBlink 1s infinite;
+}
+
+@keyframes pantryBlink{
+  0%,100%{
+    opacity:1;
+  }
+  50%{
+    opacity:0.45;
+  }
+}
 :root{
   --green:#2f6b3a;
   --green2:#3f8b4d;
@@ -448,6 +491,46 @@
   </section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
+  function daysUntilExpiry(exp){
+
+  if(!exp)return null;
+
+  const today=new Date();
+  today.setHours(0,0,0,0);
+
+  const expiry=new Date(exp+'T00:00:00');
+
+  if(Number.isNaN(expiry.getTime())){
+    return null;
+  }
+
+  return Math.ceil(
+    (expiry-today)/(1000*60*60*24)
+  );
+}
+
+function expiryClass(exp){
+
+  const days=daysUntilExpiry(exp);
+
+  if(days===null){
+    return '';
+  }
+
+  if(days<0){
+    return 'expiry-expired';
+  }
+
+  if(days<=2){
+    return 'expiry-urgent';
+  }
+
+  if(days<=4){
+    return 'expiry-warning';
+  }
+
+  return '';
+}
 const VAPID_PUBLIC_KEY =
   'BHPnukdmQV-MaQgh4khYKMPzIOJ3VnpOpDL2LZjCHUUEFVyK_jhWYmtZfF3WD4fltID__2xGgY4EmV86PF54cdw'; 
  async function handleReceiptPhoto(event){
@@ -2011,7 +2094,7 @@ dislikes:$('memberDislikes').value.trim()
   renderFamily();
 } 
  function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
- function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
+ function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row ${expiryClass(p.exp)}"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
  function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
  function show(id){
   const target=$(id);
