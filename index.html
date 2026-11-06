@@ -392,6 +392,68 @@
  onclick="const f=document.getElementById('barcodePhoto');f.value='';f.click()"
   >
     📷 Φωτογράφισε barcode
+    <div id="barcodeCameraBox" style="display:none;margin-top:12px">
+
+  <div style="
+    position:relative;
+    width:100%;
+    background:#000;
+    border-radius:16px;
+    overflow:hidden;
+  ">
+
+    <video
+      id="barcodeCameraVideo"
+      autoplay
+      playsinline
+      muted
+      style="width:100%;display:block"
+    ></video>
+
+    <div style="
+      position:absolute;
+      left:8%;
+      right:8%;
+      top:38%;
+      height:24%;
+      border:3px solid #22c55e;
+      border-radius:12px;
+      box-shadow:0 0 0 9999px rgba(0,0,0,.30);
+      pointer-events:none;
+    "></div>
+
+    <div style="
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:12px;
+      text-align:center;
+      color:white;
+      font-weight:800;
+      text-shadow:0 1px 3px #000;
+    ">
+      Βάλε το barcode μέσα στο πράσινο πλαίσιο
+    </div>
+
+  </div>
+
+  <button
+    type="button"
+    class="btn primary"
+    onclick="captureBarcodeCamera()"
+  >
+    📸 Λήψη
+  </button>
+
+  <button
+    type="button"
+    class="btn secondary"
+    onclick="closeBarcodeCamera()"
+  >
+    ✕ Κλείσιμο κάμερας
+  </button>
+
+</div>
   </button>
 
   <div
