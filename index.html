@@ -2242,6 +2242,7 @@ if(pantryTab){
     pantryTab.classList.remove('pantry-alert');
   }
 }
+  }
 function initWelcomeScreen(){
 
   const videos=[
@@ -2506,7 +2507,16 @@ async function startBarcodeScanner(){
     }
   }
 }
-  
+ markAppOpenedToday();
+render();
+show('home');
+initWelcomeScreen();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js?v=8')
+    .then(r=>r.update())
+    .catch(()=>{});
+} 
 
 </script>
 
