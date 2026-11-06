@@ -2311,7 +2311,7 @@ function initWelcomeScreen(){
 
 let barcodeScanner=null;
 
- async function handleBarcodePhoto(event){
+async function handleBarcodePhoto(event){
 
   const file=event.target.files[0];
   const status=document.getElementById('barcodeStatus');
@@ -2328,106 +2328,104 @@ let barcodeScanner=null;
   try{
 
     const imageUrl=URL.createObjectURL(file);
-
     const img=new Image();
 
-img.onload=async()=>{
+    img.onload=async()=>{
 
-  try{
+      try{
 
-    const codeReader=
-      new ZXing.BrowserMultiFormatReader();
+        const codeReader=
+          new ZXing.BrowserMultiFormatReader();
 
-    const result=
-      await codeReader.decodeFromImageElement(img);
+        const result=
+          await codeReader.decodeFromImageElement(img);
 
-    const barcode=result.getText();
+        const barcode=result.getText();
 
-    if(status){
-      status.textContent=
-        '🔎 Βρέθηκε barcode: '+
-        barcode+
-        ' — αναζητώ προϊόν...';
-    }
-if(status){
-  status.textContent='🔎 Βρέθηκε barcode: '+barcode+' — αναζητώ προϊόν...';
-}
+        if(status){
+          status.textContent=
+            '🔎 Βρέθηκε barcode: '+
+            barcode+
+            ' — αναζητώ προϊόν...';
+        }
 
-try{
+        try{
 
-  const r=await fetch(
-    'https://world.openfoodfacts.org/api/v2/product/'+
-    encodeURIComponent(barcode)+
-    '.json?fields=product_name,quantity,brands'
-  );
+          const r=await fetch(
+            'https://world.openfoodfacts.org/api/v2/product/'+
+            encodeURIComponent(barcode)+
+            '.json?fields=product_name,quantity,brands'
+          );
 
-  const data=await r.json();
+          const data=await r.json();
 
-  if(data.status!==1 || !data.product){
+          if(data.status!==1 || !data.product){
 
-    if(status){
-      status.textContent=
-        '⚠️ Barcode: '+barcode+
-        ' — το προϊόν δεν βρέθηκε στη βάση.';
-    }
+            if(status){
+              status.textContent=
+                '⚠️ Barcode: '+
+                barcode+
+                ' — το προϊόν δεν βρέθηκε στη βάση.';
+            }
 
-    return;
-  }
+            return;
+          }
 
-  const product=data.product;
+          const product=data.product;
 
-  const name=
-    product.product_name ||
-    product.brands ||
-    'Άγνωστο προϊόν';
+          const name=
+            product.product_name ||
+            product.brands ||
+            'Άγνωστο προϊόν';
 
-  const quantity=
-    product.quantity || '';
+          const quantity=
+            product.quantity || '';
 
-  if(status){
-  status.innerHTML=
-    '<div class="soft">'+
-      '<b>✅ '+name+'</b><br>'+
-      (quantity ? '<div class="small">Ποσότητα: '+quantity+'</div>' : '')+
-      '<div class="small">Barcode: '+barcode+'</div>'+
+          if(status){
 
- '<label class="small" style="display:block;margin-top:10px">'+
-'<label class="small" style="display:block;margin-top:10px">'+
-  'Ημερομηνία λήξης'+
-'</label>'+
+            status.innerHTML=
+              '<div class="soft">'+
+                '<b>✅ '+name+'</b><br>'+
+                (quantity
+                  ? '<div class="small">Ποσότητα: '+quantity+'</div>'
+                  : '')+
+                '<div class="small">Barcode: '+barcode+'</div>'+
 
-'<input '+
-  'id="barcodeExpiry" '+
-  'type="date" '+
-  'style="margin-top:5px"'+
-'>'+
+                '<label class="small" style="display:block;margin-top:10px">'+
+                  'Ημερομηνία λήξης'+
+                '</label>'+
 
-'<button '+
-  'class="btn primary" '+
-  'style="margin-top:10px" '+
-  'onclick="addBarcodeProductToPantry()"'+
-'>'+
-  '➕ Προσθήκη στα Υλικά'+
-'</button>'+
-      '</button>'+
-    '</div>';
+                '<input '+
+                  'id="barcodeExpiry" '+
+                  'type="date" '+
+                  'style="margin-top:5px"'+
+                '>'+
 
-  window.lastBarcodeProduct={
-    name:name,
-    qty:quantity,
-    barcode:barcode
-  };
-}
+                '<button '+
+                  'class="btn primary" '+
+                  'style="margin-top:10px" '+
+                  'onclick="addBarcodeProductToPantry()"'+
+                '>'+
+                  '➕ Προσθήκη στα Υλικά'+
+                '</button>'+
+              '</div>';
 
-}catch(err){
+            window.lastBarcodeProduct={
+              name:name,
+              qty:quantity,
+              barcode:barcode
+            };
+          }
 
-  console.error(err);
+        }catch(err){
 
-  if(status){
-    status.textContent=
-      '⚠️ Το barcode διαβάστηκε, αλλά δεν μπόρεσα να αναζητήσω το προϊόν.';
-  }
-}
+          console.error(err);
+
+          if(status){
+            status.textContent=
+              '⚠️ Το barcode διαβάστηκε, αλλά δεν μπόρεσα να αναζητήσω το προϊόν.';
+          }
+        }
 
       }catch(e){
 
@@ -2439,6 +2437,7 @@ try{
         }
 
       }finally{
+
         URL.revokeObjectURL(imageUrl);
       }
     };
