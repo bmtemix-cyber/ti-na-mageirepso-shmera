@@ -2385,17 +2385,28 @@ try{
       (quantity ? '<div class="small">Ποσότητα: '+quantity+'</div>' : '')+
       '<div class="small">Barcode: '+barcode+'</div>'+
 
-      '<label class="small" style="display:block;margin-top:10px">'+
-        'Ημερομηνία λήξης'+
-      '</label>'+
+     '<label class="small" style="display:block;margin-top:10px">'+
+  'Ημερομηνία λήξης'+
+'</label>'+
 
-      '<input '+
-        'id="barcodeExpiry" '+
-        'type="date" '+
-        'style="margin-top:5px"'+
-      '>'+
+'<input id="barcodeExpiry" type="date" style="margin-top:5px">'+
 
-      '<button '+
+'<input '+
+  'id="expiryPhoto" '+
+  'type="file" '+
+  'accept="image/*" '+
+  'capture="environment" '+
+  'style="display:none" '+
+  'onchange="handleExpiryPhoto(event)"'+
+'>'+
+
+'<button '+
+  'class="btn secondary" '+
+  'style="margin-top:8px" '+
+  'onclick="document.getElementById(\'expiryPhoto\').click()"'+
+'>'+
+  '📷 Φωτογράφισε ημερομηνία λήξης'+
+'</button>'+
         'class="btn primary" '+
         'style="margin-top:10px" '+
         'onclick="addBarcodeProductToPantry()"'+
