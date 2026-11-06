@@ -2336,11 +2336,55 @@ let barcodeScanner=null;
       try{
 
         const codeReader=
-          new ZXing.BrowserMultiFormatReader();
+  new ZXing.BrowserMultiFormatReader();
 
-        const result=
-          await codeReader.decodeFromImageElement(img);
+let result=null;
 
+const rotations=[0,90,180,270];
+
+for(const angle of rotations){
+
+  try{
+
+    const canvas=document.createElement('canvas');
+    const ctx=canvas.getContext('2d');
+
+    if(angle===90 || angle===270){
+      canvas.width=img.height;
+      canvas.height=img.width;
+    }else{
+      canvas.width=img.width;
+      canvas.height=img.height;
+    }
+
+    ctx.translate(
+      canvas.width/2,
+      canvas.height/2
+    );
+
+    ctx.rotate(
+      angle*Math.PI/180
+    );
+
+    ctx.drawImage(
+      img,
+      -img.width/2,
+      -img.height/2
+    );
+
+    result=
+      await codeReader.decodeFromImageElement(canvas);
+
+    if(result){
+      break;
+    }
+
+  }catch(_){}
+}
+
+if(!result){
+  throw new Error('Barcode not found');
+}
         const barcode=result.getText();
 
 if(status){
