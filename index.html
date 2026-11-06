@@ -2331,8 +2331,8 @@ async function handleBarcodePhoto(event){
         const codeReader=
           new ZXing.BrowserMultiFormatReader();
 
-        const result=
-          await codeReader.decodeFromImageElement(img);
+       const result=
+  await codeReader.decodeFromImageUrl(imageUrl);
 
         const barcode=result.getText();
 
