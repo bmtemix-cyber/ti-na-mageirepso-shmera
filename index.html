@@ -1927,7 +1927,7 @@ const total=
     .map(x => (x.name || '').toLowerCase())
     .join(' ');
 
-  const counts = weeklyCounts();
+  const week = counts();
 
   const recipes = [
     {
@@ -1968,7 +1968,7 @@ const total=
 
   function weeklyNeed(recipe){
     const target = targets[recipe.cat] || 1;
-    const eaten = counts[recipe.cat] || 0;
+    const eaten = week[recipe.cat] || 0;
 
     return Math.max(0,target-eaten);
   }
