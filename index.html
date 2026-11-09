@@ -1988,7 +1988,7 @@ const total=
   });
 
   const first = scored
-    .filter(x => x.pantryScore >= 2)
+    .filter(x => x.pantryScore >= 0)
     .sort((a,b)=>{
       const scoreA = a.healthScore*3 + a.pantryScore;
       const scoreB = b.healthScore*3 + b.pantryScore;
@@ -2019,203 +2019,87 @@ const total=
     second:second || null
   };
 } 
+ function safeMealHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ function recipeCard(meal, index, title, note){
+   const name=meal.name;
+   const id='todayRecipe'+index;
+   const imageId='todayImage'+index;
+   return '<div class="soft" style="margin-top:12px">'+
+     '<div style="display:flex;gap:12px;align-items:center">'+
+       '<div id="'+imageId+'" style="width:112px;height:112px;flex:0 0 112px;border-radius:15px;overflow:hidden;background:#e8f1e4;display:flex;align-items:center;justify-content:center;font-size:42px">🍲</div>'+
+       '<div style="flex:1;min-width:0"><div class="eyebrow">'+safeMealHtml(title)+'</div>'+
+       '<b style="display:block;margin-top:5px">'+safeMealHtml(name)+'</b>'+
+       (note?'<div class="small" style="margin-top:6px">'+safeMealHtml(note)+'</div>':'')+'</div></div>'+
+     '<button class="btn secondary" data-meal="'+encodeURIComponent(name)+'" data-target="'+id+'" onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),this.dataset.target)">📖 Δείξε μου συνταγή</button>'+
+     '<div id="'+id+'" style="margin-top:10px"></div></div>';
+ }
  function showTodaySuggestion(){
-  const box=$('todaySuggestion');
-  const meals=smartTodayChoices();
-
-  if(!box)return;
-
- if(!meals.length){
-
-  const fallback = pantryFallbackSuggestions();
-
-  box.classList.remove('hidden');
-
-  let html =
-    '<b>⭐ Προτάσεις για σήμερα</b>'+
-    '<div class="small" style="margin-top:5px">'+
-      'Οι προτάσεις βασίζονται στην ισορροπία της εβδομάδας '+
-      'και στα υλικά που έχεις διαθέσιμα.'+
-    '</div>';
-
-  if(fallback.first){
-
-    html +=
-      '<div class="soft" style="margin-top:10px">'+
-        '<b>🥗 Κύρια πρόταση · '+fallback.first.name+'</b>'+
-        '<div class="small" style="margin-top:5px">'+
-          'Ταιριάζει στο υγιεινό πρόγραμμα της εβδομάδας '+
-          'και χρησιμοποιεί υλικά που έχεις ήδη.'+
-        '</div>'+
-      '</div>';
-  }
-
-  if(fallback.second){
-
-    html +=
-      '<div class="soft" style="margin-top:10px">'+
-        '<b>💡 Εναλλακτική · '+fallback.second.name+'</b>'+
-        '<div class="small" style="margin-top:5px">'+
-          'Με τα υλικά που έχεις ήδη, αν πάρεις και: '+
-          '<b>'+fallback.second.extra.join(', ')+'</b>, '+
-          'μπορείς να φτιάξεις αυτό το φαγητό.'+
-        '</div>'+
-      '</div>';
-  }
-
-  box.innerHTML = html;
-  return;
-}
-
-   function titleFor(type){
-    if(type==='favorite')return '❤️ Αγαπημένη επιλογή';
-    if(type==='balanced')return '🥗 Ισορροπημένη επιλογή';
-    return '🔄 Εναλλακτική επιλογή';
-  }
-
-   function reasonFor(meal){
-    if(meal.choiceType==='favorite'){
-      return 'Είναι από τα γεύματα που σας αρέσουν περισσότερο.';
-    }
-
-    if(meal.choiceType==='balanced'){
-      return 'Βοηθά περισσότερο την ισορροπία της εβδομάδας με βάση όσα έχετε ήδη φάει.';
-    }
-
-    return 'Είναι μια καλή διαφορετική επιλογή με βάση όσα έχω μάθει.';
-  }
-   function familyNote(meal){
-  const pref=familyPreferenceForMeal(meal.name);
-
-  if(pref.likes>0 && pref.dislikes>0){
-    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+
-      ' μέλη · '+pref.dislikes+' μέλη δεν το προτιμούν.';
-  }
-
-  if(pref.likes>0){
-    return '👨‍👩‍👧‍👦 Το προτιμούν '+pref.likes+' μέλη.';
-  }
-
-  if(pref.dislikes>0){
-    return '👨‍👩‍👧‍👦 '+pref.dislikes+' μέλη δεν το προτιμούν.';
-  }
-
-  return '';
-}
- function alternativeNote(meal){
-  const pref=familyPreferenceForMeal(meal.name);
-
-  if(pref.dislikes<=0){
-    return '';
-  }
-
-  const alt=findAlternativeMeal(meal);
-
-  if(!alt){
-    return '';
-  }
-
-  return '💡 Εναλλακτική: '+alt.name;
-}
-  box.classList.remove('hidden');
-
-box.innerHTML=
-  '<b>⭐ Προτάσεις για σήμερα</b>'+
-  meals.map((meal,i)=>
-    '<div class="soft" style="margin-top:10px">'+
-
-      '<b>'+titleFor(meal.choiceType)+' · '+meal.name+'</b>'+
-
-      '<div class="small" style="margin-top:5px">'+
-        reasonFor(meal)+
-      '</div>'+
-(familyNote(meal)
-  ? '<div class="small" style="margin-top:5px">'+
-      familyNote(meal)+
-    '</div>'
-  : '')+
-(()=>{
-  const alt=findAlternativeMeal(meal);
-
-  if(!alt){
-    return '';
-  }
-
-  const pref=familyPreferenceForMeal(meal.name);
-
-  if(pref.dislikes<=0){
-    return '';
-  }
-
-  return (
-    '<div class="small" style="margin-top:5px">'+
-      '💡 Εναλλακτική: '+alt.name+
-    '</div>'+
-    '<button class="btn ghost" style="margin-top:6px" '+
-      'data-meal="'+encodeURIComponent(alt.name)+'" '+
-      'onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),\'recipePreviewAlt'+i+'\')">'+
-      '🍳 Βρες συνταγή για την εναλλακτική'+
-    '</button>'+
-    '<div id="recipePreviewAlt'+i+'" style="margin-top:10px"></div>'
-  );
-})()+
-      '<div class="small" style="margin-top:5px">'+
-        'Score: '+meal.score.total+'/5'+
-      '</div>'+
-
-      '<button class="btn secondary" style="margin-top:8px" '+
-        'data-meal="'+encodeURIComponent(meal.name)+'" '+
-        'onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),\'recipePreview'+i+'\')">'+
-        '🍳 Βρες μου συνταγή'+
-      '</button>'+
-
-      '<div id="recipePreview'+i+'" style="margin-top:10px"></div>'+
-
-    '</div>'
-  ).join('');
-}
-async  function findRecipeForMeal(name,targetId){
-  const box=$(targetId);
-
-  if(!box)return;
-
-  box.innerHTML='<div class="small">🔎 Ψάχνω ελληνική συνταγή...</div>';
-
-  try{
-    const r=await fetch(
-      '/api/search-recipe?q='+encodeURIComponent(name)
-    );
-
-    const data=await r.json();
-
-    if(!data.ok || !data.recipe || !data.recipe.url){
-      box.innerHTML=
-        '<div class="small">Δεν βρήκα ελληνική συνταγή για «'+name+'».</div>';
-      return;
-    }
-
-    const recipe=data.recipe;
-
-    box.innerHTML=
-      '<div class="soft">'+
-        (recipe.image
-          ? '<img src="'+recipe.image+'" style="width:100%;border-radius:14px;margin-bottom:10px">'
-          : '')+
-        '<b>🍽️ '+recipe.name+'</b>'+
-        '<div class="small" style="margin-top:5px">'+
-          'Πηγή: '+recipe.source+
-        '</div>'+
-        '<a class="btn secondary" style="margin-top:8px" '+
-          'href="'+recipe.url+'" target="_blank" rel="noopener">'+
-          '🔗 Άνοιξε πλήρη συνταγή'+
-        '</a>'+
-      '</div>';
-
-  }catch(e){
-    box.innerHTML=
-      '<div class="small">⚠️ Υπήρξε πρόβλημα κατά την αναζήτηση.</div>';
-  }
-}
+   const box=$('todaySuggestion');
+   if(!box)return;
+   const meals=smartTodayChoices();
+   const fallback=pantryFallbackSuggestions();
+   let suggestions=[];
+   if(meals.length){
+     suggestions=meals.slice(0,2).map((m,i)=>({name:m.name,note:i===0?'Επιλογή με βάση τις προτιμήσεις και την ισορροπία της εβδομάδας.':'Εναλλακτική με βάση όσα έχω μάθει.'}));
+   }
+   if(suggestions.length<2){
+     for(const candidate of [fallback.first,fallback.second]){
+       if(candidate&&!suggestions.some(x=>x.name===candidate.name)){
+         suggestions.push({name:candidate.name,note:'Με βάση την ισορροπία της εβδομάδας και τα διαθέσιμα υλικά. '+(candidate.extra?.length?'Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.':'')});
+       }
+       if(suggestions.length===2)break;
+     }
+   }
+   box.classList.remove('hidden');
+   box.innerHTML='<b>⭐ Προτάσεις για σήμερα</b><div class="small" style="margin-top:5px">Οι προτάσεις βασίζονται στην ισορροπία της εβδομάδας και στα υλικά που έχεις διαθέσιμα.</div>'+
+     (suggestions.length?suggestions.map((m,i)=>recipeCard(m,i,i===0?'🥗 Κύρια πρόταση':'💡 Εναλλακτική',m.note)).join(''):'<p>Πρόσθεσε υλικά ή καταχώρισε γεύματα για να εμφανιστούν προτάσεις.</p>');
+   suggestions.forEach((m,i)=>loadTodayMealImage(m.name,'todayImage'+i));
+ }
+ async function loadTodayMealImage(name,id){
+   const el=$(id);if(!el)return;
+   try{
+     const r=await fetch('/api/search-recipe?q='+encodeURIComponent(name));
+     if(!r.ok)throw Error('search');
+     const data=await r.json();
+     if(data.ok&&data.recipe&&data.recipe.image){
+       const url=new URL(data.recipe.image,location.href);
+       if(!['https:','http:'].includes(url.protocol))return;
+       const img=document.createElement('img');
+       img.alt='Φωτογραφία: '+name;img.loading='lazy';
+       img.style.cssText='width:100%;height:100%;object-fit:cover';
+       img.onload=()=>{if(el.isConnected)el.replaceChildren(img)};
+       img.src=url.href;
+     }
+   }catch(e){console.warn('Δεν βρέθηκε φωτογραφία',name)}
+ }
+ async function findRecipeForMeal(name,targetId){
+   const box=$(targetId);if(!box)return;
+   box.innerHTML='<div class="small">🔎 Ψάχνω ελληνική συνταγή...</div>';
+   try{
+     const r=await fetch('/api/search-recipe?q='+encodeURIComponent(name));
+     const data=await r.json();
+     if(!data.ok||!data.recipe?.url){box.textContent='Δεν βρήκα συνταγή για '+name+'.';return;}
+     const recipe=data.recipe;
+     const details=await fetch('/api/recipe?url='+encodeURIComponent(recipe.url));
+     const parsed=await details.json().catch(()=>({}));
+     const full=parsed.ok&&parsed.recipe?parsed.recipe:null;
+     const div=document.createElement('div');div.className='soft';
+     const heading=document.createElement('b');heading.textContent='🍽️ '+(full?.name||recipe.name||name);div.append(heading);
+     if(full?.ingredients?.length){
+       const h=document.createElement('h4');h.textContent='Υλικά';div.append(h);
+       const ul=document.createElement('ul');full.ingredients.forEach(x=>{const li=document.createElement('li');li.textContent=x;ul.append(li)});div.append(ul);
+     }
+     if(full?.instructions){
+       const h=document.createElement('h4');h.textContent='Εκτέλεση';div.append(h);
+       const p=document.createElement('p');p.style.whiteSpace='pre-line';p.textContent=typeof full.instructions==='string'?full.instructions:full.instructions.join('\n');div.append(p);
+     }
+     const link=document.createElement('a');link.className='btn secondary';link.style.cssText='display:block;text-align:center;text-decoration:none';
+     const url=new URL(recipe.url,location.href);
+     if(!['https:','http:'].includes(url.protocol))throw Error('invalid url');
+     link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent='🔗 Άνοιξε την πλήρη συνταγή';div.append(link);
+     box.replaceChildren(div);
+   }catch(e){box.textContent='⚠️ Δεν ήταν δυνατή η φόρτωση της συνταγής. Δοκίμασε ξανά.';}
+ }
  function counts(){
   let c={
     drinks:0,
