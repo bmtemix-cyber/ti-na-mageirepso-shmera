@@ -267,89 +267,143 @@
 </style><style>
 /* Compact welcome layout with an always-visible mobile entry button. */
 @media (max-width:640px){
- .welcome-screen{
-  padding:6px 8px 72px;
-  overflow:hidden;
-}
 
-.welcome-hero{
-  margin-bottom:5px;
-}
+  .welcome-screen{
+    padding:8px;
+    overflow:hidden;
+    background:#f3efe5;
+  }
 
-.welcome-logo{
-  margin-bottom:3px;
-}
+  .welcome-wrap{
+    height:calc(100dvh - 16px);
+    background:#fffdf7;
+    border:1px solid #e6e2d8;
+    border-radius:24px;
+    padding:10px;
+    overflow:hidden;
+    box-shadow:0 8px 28px rgba(0,0,0,.10);
+    display:flex;
+    flex-direction:column;
+  }
 
-.welcome-logo-badge{
-  width:34px;
-  height:34px;
-  flex:0 0 34px;
-  font-size:21px;
-}
+  .welcome-hero{
+    margin:0 0 5px;
+    flex:none;
+  }
 
-.welcome-title{
-  font-size:21px;
-}
+  .welcome-logo{
+    gap:6px;
+    margin:0 0 2px;
+  }
 
-.welcome-sub{
-  margin-top:3px;
-  font-size:12px;
-  line-height:1.15;
-}
+  .welcome-logo-badge{
+    width:32px;
+    height:32px;
+    flex:0 0 32px;
+    border-radius:10px;
+    font-size:20px;
+  }
 
-.welcome-videos{
-  grid-template-columns:1fr 1fr;
-  gap:6px;
-  margin-top:6px;
-}
+  .welcome-title{
+    font-size:20px;
+    line-height:1;
+  }
 
-.video-panel{
-  border-radius:12px;
-}
+  .welcome-sub{
+    margin-top:3px;
+    font-size:11px;
+    line-height:1.1;
+  }
 
-.video-head{
-  padding:5px 3px;
-  font-size:11px;
-  text-align:center;
-  line-height:1.15;
-}
+  .welcome-videos{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:5px;
+    margin:3px 0;
+    flex:1;
+    min-height:0;
+  }
 
-.video-panel video{
-  width:100%;
-  aspect-ratio:16/9;
-}
+  .video-panel{
+    border-radius:13px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
 
-.video-caption{
-  padding:4px 3px;
-  font-size:9px;
-  line-height:1.15;
-}
+  .video-head{
+    padding:4px 6px;
+    font-size:12px;
+    line-height:1.1;
+    text-align:center;
+    flex:none;
+  }
 
-.welcome-note{
-  margin-top:6px;
-  padding:5px;
-  font-size:10px;
-  line-height:1.15;
-}
+  .video-panel video{
+    width:100%;
+    flex:1;
+    min-height:0;
+    object-fit:cover;
+  }
 
-.welcome-features{
-  margin-top:5px;
-  gap:4px;
-}
+  .video-caption{
+    padding:3px 5px;
+    font-size:9px;
+    line-height:1.05;
+    flex:none;
+  }
 
-.welcome-feature{
-  padding:5px 2px;
-  font-size:9px;
-}
+  .welcome-note{
+    margin:4px 0;
+    padding:4px 5px;
+    font-size:9px;
+    line-height:1.05;
+    flex:none;
+  }
 
-.welcome-feature .icon{
-  font-size:17px;
-  margin-bottom:1px;
-}
+  .welcome-features{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:4px;
+    margin:3px 0;
+    flex:none;
+  }
 
-.welcome-start{
-  padding:10px 15px;
-  font-size:17px;
+  .welcome-feature{
+    padding:4px 2px;
+    font-size:8px;
+    border-radius:9px;
+  }
+
+  .welcome-feature .icon{
+    font-size:15px;
+    margin-bottom:0;
+  }
+
+  .welcome-actions{
+    position:static;
+    padding:0;
+    margin:4px 0 0;
+    background:transparent;
+    border:0;
+    box-shadow:none;
+    flex:none;
+  }
+
+  .welcome-start{
+    width:100%;
+    margin:0;
+    padding:9px;
+    font-size:16px;
+    border-radius:13px;
+  }
+
+  .welcome-skip{
+    margin-top:3px;
+    font-size:8px;
+    line-height:1;
+  }
 }
 </style></head><body> <section id="welcomeScreen" class="welcome-screen">
   <div class="welcome-wrap">
