@@ -488,7 +488,7 @@
 <button class="btn primary" onclick="saveMeal()">Καταχώριση γεύματος</button><div id="saveStatus" class="small" style="margin-top:10px"></div></div>
 <div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
-<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing" oninput="autoPantryUnit()"></div><div class="field"><label>Ποσότητα</label><div style="display:flex;gap:8px"><input id="qty" type="text" inputmode="decimal" placeholder="π.χ. 0,5" style="flex:1;min-width:0"><select id="qtyUnit" aria-label="Μονάδα μέτρησης" style="width:115px;flex:none"><option value="kg">κιλά (kg)</option><option value="g">γραμ. (g)</option><option value="L">λίτρα (L)</option><option value="ml">ml</option><option value="τμχ.">τεμάχια</option><option value="συσκ.">συσκ.</option></select></div><div class="small" id="unitHint" style="margin-top:5px">Η μονάδα επιλέγεται αυτόματα από το υλικό.</div></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div>
+<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά <span style="font-size:11px;color:#2f6b3a">Έκδοση μονάδων 2</span></h2><div class="field"><label>Υλικό</label><input id="ing" oninput="autoPantryUnit()"></div><div class="field"><label>Ποσότητα</label><div style="display:flex;gap:8px"><input id="qty" type="text" inputmode="decimal" placeholder="π.χ. 0,5" style="flex:1;min-width:0"><select id="qtyUnit" aria-label="Μονάδα μέτρησης" style="width:115px;flex:none"><option value="kg">κιλά (kg)</option><option value="g">γραμ. (g)</option><option value="L">λίτρα (L)</option><option value="ml">ml</option><option value="τμχ.">τεμάχια</option><option value="συσκ.">συσκ.</option></select></div><div class="small" id="unitHint" style="margin-top:5px">Η μονάδα επιλέγεται αυτόματα από το υλικό.</div></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div>
   <div class="card" style="margin-top:12px">
  <div class="card" style="margin-top:12px">
   <h3>📦 Barcode προϊόντος</h3>
@@ -3035,7 +3035,7 @@ show('home');
 initWelcomeScreen();
 
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js?v=8')
+  navigator.serviceWorker.register('./sw.js?v=9')
     .then(r=>r.update())
     .catch(()=>{});
 } 
