@@ -1921,19 +1921,151 @@ const total=
   return '⭐ '+best.name+
     ' · score '+best.score.total+'/5';
 } 
+ function pantryFallbackSuggestions(){
+
+  const pantryText = s.pantry
+    .map(x => (x.name || '').toLowerCase())
+    .join(' ');
+
+  const counts = weeklyCounts();
+
+  const recipes = [
+    {
+      name:'Φακές κοκκινιστές',
+      cat:'legumes',
+      have:['φακ','ελαιολ','ντοματ','πελτ'],
+      extra:['κρεμμύδι','καρότο']
+    },
+    {
+      name:'Ρεβίθια λεμονάτα',
+      cat:'legumes',
+      have:['ρεβιθ','ελαιολ'],
+      extra:['λεμόνι','κρεμμύδι','μαϊντανό']
+    },
+    {
+      name:'Μακαρόνια με σάλτσα ντομάτας και τυρί',
+      cat:'pasta',
+      have:['μακαρον','ντοματ','πελτ','τυρ','κεφαλοτυρ','ελαιολ'],
+      extra:['κρεμμύδι','ρίγανη']
+    },
+    {
+      name:'Ρεβιθοσαλάτα',
+      cat:'legumes',
+      have:['ρεβιθ','ελαιολ'],
+      extra:['ντομάτα','αγγούρι','λεμόνι','μαϊντανό']
+    },
+    {
+      name:'Μακαρόνια με λαχανικά και ντομάτα',
+      cat:'pasta',
+      have:['μακαρον','ντοματ','πελτ','ελαιολ'],
+      extra:['πιπεριά','μανιτάρια']
+    }
+  ];
+
+  function pantryMatches(recipe){
+    return recipe.have.filter(word => pantryText.includes(word)).length;
+  }
+
+  function weeklyNeed(recipe){
+    const target = targets[recipe.cat] || 1;
+    const eaten = counts[recipe.cat] || 0;
+
+    return Math.max(0,target-eaten);
+  }
+
+  const scored = recipes.map(recipe => ({
+    ...recipe,
+    pantryScore:pantryMatches(recipe),
+    healthScore:weeklyNeed(recipe)
+  }));
+
+  scored.sort((a,b)=>{
+    if(b.healthScore !== a.healthScore){
+      return b.healthScore-a.healthScore;
+    }
+
+    return b.pantryScore-a.pantryScore;
+  });
+
+  const first = scored
+    .filter(x => x.pantryScore >= 2)
+    .sort((a,b)=>{
+      const scoreA = a.healthScore*3 + a.pantryScore;
+      const scoreB = b.healthScore*3 + b.pantryScore;
+      return scoreB-scoreA;
+    })[0];
+
+  const second = scored
+    .filter(x => !first || x.name !== first.name)
+    .sort((a,b)=>{
+      const missingA = Math.max(0,a.extra.length);
+      const missingB = Math.max(0,b.extra.length);
+
+      const scoreA =
+        a.healthScore*3 +
+        a.pantryScore*2 -
+        missingA;
+
+      const scoreB =
+        b.healthScore*3 +
+        b.pantryScore*2 -
+        missingB;
+
+      return scoreB-scoreA;
+    })[0];
+
+  return {
+    first:first || null,
+    second:second || null
+  };
+} 
  function showTodaySuggestion(){
   const box=$('todaySuggestion');
   const meals=smartTodayChoices();
 
   if(!box)return;
 
-  if(!meals.length){
-    box.classList.remove('hidden');
-    box.innerHTML=
-      '<b>Δεν έχω ακόμη αρκετά δεδομένα.</b>'+
-      '<div class="small">Κατάγραψε μερικά ακόμη γεύματα.</div>';
-    return;
+ if(!meals.length){
+
+  const fallback = pantryFallbackSuggestions();
+
+  box.classList.remove('hidden');
+
+  let html =
+    '<b>⭐ Προτάσεις για σήμερα</b>'+
+    '<div class="small" style="margin-top:5px">'+
+      'Οι προτάσεις βασίζονται στην ισορροπία της εβδομάδας '+
+      'και στα υλικά που έχεις διαθέσιμα.'+
+    '</div>';
+
+  if(fallback.first){
+
+    html +=
+      '<div class="soft" style="margin-top:10px">'+
+        '<b>🥗 Κύρια πρόταση · '+fallback.first.name+'</b>'+
+        '<div class="small" style="margin-top:5px">'+
+          'Ταιριάζει στο υγιεινό πρόγραμμα της εβδομάδας '+
+          'και χρησιμοποιεί υλικά που έχεις ήδη.'+
+        '</div>'+
+      '</div>';
   }
+
+  if(fallback.second){
+
+    html +=
+      '<div class="soft" style="margin-top:10px">'+
+        '<b>💡 Εναλλακτική · '+fallback.second.name+'</b>'+
+        '<div class="small" style="margin-top:5px">'+
+          'Με τα υλικά που έχεις ήδη, αν πάρεις και: '+
+          '<b>'+fallback.second.extra.join(', ')+'</b>, '+
+          'μπορείς να φτιάξεις αυτό το φαγητό.'+
+        '</div>'+
+      '</div>';
+  }
+
+  box.innerHTML = html;
+  return;
+}
 
    function titleFor(type){
     if(type==='favorite')return '❤️ Αγαπημένη επιλογή';
