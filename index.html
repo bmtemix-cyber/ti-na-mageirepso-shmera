@@ -488,7 +488,7 @@
 <button class="btn primary" onclick="saveMeal()">Καταχώριση γεύματος</button><div id="saveStatus" class="small" style="margin-top:10px"></div></div>
 <div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
-<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing"></div><div class="field"><label>Ποσότητα</label><input id="qty"></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div>
+<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά</h2><div class="field"><label>Υλικό</label><input id="ing" oninput="autoPantryUnit()"></div><div class="field"><label>Ποσότητα</label><div style="display:flex;gap:8px"><input id="qty" type="text" inputmode="decimal" placeholder="π.χ. 0,5" style="flex:1;min-width:0"><select id="qtyUnit" aria-label="Μονάδα μέτρησης" style="width:115px;flex:none"><option value="kg">κιλά (kg)</option><option value="g">γραμ. (g)</option><option value="L">λίτρα (L)</option><option value="ml">ml</option><option value="τμχ.">τεμάχια</option><option value="συσκ.">συσκ.</option></select></div><div class="small" id="unitHint" style="margin-top:5px">Η μονάδα επιλέγεται αυτόματα από το υλικό.</div></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div>
   <div class="card" style="margin-top:12px">
  <div class="card" style="margin-top:12px">
   <h3>📦 Barcode προϊόντος</h3>
@@ -2532,7 +2532,28 @@ dislikes:$('memberDislikes').value.trim()
   save();
   renderFamily();
 } 
- function addIng(){if(!$('ing').value.trim())return;s.pantry.push({name:$('ing').value.trim(),qty:$('qty').value.trim(),exp:$('exp').value});$('ing').value=$('qty').value=$('exp').value='';save();render()}
+ function autoPantryUnit(){
+   const name=($('ing').value||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+   const has=(words)=>words.some(w=>name.includes(w));
+   let unit='kg';
+   if(has(['ελαιολαδ','λαδι','γαλα','χυμ','νερ','ξιδ','κρασ','αναψυκ','μπυρ','σπορελαι']))unit='L';
+   else if(has(['αυγ','λεμον','πορτοκαλ','μηλ','μπανα','κρεμμυδ','σκορδ','ψωμι του τοστ','κονσερβ','γιαουρτι κεσεδ']))unit='τμχ.';
+   else if(has(['ριγαν','πιπερ','κανελα','μπαχαρ','μαγια','μπεικιν','βανιλ']))unit='g';
+   $('qtyUnit').value=unit;
+   $('unitHint').textContent='Προτεινόμενη μονάδα: '+$('qtyUnit').selectedOptions[0].text+'. Μπορείς να την αλλάξεις.';
+ }
+ function addIng(){
+   const name=$('ing').value.trim();if(!name)return;
+   const amount=$('qty').value.trim().replace(',', '.');
+   if(amount && (!Number.isFinite(Number(amount)) || Number(amount)<=0)){
+     alert('Γράψε θετική αριθμητική ποσότητα, π.χ. 0,5 ή 2.');return;
+   }
+   const unit=$('qtyUnit').value;
+   s.pantry.push({name:name,qty:amount?amount.replace('.',',')+' '+unit:'',exp:$('exp').value});
+   $('ing').value=$('qty').value=$('exp').value='';$('qtyUnit').value='kg';
+   $('unitHint').textContent='Η μονάδα επιλέγεται αυτόματα από το υλικό.';
+   save();render();
+ }
  function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row ${expiryClass(p.exp)}"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
  function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
  function show(id){
