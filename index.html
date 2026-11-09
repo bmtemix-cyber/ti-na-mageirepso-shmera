@@ -2074,32 +2074,28 @@ const total=
  }
  async function findRecipeForMeal(name,targetId){
    const box=$(targetId);if(!box)return;
-   box.innerHTML='<div class="small">🔎 Ψάχνω ελληνική συνταγή...</div>';
+   box.textContent='👩‍🍳 Το AI ετοιμάζει τη συνταγή σου...';
    try{
-     const r=await fetch('/api/search-recipe?q='+encodeURIComponent(name));
+     const r=await fetch('/api/generate-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({meal:name,pantry:s.pantry||[],family:s.family||{}})});
      const data=await r.json();
-     if(!data.ok||!data.recipe?.url){box.textContent='Δεν βρήκα συνταγή για '+name+'.';return;}
-     const recipe=data.recipe;
-     const details=await fetch('/api/recipe?url='+encodeURIComponent(recipe.url));
-     const parsed=await details.json().catch(()=>({}));
-     const full=parsed.ok&&parsed.recipe?parsed.recipe:null;
-     const div=document.createElement('div');div.className='soft';
-     const heading=document.createElement('b');heading.textContent='🍽️ '+(full?.name||recipe.name||name);div.append(heading);
-     if(full?.ingredients?.length){
-       const h=document.createElement('h4');h.textContent='Υλικά';div.append(h);
-       const ul=document.createElement('ul');full.ingredients.forEach(x=>{const li=document.createElement('li');li.textContent=x;ul.append(li)});div.append(ul);
-     }
-     if(full?.instructions){
-       const h=document.createElement('h4');h.textContent='Εκτέλεση';div.append(h);
-       const p=document.createElement('p');p.style.whiteSpace='pre-line';p.textContent=typeof full.instructions==='string'?full.instructions:full.instructions.join('\n');div.append(p);
-     }
-     const link=document.createElement('a');link.className='btn secondary';link.style.cssText='display:block;text-align:center;text-decoration:none';
-     const url=new URL(recipe.url,location.href);
-     if(!['https:','http:'].includes(url.protocol))throw Error('invalid url');
-     link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent='🔗 Άνοιξε την πλήρη συνταγή';div.append(link);
-     box.replaceChildren(div);
-   }catch(e){box.textContent='⚠️ Δεν ήταν δυνατή η φόρτωση της συνταγής. Δοκίμασε ξανά.';}
+     if(!r.ok||!data.ok||!data.recipe)throw Error(data.error||'Δεν ήταν δυνατή η δημιουργία συνταγής.');
+     renderAiRecipe(box,data.recipe);
+   }catch(e){box.replaceChildren();const msg=document.createElement('p');msg.textContent='⚠️ '+(e.message||'Δεν ήταν δυνατή η δημιουργία συνταγής.');box.append(msg);const retry=document.createElement('button');retry.className='btn secondary';retry.textContent='🔄 Δοκίμασε ξανά';retry.onclick=()=>findRecipeForMeal(name,targetId);box.append(retry);}
  }
+ function renderAiRecipe(box,recipe){
+   box.replaceChildren();const div=document.createElement('div');div.className='soft';
+   const heading=document.createElement('h3');heading.textContent='🍽️ '+recipe.name;div.append(heading);
+   const info=document.createElement('p');info.className='small';info.textContent='✨ Συνταγή AI · '+recipe.servings+' μερίδες'+(recipe.minutes?' · περίπου '+recipe.minutes+' λεπτά':'');div.append(info);
+   const title=document.createElement('h4');title.textContent='Υλικά';div.append(title);
+   const ul=document.createElement('ul');(recipe.ingredients||[]).forEach(x=>{const li=document.createElement('li');li.textContent=(x.quantity?x.quantity+' ':'')+x.name;ul.append(li)});div.append(ul);
+   const st=document.createElement('h4');st.textContent='Εκτέλεση';div.append(st);
+   const ol=document.createElement('ol');(recipe.steps||[]).forEach(x=>{const li=document.createElement('li');li.textContent=String(x).replace(/^\d+[.)]\s*/,'');li.style.marginBottom='9px';ol.append(li)});div.append(ol);
+   if(recipe.tip){const tip=document.createElement('p');tip.textContent='💡 '+recipe.tip;div.append(tip)}
+   const pantry=s.pantry||[];
+   if(pantry.length){const ph=document.createElement('h4');ph.textContent='🧺 Έλεγχος αποθήκης (ενδεικτικός)';div.append(ph);const pl=document.createElement('ul');(recipe.ingredients||[]).forEach(x=>{const key=String(x.name||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();const match=pantry.find(p=>{const n=String(p.name||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();return key.length>3&&n.length>3&&(key.includes(n)||n.includes(key))});const li=document.createElement('li');li.textContent=(match?'✓ Υπάρχει καταχώριση: ':'? Δεν εντοπίστηκε: ')+x.name+(match&&match.qty?' ('+match.qty+')':'');pl.append(li)});div.append(pl);const note=document.createElement('p');note.className='small';note.textContent='Ο έλεγχος γίνεται με βάση τις ονομασίες· δεν επιβεβαιώνει ακόμη αν επαρκεί η ποσότητα.';div.append(note)}
+   box.append(div);
+ }
+
  function counts(){
   let c={
     drinks:0,
