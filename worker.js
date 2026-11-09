@@ -110,6 +110,40 @@ function instructionText(x) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/generate-recipe" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const meal = String(body.meal || "").trim().slice(0,120);
+        if (!meal) return Response.json({ok:false,error:"Λείπει το φαγητό."},{status:400});
+        if (!env.AI) return Response.json({ok:false,error:"Δεν είναι συνδεδεμένο το AI."},{status:503});
+        const pantry = Array.isArray(body.pantry) ? body.pantry.slice(0,80).map(x=>({name:String(x.name||'').slice(0,90),qty:String(x.qty||'').slice(0,40),exp:String(x.exp||'').slice(0,20)})) : [];
+        const family = body.family && typeof body.family==='object' ? body.family : {};
+        const servings = Math.max(1,Math.min(12,Number(family.cookFor)||4));
+        const prompt = `Δημιούργησε πρωτότυπη, ρεαλιστική ελληνική/μεσογειακή συνταγή για το φαγητό: ${meal}.
+Μερίδες: ${servings}. Αποθήκη (μόνο όσα δήλωσε ο χρήστης): ${JSON.stringify(pantry)}.
+Προτιμήσεις: ${String(family.favorites||'').slice(0,350)}. Αποφυγές: ${String(family.dislikes||'').slice(0,350)}.
+Στόχος: ισορροπημένη υγιεινή διατροφή, λογικές ποσότητες, ασφαλές ψήσιμο. Μην αλλάξεις το ζητούμενο φαγητό.
+Προτίμησε τα διαθέσιμα υλικά, αλλά μη θεωρείς ότι υπάρχουν άλλα υλικά. Η αποθήκη είναι πληροφοριακή και μπορεί να έχει ασαφείς ποσότητες.
+Απάντησε ΜΟΝΟ με έγκυρο JSON χωρίς markdown, με ακριβώς τα πεδία:
+{"name":"...","servings":4,"minutes":45,"ingredients":[{"name":"μακαρόνια","quantity":"500 γρ."}],"steps":["1. ...","2. ..."],"tip":"..."}.
+Δώσε 5-14 υλικά και 4-9 σαφή βήματα. Μη δίνεις υποσχέσεις ιατρικού χαρακτήρα.`;
+        const result = await env.AI.run("@cf/google/gemma-4-26b-a4b-it", {
+          messages:[{role:"system",content:"Είσαι έμπειρος Έλληνας μάγειρας. Επιστρέφεις μόνο έγκυρο JSON με πρακτικές ασφαλείς συνταγές."},{role:"user",content:prompt}],
+          stream:false, temperature:0.35, max_completion_tokens:1800,
+          chat_template_kwargs:{enable_thinking:false}
+        });
+        let raw = typeof result==='string'?result:result?.response||result?.result?.response||result?.result||result?.choices?.[0]?.message?.content||'';
+        if (typeof raw!=='string') raw=JSON.stringify(raw);
+        raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
+        let recipe;
+        try {recipe=JSON.parse(raw)} catch(e) {const match=raw.match(/\{[\s\S]*\}/);if(!match)throw Error('Το AI δεν επέστρεψε συνταγή σε JSON.');recipe=JSON.parse(match[0]);}
+        if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length || !Array.isArray(recipe.steps) || !recipe.steps.length) throw Error('Η συνταγή δεν είναι πλήρης.');
+        const clean = {name:String(recipe.name||meal).slice(0,150),servings:Number(recipe.servings)||servings,minutes:Number(recipe.minutes)||null,
+          ingredients:recipe.ingredients.slice(0,25).map(x=>({name:String(x?.name||'').slice(0,120),quantity:String(x?.quantity||'').slice(0,60)})).filter(x=>x.name),
+          steps:recipe.steps.slice(0,15).map(x=>String(x).slice(0,600)),tip:String(recipe.tip||'').slice(0,500)};
+        return Response.json({ok:true,recipe:clean});
+      } catch(e) {console.error('GENERATE RECIPE',e);return Response.json({ok:false,error:'Δεν μπόρεσα να δημιουργήσω συνταγή. Δοκίμασε ξανά.'},{status:502});}
+    }
     if (url.pathname === "/api/reminder-setting" && request.method === "POST") {
   try {
     const body = await request.json();
