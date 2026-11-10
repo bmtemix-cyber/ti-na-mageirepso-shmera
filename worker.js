@@ -121,6 +121,45 @@ export default {
   ]);
 
   if (!file || !allowed.has(file)) {
+    return new Response("Not found", {
+      status: 404
+    });
+  }
+
+  try {
+
+    const assetUrl =
+      new URL(
+        "/images/" + file,
+        request.url
+      );
+
+    const assetResponse =
+      await env.ASSETS.fetch(
+        new Request(assetUrl)
+      );
+
+    if (!assetResponse.ok) {
+      return new Response(
+        "Image not found",
+        { status: 404 }
+      );
+    }
+
+    return assetResponse;
+
+  } catch (e) {
+
+    console.error("MEAL IMAGE ERROR", e);
+
+    return new Response(
+      "Image error",
+      { status: 500 }
+    );
+  }
+}
+
+  if (!file || !allowed.has(file)) {
     return new Response("Not found", { status: 404 });
   }
 
