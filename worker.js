@@ -159,10 +159,6 @@ export default {
   }
 }
 
-  if (!file || !allowed.has(file)) {
-    return new Response("Not found", { status: 404 });
-  }
-
   const imageUrl =
     "https://raw.githubusercontent.com/bmtemix-cyber/ti-na-mageirepso-shmera/main/images/" +
     file;
