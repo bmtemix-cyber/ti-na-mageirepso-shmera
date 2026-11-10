@@ -2316,41 +2316,70 @@ function missingIngredients(list){
   const week = counts();
 
   const recipes = [
-    {
-      name:'Φακές κοκκινιστές',
-      cat:'legumes',
-      have:['φακ','ελαιολ','ντοματ','πελτ'],
-      extra:['κρεμμύδι','καρότο']
-    },
-    {
-      name:'Ρεβίθια λεμονάτα',
-      cat:'legumes',
-      have:['ρεβιθ','ελαιολ'],
-      extra:['λεμόνι','κρεμμύδι','μαϊντανό']
-    },
-    {
-      name:'Μακαρόνια με σάλτσα ντομάτας και τυρί',
-      cat:'pasta',
-      have:['μακαρον','ντοματ','πελτ','τυρ','κεφαλοτυρ','ελαιολ'],
-      extra:['κρεμμύδι','ρίγανη']
-    },
-    {
-      name:'Ρεβιθοσαλάτα',
-      cat:'legumes',
-      have:['ρεβιθ','ελαιολ'],
-      extra:['ντομάτα','αγγούρι','λεμόνι','μαϊντανό']
-    },
-    {
-      name:'Μακαρόνια με λαχανικά και ντομάτα',
-      cat:'pasta',
-      have:['μακαρον','ντοματ','πελτ','ελαιολ'],
-      extra:['πιπεριά','μανιτάρια']
-    }
-  ];
-
-  function pantryMatches(recipe){
-    return recipe.have.filter(word => pantryText.includes(word)).length;
+  {
+    name:'Φακές κοκκινιστές',
+    cat:'legumes',
+    ingredients:[
+      'φακές',
+      'ελαιόλαδο',
+      'πελτές',
+      'κρεμμύδι',
+      'καρότο'
+    ]
+  },
+  {
+    name:'Ρεβίθια λεμονάτα',
+    cat:'legumes',
+    ingredients:[
+      'ρεβίθια',
+      'ελαιόλαδο',
+      'λεμόνι',
+      'κρεμμύδι',
+      'μαϊντανό'
+    ]
+  },
+  {
+    name:'Μακαρόνια με σάλτσα ντομάτας και τυρί',
+    cat:'pasta',
+    ingredients:[
+      'μακαρόνια',
+      'ντομάτα',
+      'ελαιόλαδο',
+      'τυρί',
+      'κρεμμύδι',
+      'ρίγανη'
+    ]
+  },
+  {
+    name:'Ρεβιθοσαλάτα',
+    cat:'legumes',
+    ingredients:[
+      'ρεβίθια',
+      'ελαιόλαδο',
+      'ντομάτα',
+      'αγγούρι',
+      'λεμόνι',
+      'μαϊντανό'
+    ]
+  },
+  {
+    name:'Μακαρόνια με λαχανικά και ντομάτα',
+    cat:'pasta',
+    ingredients:[
+      'μακαρόνια',
+      'ελαιόλαδο',
+      'ντομάτα',
+      'πιπεριά',
+      'μανιτάρια'
+    ]
   }
+];
+
+function pantryMatches(recipe){
+  return recipe.ingredients.filter(
+    x=>pantryHasIngredient(x)
+  ).length;
+}
 
   function weeklyNeed(recipe){
     const target = targets[recipe.cat] || 1;
@@ -2362,8 +2391,9 @@ function missingIngredients(list){
  const scored = recipes.map(recipe => ({
   ...recipe,
 
-  // Από τα "extra" κρατάμε μόνο όσα ΔΕΝ υπάρχουν στην αποθήκη
-  extra:missingIngredients(recipe.extra),
+  extra:missingIngredients(
+    recipe.ingredients
+  ),
 
   pantryScore:pantryMatches(recipe),
   healthScore:weeklyNeed(recipe)
