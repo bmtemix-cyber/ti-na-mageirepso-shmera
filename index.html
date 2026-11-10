@@ -2065,7 +2065,7 @@ function pantryScoreForMeal(meal){
 
   return candidates.slice(0,limit);
 } 
-  function smartTodayChoices(){
+ function smartTodayChoices(){
 
   const stats=preferenceStats();
 
@@ -2088,16 +2088,45 @@ function pantryScoreForMeal(meal){
         score:mealSuitability(meal)
       };
 
-    });
+    })
 
-  candidates.sort(
-    (a,b)=>
-      b.score.total-a.score.total
-  );
+    // 🚫 Δεν προτείνουμε το ίδιο φαγητό
+    // αν το φάγαμε μέσα στις τελευταίες 3 ημέρες
+    .filter(x=>x.score.daysAgo>3);
 
-  const main=
-    candidates[0]||null;
 
+  /*
+    Αν όλα τα γνωστά φαγητά είναι πρόσφατα,
+    δεν τα ξαναπροτείνουμε.
+    Αφήνουμε το pantryFallbackSuggestions()
+    να δώσει καινούρια πρόταση.
+  */
+  if(!candidates.length){
+    return [];
+  }
+
+
+  /*
+    ΠΡΩΤΑ η υγιεινή ισορροπία της εβδομάδας.
+    Μετά το συνολικό score.
+  */
+  candidates.sort((a,b)=>{
+
+    if(b.score.balance!==a.score.balance){
+      return b.score.balance-a.score.balance;
+    }
+
+    return b.score.total-a.score.total;
+  });
+
+
+  const main=candidates[0]||null;
+
+
+  /*
+    Η δεύτερη επιλογή προσπαθεί να είναι
+    και από διαφορετική κατηγορία.
+  */
   const alternative=
     candidates
       .filter(x=>
@@ -2106,8 +2135,7 @@ function pantryScoreForMeal(meal){
       )
       .sort((a,b)=>{
 
-        const mainCats=
-          main?.cats||[];
+        const mainCats=main?.cats||[];
 
         const aDifferent=
           (a.cats||[])
@@ -2125,12 +2153,16 @@ function pantryScoreForMeal(meal){
           return bDifferent-aDifferent;
         }
 
-        return
-          b.score.total-
-          a.score.total;
+        if(b.score.balance!==a.score.balance){
+          return b.score.balance-a.score.balance;
+        }
+
+        return b.score.total-a.score.total;
       })[0]||null;
 
+
   return [
+
     main
       ? {
           ...main,
