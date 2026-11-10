@@ -536,7 +536,20 @@
   class="list"
   style="margin-top:14px"
 ></div>
+<button
+  type="button"
+  class="btn secondary"
+  onclick="toggleMealStats()"
+  style="margin-top:16px"
+>
+  📊 Στατιστικά φαγητών
+  <span id="mealStatsArrow">▼</span>
+</button>
 
+<div
+  id="mealStats"
+  style="display:none;margin-top:10px"
+></div>
 </div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
 <section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά <span style="font-size:11px;color:#2f6b3a">Έκδοση μονάδων 2</span></h2><div class="field"><label>Υλικό</label><input id="ing" oninput="autoPantryUnit()"></div><div class="field"><label>Ποσότητα</label><div style="display:flex;gap:8px"><input id="qty" type="text" inputmode="decimal" placeholder="π.χ. 0,5" style="flex:1;min-width:0"><select id="qtyUnit" aria-label="Μονάδα μέτρησης" style="width:115px;flex:none"><option value="kg">κιλά (kg)</option><option value="g">γραμ. (g)</option><option value="L">λίτρα (L)</option><option value="ml">ml</option><option value="τμχ.">τεμάχια</option><option value="συσκ.">συσκ.</option></select></div><div class="small" id="unitHint" style="margin-top:5px">Η μονάδα επιλέγεται αυτόματα από το υλικό.</div></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div>
@@ -2415,6 +2428,251 @@ function renderHistoryCalendar(){
 
   box.innerHTML=html;
 }
+
+ function normalizeMealName(name){
+
+  return (name || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+
+function mealStatistics(){
+
+  const stats={};
+
+  const now=new Date();
+  const currentYear=now.getFullYear();
+  const currentMonth=now.getMonth();
+
+  s.history.forEach(h=>{
+
+    const name=(h.name || '').trim();
+
+    if(!name)return;
+
+    const key=normalizeMealName(name);
+
+    if(!stats[key]){
+
+      stats[key]={
+        name:name,
+        count:0,
+        monthCount:0,
+        lastDate:'',
+        ratings:[]
+      };
+
+    }
+
+    stats[key].count++;
+
+    if(h.date){
+
+      const d=new Date(h.date+'T00:00:00');
+
+      if(
+        d.getFullYear()===currentYear &&
+        d.getMonth()===currentMonth
+      ){
+        stats[key].monthCount++;
+      }
+
+    }
+
+    if(
+      !stats[key].lastDate ||
+      h.date>stats[key].lastDate
+    ){
+      stats[key].lastDate=h.date;
+    }
+
+    if(h.rating){
+      stats[key].ratings.push(
+        Number(h.rating)
+      );
+    }
+
+  });
+
+  return Object.values(stats)
+    .sort((a,b)=>{
+
+      if(b.count!==a.count){
+        return b.count-a.count;
+      }
+
+      return a.name.localeCompare(
+        b.name,
+        'el'
+      );
+
+    });
+}
+
+
+function renderMealStats(){
+
+  const box=$('mealStats');
+
+  if(!box)return;
+
+  const stats=mealStatistics();
+
+  if(!stats.length){
+
+    box.innerHTML=
+      '<div class="soft">'+
+        '<div class="small">'+
+          'Δεν υπάρχουν ακόμη αρκετές καταγραφές.'+
+        '</div>'+
+      '</div>';
+
+    return;
+  }
+
+  box.innerHTML=
+    '<div class="soft">'+
+
+      '<div style="'+
+        'display:flex;'+
+        'justify-content:space-between;'+
+        'font-weight:800;'+
+        'margin-bottom:8px'+
+      '">'+
+        '<span>Φαγητό</span>'+
+        '<span>Φορές</span>'+
+      '</div>'+
+
+      stats.map(item=>{
+
+        const avg=
+          item.ratings.length
+          ?
+          (
+            item.ratings.reduce(
+              (a,b)=>a+b,
+              0
+            ) /
+            item.ratings.length
+          ).toFixed(1)
+          :
+          '';
+
+        return `
+          <div
+            class="item"
+            style="
+              margin-top:7px;
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              gap:10px;
+            "
+          >
+
+            <div style="flex:1">
+
+              <b>${item.name}</b>
+
+              <div
+                class="small"
+                style="margin-top:3px"
+              >
+                Τελευταία:
+                ${item.lastDate}
+
+                ${
+                  avg
+                  ? ' · ⭐ '+avg+'/5'
+                  : ''
+                }
+              </div>
+
+            </div>
+
+           <div
+  style="
+    white-space:nowrap;
+    text-align:right;
+  "
+>
+
+  <div
+    style="
+      font-weight:900;
+      font-size:16px;
+    "
+  >
+    ${item.count}
+    ${
+      item.count===1
+        ? 'φορά'
+        : 'φορές'
+    }
+  </div>
+
+  <div
+    class="small"
+    style="
+      margin-top:3px;
+      font-weight:700;
+    "
+  >
+    Αυτόν τον μήνα:
+    ${item.monthCount}
+    ${
+      item.monthCount===1
+        ? 'φορά'
+        : 'φορές'
+    }
+  </div>
+
+</div>
+
+          </div>
+        `;
+
+      }).join('')+
+
+    '</div>';
+}
+
+
+function toggleMealStats(){
+
+  const box=$('mealStats');
+  const arrow=$('mealStatsArrow');
+
+  if(!box)return;
+
+  const opening=
+    box.style.display==='none' ||
+    !box.style.display;
+
+  if(opening){
+
+    renderMealStats();
+
+    box.style.display='block';
+
+    if(arrow){
+      arrow.textContent='▲';
+    }
+
+  }else{
+
+    box.style.display='none';
+
+    if(arrow){
+      arrow.textContent='▼';
+    }
+
+  }
+} 
  function renderHistory(){
 
   const historyEl=$('history');
