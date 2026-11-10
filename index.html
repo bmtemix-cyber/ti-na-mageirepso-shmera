@@ -2261,6 +2261,51 @@ function pantryHasIngredient(name){
     return pantryName===target || pantryName.includes(target) || target.includes(pantryName);
   });
 }  
+
+ function normalizeIngredientName(name){
+  let x=(name||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .trim();
+
+  const aliases={
+    'κρεμμυδια':'κρεμμυδι',
+    'κρεμμυδι':'κρεμμυδι',
+    'καροτα':'καροτο',
+    'καροτο':'καροτο',
+    'ντοματες':'ντοματα',
+    'ντοματα':'ντοματα',
+    'ελαιολαδο':'ελαιολαδο',
+    'λαδι':'ελαιολαδο',
+    'φακες':'φακες',
+    'ρεβιθια':'ρεβιθια',
+    'μακαρονια':'μακαρονια',
+    'σπαγγετι':'μακαρονια',
+    'τυρι':'τυρι',
+    'κεφαλοτυρι':'τυρι'
+  };
+
+  return aliases[x] || x;
+}
+
+function pantryHasIngredient(name){
+  const target=normalizeIngredientName(name);
+
+  return s.pantry.some(p=>{
+    const pantryName=normalizeIngredientName(p.name);
+
+    return pantryName===target ||
+      pantryName.includes(target) ||
+      target.includes(pantryName);
+  });
+}
+
+function missingIngredients(list){
+  return (list||[]).filter(
+    x=>!pantryHasIngredient(x)
+  );
+} 
   
  function pantryFallbackSuggestions(){
 
