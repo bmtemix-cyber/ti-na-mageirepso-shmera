@@ -2221,6 +2221,47 @@ function pantryScoreForMeal(meal){
   return '⭐ '+best.name+
     ' · score '+best.score.total+'/5';
 } 
+
+function normalizeIngredientName(name){
+  let x=(name||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .trim();
+
+  const aliases={
+    'κρεμμυδια':'κρεμμυδι',
+    'κρεμμυδι':'κρεμμυδι',
+    'καροτα':'καροτο',
+    'καροτο':'καροτο',
+    'ντοματες':'ντοματα',
+    'ντοματα':'ντοματα',
+    'πελτες':'πελτες',
+    'πελτες ντοματας':'πελτες',
+    'ντοματα πελτες':'πελτες',
+    'ελαιολαδο':'ελαιολαδο',
+    'λαδι':'ελαιολαδο',
+    'φακες':'φακες',
+    'ρεβιθια':'ρεβιθια',
+    'μακαρονια':'μακαρονια',
+    'σπαγγετι':'μακαρονια',
+    'τυρι':'τυρι',
+    'κεφαλοτυρι':'τυρι',
+    'κεφαλοτυρι τριμμενο':'τυρι'
+  };
+
+  return aliases[x] || x;
+}
+
+function pantryHasIngredient(name){
+  const target=normalizeIngredientName(name);
+
+  return s.pantry.some(p=>{
+    const pantryName=normalizeIngredientName(p.name);
+    return pantryName===target || pantryName.includes(target) || target.includes(pantryName);
+  });
+}  
+  
  function pantryFallbackSuggestions(){
 
   const pantryText = s.pantry
@@ -2273,11 +2314,15 @@ function pantryScoreForMeal(meal){
     return Math.max(0,target-eaten);
   }
 
-  const scored = recipes.map(recipe => ({
-    ...recipe,
-    pantryScore:pantryMatches(recipe),
-    healthScore:weeklyNeed(recipe)
-  }));
+ const scored = recipes.map(recipe => ({
+  ...recipe,
+
+  // Από τα "extra" κρατάμε μόνο όσα ΔΕΝ υπάρχουν στην αποθήκη
+  extra:missingIngredients(recipe.extra),
+
+  pantryScore:pantryMatches(recipe),
+  healthScore:weeklyNeed(recipe)
+}));
 
   scored.sort((a,b)=>{
     if(b.healthScore !== a.healthScore){
@@ -2347,7 +2392,11 @@ function pantryScoreForMeal(meal){
    if(suggestions.length<2){
      for(const candidate of [fallback.first,fallback.second]){
        if(candidate&&!suggestions.some(x=>x.name===candidate.name)){
-         suggestions.push({name:candidate.name,note:'Υγιεινή επιλογή με βάση την ισορροπία της εβδομάδας και τα υλικά που έχεις ήδη στην αποθήκη.'+(candidate.extra?.length?'Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.':'')});
+         suggestions.push({name:candidate.name,note:'Υγιεινή επιλογή με βάση την ισορροπία της εβδομάδας και τα υλικά που έχεις ήδη στην αποθήκη.'+
+(candidate.extra?.length
+  ? ' Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.'
+  : ' Έχεις ήδη τα βασικά υλικά για αυτή την επιλογή.'
+)'+candidate.extra.join(', ')+'.':'')});
        }
        if(suggestions.length===2)break;
      }
