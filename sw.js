@@ -1,4 +1,4 @@
-const CACHE='cook-v2-8';
+const CACHE='cook-v2-9';
 
 const ASSETS=[
   './manifest.webmanifest',
@@ -27,24 +27,19 @@ self.addEventListener('activate',event=>{
 
 self.addEventListener('fetch',event=>{
 
-  if(event.request.mode==='navigate'){
-    event.respondWith(
-      fetch(event.request)
-  self.addEventListener('fetch',event=>{
-
   const url=new URL(event.request.url);
 
-  // Τα API requests πάνε απευθείας στον Worker.
-  // Δεν τα αγγίζει καθόλου το Service Worker.
+  // Τα API requests πάνε κατευθείαν στον Worker
   if(url.pathname.startsWith('/api/')){
     return;
   }
 
-  // Δεν κάνουμε cache POST ή άλλα non-GET requests.
+  // Δεν κάνουμε cache POST ή άλλα non-GET requests
   if(event.request.method!=='GET'){
     return;
   }
 
+  // Πλοήγηση: πρώτα internet, fallback στο index
   if(event.request.mode==='navigate'){
     event.respondWith(
       fetch(event.request)
@@ -53,46 +48,67 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
+  // Για εικόνες και άλλα assets:
+  // πρώτα δοκιμάζουμε από το internet,
+  // και αν αποτύχει, από την cache
   event.respondWith(
-    caches.match(event.request).then(cached=>{
-      return cached || fetch(event.request);
-    })
-  );
-});
-self.addEventListener('push', event => {
-  const title = '🍳 Τι να μαγειρέψω σήμερα;';
+    fetch(event.request)
+      .then(response=>{
 
-  const options = {
-    body: 'Μην ξεχάσεις να καταγράψεις τα σημερινά γεύματα.',
-    icon: './icon.svg',
-    badge: './icon.svg',
-    tag: 'evening-reminder',
-    renotify: true
+        const copy=response.clone();
+
+        caches.open(CACHE).then(cache=>{
+          cache.put(event.request,copy);
+        });
+
+        return response;
+      })
+      .catch(()=>caches.match(event.request))
+  );
+
+});
+
+self.addEventListener('push', event => {
+
+  const title='🍳 Τι να μαγειρέψω σήμερα;';
+
+  const options={
+    body:'Μην ξεχάσεις να καταγράψεις τα σημερινά γεύματα.',
+    icon:'./icon.svg',
+    badge:'./icon.svg',
+    tag:'evening-reminder',
+    renotify:true
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(title,options)
   );
+
 });
 
 self.addEventListener('notificationclick', event => {
+
   event.notification.close();
 
   event.waitUntil(
     clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true
-    }).then(windowClients => {
+      type:'window',
+      includeUncontrolled:true
+    }).then(windowClients=>{
 
-      for (const client of windowClients) {
-        if ('focus' in client) {
+      for(const client of windowClients){
+
+        if('focus' in client){
           return client.focus();
         }
+
       }
 
-      if (clients.openWindow) {
+      if(clients.openWindow){
         return clients.openWindow('./');
       }
+
     })
   );
+
 });
