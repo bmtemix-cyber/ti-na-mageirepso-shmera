@@ -480,7 +480,10 @@
 <div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div><div id="todaySuggestion" class="soft hidden" style="margin-top:10px"></div><button class="btn secondary" onclick="showTodaySuggestion()">⭐ Δείξε πρόταση για σήμερα</button></div></div>
 <div class="card"><div class="row"><b>🥗 Ισορροπία 7 ημερών</b><span id="weekScore" class="small"></span></div><p id="weekStatus" class="reason"></p><div id="bars"></div></div></section>
 <section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
-<div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
+<div class="field">
+  <label>Ημερομηνία γεύματος</label>
+  <input id="mealDate" type="date">
+</div><div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
 <div class="field"><label>Τι φτιάξατε;</label><input id="mealName" placeholder="π.χ. γιαούρτι με μέλι ή γαύρος με σαλάτα" oninput="autoCategory()"></div><div id="hint" class="small"></div>
 <div class="field" id="categoryField"><label>Κατηγορίες τροφίμων</label><div id="cat"><label><input type="checkbox" value="drinks"> 🥤 Αναψυκτικά / Ποτά</label><label><input type="checkbox" value="eggs"> 🥚 Αυγά</label><label><input type="checkbox" value="dairy"> 🥛 Γαλακτοκομικά</label><label><input type="checkbox" value="sweets"> 🍰 Γλυκά</label><label><input type="checkbox" value="grains"> 🌾 Δημητριακά</label><label><input type="checkbox" value="seafood"> 🐟 Θαλασσινά</label><label><input type="checkbox" value="meat"> 🥩 Κρέατα</label><label><input type="checkbox" value="vegetables"> 🥒 Λαχανικά</label><label><input type="checkbox" value="legumes"> 🫘 Όσπρια</label><label><input type="checkbox" value="fruit"> 🍎 Φρούτα</label><label><input type="checkbox" value="pasta"> 🍝 Ζυμαρικά</label></div></div>
 <div class="field"><label>Συνταγή / υλικά</label><textarea id="recipe"></textarea></div><div id="recipeSuggestion" class="soft hidden"></div><button class="btn secondary" onclick="suggestRecipe()">✨ Πρότεινέ μου δημοφιλή συνταγή στην περιοχή μου</button>
@@ -1576,7 +1579,22 @@ const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά'
     $('hint').textContent='Δεν είμαι σίγουρη για τις κατηγορίες. Διάλεξε μία ή περισσότερες.';
   }
 }
- function openLog(t){$('type').value=t;show('learn');setTimeout(()=>$('mealName').focus(),100)}
+ function openLog(t){
+
+  $('type').value=t;
+
+  if($('mealDate')){
+    $('mealDate').value=
+      new Date().toISOString().slice(0,10);
+  }
+
+  show('learn');
+
+  setTimeout(
+    ()=>$('mealName').focus(),
+    100
+  );
+}
  function searchName(x){let t=(x||'').toLowerCase().trim();const m={'μακαρόνια με κιμά':'spaghetti bolognese','μακαρονια με κιμα':'spaghetti bolognese','μακαρόνια':'spaghetti','μακαρονια':'spaghetti','κοτόπουλο':'chicken','κοτοπουλο':'chicken','πατάτες':'potato','πατατες':'potato','ομελέτα':'omelette','ομελετα':'omelette'};return m[t]||x}
 async  function suggestRecipe(){
   const meal=$('mealName').value.trim();
@@ -1659,7 +1677,7 @@ async  function suggestRecipe(){
   }
 
   s.history.push({
-    date:new Date().toISOString().slice(0,10),
+    date:$('mealDate').value || new Date().toISOString().slice(0,10),
     type:$('type').value,
     name:mealName,
     cats:cats,
