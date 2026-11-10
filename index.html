@@ -486,7 +486,23 @@
 <div class="field"><label>Συνταγή / υλικά</label><textarea id="recipe"></textarea></div><div id="recipeSuggestion" class="soft hidden"></div><button class="btn secondary" onclick="suggestRecipe()">✨ Πρότεινέ μου δημοφιλή συνταγή στην περιοχή μου</button>
 <div class="field"><label>Πόσο άρεσε;</label><select id="rating"><option value="5">😍 Πολύ</option><option value="4">🙂 Αρκετά</option><option value="3">😐 Μέτρια</option><option value="2">🙁 Λίγο</option><option value="1">👎 Καθόλου</option></select></div>
 <button class="btn primary" onclick="saveMeal()">Καταχώριση γεύματος</button><div id="saveStatus" class="small" style="margin-top:10px"></div></div>
-<div class="card"><h3>Πρόσφατα γεύματα</h3><div id="history" class="list"></div></div></section>
+<div class="card">
+
+  <h3>📅 Ημερολόγιο γευμάτων</h3>
+
+  <input
+    id="historyDate"
+    type="date"
+    onchange="renderHistory()"
+  >
+
+  <div
+    id="history"
+    class="list"
+    style="margin-top:12px"
+  ></div>
+
+</div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
 <section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά <span style="font-size:11px;color:#2f6b3a">Έκδοση μονάδων 2</span></h2><div class="field"><label>Υλικό</label><input id="ing" oninput="autoPantryUnit()"></div><div class="field"><label>Ποσότητα</label><div style="display:flex;gap:8px"><input id="qty" type="text" inputmode="decimal" placeholder="π.χ. 0,5" style="flex:1;min-width:0"><select id="qtyUnit" aria-label="Μονάδα μέτρησης" style="width:115px;flex:none"><option value="kg">κιλά (kg)</option><option value="g">γραμ. (g)</option><option value="L">λίτρα (L)</option><option value="ml">ml</option><option value="τμχ.">τεμάχια</option><option value="συσκ.">συσκ.</option></select></div><div class="small" id="unitHint" style="margin-top:5px">Η μονάδα επιλέγεται αυτόματα από το υλικό.</div></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div>
   <div class="card" style="margin-top:12px">
@@ -2199,30 +2215,82 @@ const total=
     '</div>';
 }
  function renderHistory(){
-  const historyEl=$('history');
 
-  if(!s.history.length){
-    historyEl.innerHTML='<div class="small">Δεν υπάρχουν ακόμη καταγραφές.</div>';
+  const historyEl=$('history');
+  const dateEl=$('historyDate');
+
+  if(!historyEl || !dateEl)return;
+
+  if(!dateEl.value){
+    dateEl.value=new Date().toISOString().slice(0,10);
+  }
+
+  const selectedDate=dateEl.value;
+
+  const meals=s.history
+    .map((h,index)=>({
+      ...h,
+      realIndex:index
+    }))
+    .filter(h=>h.date===selectedDate);
+
+  if(!meals.length){
+
+    historyEl.innerHTML=
+      '<div class="soft">'+
+        '<b>Δεν υπάρχουν γεύματα αυτή την ημέρα.</b>'+
+        '<div class="small" style="margin-top:5px">'+
+          'Διάλεξε άλλη ημερομηνία ή καταχώρισε νέο γεύμα.'+
+        '</div>'+
+      '</div>';
+
     return;
   }
 
-  historyEl.innerHTML=s.history.slice().reverse().map((h,i)=>{
-    const realIndex=s.history.length-1-i;
-    const icon=h.type==='breakfast'?'🌅':h.type==='dinner'?'🌙':'☀️';
+  historyEl.innerHTML=meals.map(h=>{
 
-    const cats=Array.isArray(h.cats) && h.cats.length
-      ? h.cats
-      : (h.cat?[h.cat]:[]);
+    const icon=
+      h.type==='breakfast'
+        ? '🌅'
+        : h.type==='dinner'
+          ? '🌙'
+          : '☀️';
 
-    const categoryText=cats
-      .map(c=>labels[c]||c)
-      .join(' + ');
+    const mealType=
+      h.type==='breakfast'
+        ? 'Πρωινό'
+        : h.type==='dinner'
+          ? 'Βραδινό'
+          : 'Μεσημεριανό';
 
-    return `<div class="item">
-      <b>${icon} ${h.name}</b>
-      <div class="small">${h.date} · ${'★'.repeat(h.rating||3)} · ${categoryText}</div>
-      <button class="btn ghost" onclick="deleteMeal(${realIndex})">🗑 Διαγραφή</button>
-    </div>`;
+    const cats=
+      Array.isArray(h.cats) && h.cats.length
+        ? h.cats
+        : (h.cat?[h.cat]:[]);
+
+    const categoryText=
+      cats
+        .map(c=>labels[c]||c)
+        .join(' + ');
+
+    return `
+      <div class="item">
+        <b>${icon} ${mealType} · ${h.name}</b>
+
+        <div class="small" style="margin-top:5px">
+          ${'★'.repeat(h.rating||3)}
+          ${categoryText ? ' · '+categoryText : ''}
+        </div>
+
+        <button
+          class="btn ghost"
+          onclick="deleteMeal(${h.realIndex})"
+        >
+          🗑 Διαγραφή
+        </button>
+      </div>
+    `;
+
   }).join('');
 }
  function deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
