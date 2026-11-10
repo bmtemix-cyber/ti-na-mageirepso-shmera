@@ -136,7 +136,7 @@ export default {
     }, { status: 500 });
   }
 }
-    if (url.pathname === "/api/meal-image") {
+if (url.pathname === "/api/meal-image") {
 
   const file = url.searchParams.get("file");
 
@@ -145,6 +145,24 @@ export default {
     "makaronia-saltsa-tyri.png",
     "makaronia-laxanika.png"
   ]);
+
+  if (!file || !allowed.has(file)) {
+    return new Response("Not found", {
+      status: 404
+    });
+  }
+
+  const assetUrl = new URL(
+    "/images/" + file,
+    request.url
+  );
+
+  return env.ASSETS.fetch(
+    new Request(assetUrl.toString(), {
+      method: "GET"
+    })
+  );
+}
 
   if (!file || !allowed.has(file)) {
     return new Response("Not found", {
