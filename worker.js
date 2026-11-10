@@ -166,30 +166,6 @@ if (url.pathname === "/api/meal-image") {
 
 
 
-    const assetResponse =
-      await env.ASSETS.fetch(
-        new Request(assetUrl)
-      );
-
-    if (!assetResponse.ok) {
-      return new Response(
-        "Image not found",
-        { status: 404 }
-      );
-    }
-
-    return assetResponse;
-
-  } catch (e) {
-
-    console.error("MEAL IMAGE ERROR", e);
-
-    return new Response(
-      "Image error",
-      { status: 500 }
-    );
-  }
-
 
   const imageUrl =
     "https://raw.githubusercontent.com/bmtemix-cyber/ti-na-mageirepso-shmera/main/images/" +
