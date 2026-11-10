@@ -110,6 +110,32 @@ function instructionText(x) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/meal-image-test") {
+  try {
+    const assetUrl = new URL(
+      "/images/makaronia-saltsa-tyri.png",
+      request.url
+    );
+
+    const r = await env.ASSETS.fetch(
+      new Request(assetUrl)
+    );
+
+    return Response.json({
+      ok: r.ok,
+      status: r.status,
+      contentType: r.headers.get("content-type"),
+      contentLength: r.headers.get("content-length"),
+      url: assetUrl.href
+    });
+
+  } catch (e) {
+    return Response.json({
+      ok: false,
+      error: String(e)
+    }, { status: 500 });
+  }
+}
     if (url.pathname === "/api/meal-image") {
 
   const file = url.searchParams.get("file");
