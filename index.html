@@ -738,6 +738,21 @@
   </section>
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
+
+  const mealImageMap = {
+  'Φακές κοκκινιστές': 'images/fakes-kokkinistes.jpg',
+  'Ρεβίθια λεμονάτα': 'images/revithia-lemonata.jpg',
+  'Ρεβιθοσαλάτα': 'images/revithosalata.jpg',
+  'Μακαρόνια με σάλτσα ντομάτας και τυρί': 'images/makaronia-saltsa-tyri.jpg',
+  'Μακαρόνια με λαχανικά και ντομάτα': 'images/makaronia-laxanika.jpg',
+  'Μακαρόνια με κιμά': 'images/makaronia-kima.jpg',
+  'Μπιφτέκια': 'images/biftekia.jpg',
+  'Κοτόπουλο με πατάτες': 'images/kotopoulo-patates.jpg'
+};
+
+ function getLocalMealImage(name){
+  return mealImageMap[name] || '';
+} 
   let barcodeCameraStream=null;
 
 async function openBarcodeCamera(){
@@ -2566,82 +2581,24 @@ function showTodaySuggestion(){
 }
 
  async function loadTodayMealImage(name,id){
+  const el = $(id);
+  if(!el) return;
 
-  const el=$(id);
-  if(!el)return;
+  const localImage = getLocalMealImage(name);
 
-  try{
-
-    const r=await fetch(
-      '/api/search-recipe?q='+encodeURIComponent(name)
-    );
-
-    if(!r.ok){
-      throw Error('search');
-    }
-
-    const data=await r.json();
-
-    const imageUrl=
-      data?.recipe?.image_large ||
-      data?.recipe?.image ||
-      data?.recipe?.thumbnail;
-
-    if(
-      data.ok &&
-      data.recipe &&
-      imageUrl
-    ){
-
-      const url=
-        new URL(
-          imageUrl,
-          location.href
-        );
-
-      if(
-        !['https:','http:']
-          .includes(url.protocol)
-      ){
-        return;
-      }
-
-      const img=
-        document.createElement('img');
-
-      img.alt=
-        'Φωτογραφία: '+name;
-
-      img.loading='lazy';
-
-      img.style.cssText=
-        'width:100%;'+
-        'height:100%;'+
-        'object-fit:cover;'+
-        'object-position:center;'+
-        'transform:scale(1.03);'+
-        'filter:saturate(1.12) contrast(1.05) brightness(1.02);';
-
-      img.onload=()=>{
-        if(el.isConnected){
-          el.replaceChildren(img);
-        }
-      };
-
-      img.src=url.href;
-
-    }
-
-  }catch(e){
-
-    console.warn(
-      'Δεν βρέθηκε φωτογραφία',
-      name
-    );
-
+  if(localImage){
+    const img = document.createElement('img');
+    img.alt = 'Φωτογραφία: ' + name;
+    img.loading = 'lazy';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:15px;';
+    img.src = localImage;
+    el.replaceChildren(img);
+    return;
   }
 
-} 
+  // fallback αν δεν έχουμε δική μας εικόνα
+  el.innerHTML = '🍲';
+}
  async function findRecipeForMeal(name,targetId){
    const box=$(targetId);if(!box)return;
    box.textContent='👩‍🍳 Το AI ετοιμάζει τη συνταγή σου...';
