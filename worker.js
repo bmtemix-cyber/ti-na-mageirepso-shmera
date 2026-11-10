@@ -164,11 +164,6 @@ if (url.pathname === "/api/meal-image") {
   );
 }
 
-  if (!file || !allowed.has(file)) {
-    return new Response("Not found", {
-      status: 404
-    });
-  }
 
   try {
 
