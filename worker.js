@@ -167,36 +167,6 @@ if (url.pathname === "/api/meal-image") {
 
 
 
-  const imageUrl =
-    "https://raw.githubusercontent.com/bmtemix-cyber/ti-na-mageirepso-shmera/main/images/" +
-    file;
-
-  try {
-
-    const r = await fetch(imageUrl);
-
-    if (!r.ok) {
-      return new Response("Image not found", { status: 404 });
-    }
-
-    return new Response(r.body, {
-      headers: {
-        "Content-Type":
-          r.headers.get("Content-Type") || "image/png",
-        "Cache-Control":
-          "public, max-age=86400"
-      }
-    });
-
-  } catch (e) {
-
-    return new Response(
-      "Image error",
-      { status: 502 }
-    );
-
-  }
-}
     if (url.pathname === "/api/generate-recipe" && request.method === "POST") {
       try {
         const body = await request.json();
@@ -945,3 +915,4 @@ if(currentTime !== reminderTime) continue;
     } while (cursor);
   }
 };
+
