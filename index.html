@@ -1808,65 +1808,213 @@ async  function suggestRecipe(){
     dislikes:dislikes
   };
 } 
- function mealSuitability(meal){
-  const prefStats=preferenceStats();
-  const catStats=categoryPreferenceStats();
-  const week=counts();
 
-  const key=(meal.name||'').toLowerCase().trim();
-  const known=prefStats.find(x=>x.name.toLowerCase().trim()===key);
+ function daysSinceSameMeal(mealName){
 
-  const cats=Array.isArray(meal.cats)&&meal.cats.length
-    ? meal.cats
-    : [];
+  const key=(mealName||'')
+    .toLowerCase()
+    .trim();
 
-  let preferenceScore=known ? known.average : 3;
+  const previous=s.history
+    .filter(h=>
+      (h.name||'').toLowerCase().trim()===key
+    )
+    .map(h=>day(h.date));
 
-  let categoryScore=3;
-  if(cats.length){
-    const values=cats.map(c=>{
-      const x=catStats.find(v=>v.cat===c);
-      return x ? x.average : 3;
-    });
-    categoryScore=values.reduce((a,b)=>a+b,0)/values.length;
+  if(!previous.length){
+    return 999;
   }
 
+  return Math.min(...previous);
+}
+
+
+function pantryScoreForMeal(meal){
+
+  if(!s.pantry.length){
+    return 2.5;
+  }
+
+  const mealCats=
+    Array.isArray(meal.cats)
+      ? meal.cats
+      : [];
+
+  if(!mealCats.length){
+    return 2.5;
+  }
+
+  const pantryCats=new Set();
+
+  s.pantry.forEach(item=>{
+
+    const cats=detect(item.name||'');
+
+    cats.forEach(c=>{
+      pantryCats.add(c);
+    });
+
+  });
+
+  const shared=
+    mealCats.filter(c=>
+      pantryCats.has(c)
+    ).length;
+
+  return Math.max(
+    1,
+    Math.min(
+      5,
+      1+(shared/mealCats.length)*4
+    )
+  );
+} 
+ function mealSuitability(meal){
+
+  const prefStats=preferenceStats();
+  const week=counts();
+
+  const key=(meal.name||'')
+    .toLowerCase()
+    .trim();
+
+  const known=
+    prefStats.find(x=>
+      x.name.toLowerCase().trim()===key
+    );
+
+  const cats=
+    Array.isArray(meal.cats) &&
+    meal.cats.length
+      ? meal.cats
+      : [];
+
+  /* 1. ΥΓΙΕΙΝΗ ΙΣΟΡΡΟΠΙΑ ΕΒΔΟΜΑΔΑΣ */
+
   let balanceScore=5;
+
   if(cats.length){
+
     const values=cats.map(c=>{
+
       const target=targets[c]||1;
       const current=week[c]||0;
 
-      if(current>=target)return 1;
-      if(current>=target*0.75)return 2;
-      if(current>=target*0.5)return 3;
-      if(current>=target*0.25)return 4;
+      if(current>=target){
+        return 1;
+      }
+
+      if(current>=target*0.75){
+        return 2;
+      }
+
+      if(current>=target*0.50){
+        return 3;
+      }
+
+      if(current>=target*0.25){
+        return 4;
+      }
+
       return 5;
     });
 
-    balanceScore=values.reduce((a,b)=>a+b,0)/values.length;
+    balanceScore=
+      values.reduce((a,b)=>a+b,0) /
+      values.length;
   }
-const familyPref=familyPreferenceForMeal(meal.name);
 
-let familyScore=3;
 
-familyScore+=familyPref.likes*0.5;
-familyScore-=familyPref.dislikes*0.8;
+  /* 2. ΠΟΣΟ ΠΡΟΣΦΑΤΑ ΦΑΓΑΜΕ ΤΟ ΙΔΙΟ */
 
-familyScore=Math.max(1,Math.min(5,familyScore));
-const total=
-  preferenceScore*0.35 +
-  categoryScore*0.15 +
-  balanceScore*0.35 +
-  familyScore*0.15;
- return {
-  total: Number(total.toFixed(2)),
-  preference: Number(preferenceScore.toFixed(2)),
-  category: Number(categoryScore.toFixed(2)),
-  balance: Number(balanceScore.toFixed(2)),
-  family: Number(familyScore.toFixed(2))
-};
-}  
+  const daysAgo=
+    daysSinceSameMeal(meal.name);
+
+  let recencyScore=5;
+
+  if(daysAgo<=1){
+    recencyScore=1;
+  }
+  else if(daysAgo<=3){
+    recencyScore=2;
+  }
+  else if(daysAgo<=6){
+    recencyScore=3;
+  }
+  else if(daysAgo<=13){
+    recencyScore=4;
+  }
+
+
+  /* 3. ΤΙ ΕΧΟΥΜΕ ΣΤΗΝ ΑΠΟΘΗΚΗ */
+
+  const pantryScore=
+    pantryScoreForMeal(meal);
+
+
+  /* 4. ΠΡΟΤΙΜΗΣΕΙΣ */
+
+  const preferenceScore=
+    known
+      ? known.average
+      : 3;
+
+  const familyPref=
+    familyPreferenceForMeal(meal.name);
+
+  let familyScore=3;
+
+  familyScore+=familyPref.likes*0.5;
+  familyScore-=familyPref.dislikes*0.8;
+
+  familyScore=
+    Math.max(
+      1,
+      Math.min(5,familyScore)
+    );
+
+
+  /*
+    ΣΕΙΡΑ ΠΡΟΤΕΡΑΙΟΤΗΤΑΣ
+
+    50% υγιεινή εβδομάδα
+    25% να μην επαναλαμβάνεται πρόσφατα
+    15% υλικά αποθήκης
+     5% προηγούμενη βαθμολογία
+     5% προτιμήσεις οικογένειας
+  */
+
+  const total=
+    balanceScore*0.50 +
+    recencyScore*0.25 +
+    pantryScore*0.15 +
+    preferenceScore*0.05 +
+    familyScore*0.05;
+
+
+  return {
+
+    total:
+      Number(total.toFixed(2)),
+
+    balance:
+      Number(balanceScore.toFixed(2)),
+
+    recency:
+      Number(recencyScore.toFixed(2)),
+
+    pantry:
+      Number(pantryScore.toFixed(2)),
+
+    preference:
+      Number(preferenceScore.toFixed(2)),
+
+    family:
+      Number(familyScore.toFixed(2)),
+
+    daysAgo:daysAgo
+  };
+} 
  function bestKnownMealForToday(){
   const stats=preferenceStats();
 
@@ -1918,46 +2066,87 @@ const total=
   return candidates.slice(0,limit);
 } 
   function smartTodayChoices(){
+
   const stats=preferenceStats();
 
   if(!stats.length){
     return [];
   }
 
-  const candidates=stats.map(x=>{
-    const meal={
-      name:x.name,
-      cats:x.cats||[]
-    };
+  const candidates=
+    stats.map(x=>{
 
-    return {
-      ...meal,
-      ratingAverage:x.average,
-      times:x.count,
-      score:mealSuitability(meal)
-    };
-  });
+      const meal={
+        name:x.name,
+        cats:x.cats||[]
+      };
 
-  const favorite=[...candidates]
-    .sort((a,b)=>b.score.preference-a.score.preference)[0];
+      return {
+        ...meal,
+        ratingAverage:x.average,
+        times:x.count,
+        score:mealSuitability(meal)
+      };
 
-  const balanced=[...candidates]
-    .filter(x=>!favorite || x.name!==favorite.name)
-    .sort((a,b)=>b.score.balance-a.score.balance)[0];
+    });
 
-  const alternative=[...candidates]
-    .filter(x=>
-      (!favorite || x.name!==favorite.name) &&
-      (!balanced || x.name!==balanced.name)
-    )
-    .sort((a,b)=>b.score.total-a.score.total)[0];
+  candidates.sort(
+    (a,b)=>
+      b.score.total-a.score.total
+  );
+
+  const main=
+    candidates[0]||null;
+
+  const alternative=
+    candidates
+      .filter(x=>
+        !main ||
+        x.name!==main.name
+      )
+      .sort((a,b)=>{
+
+        const mainCats=
+          main?.cats||[];
+
+        const aDifferent=
+          (a.cats||[])
+            .every(c=>!mainCats.includes(c))
+              ? 1
+              : 0;
+
+        const bDifferent=
+          (b.cats||[])
+            .every(c=>!mainCats.includes(c))
+              ? 1
+              : 0;
+
+        if(bDifferent!==aDifferent){
+          return bDifferent-aDifferent;
+        }
+
+        return
+          b.score.total-
+          a.score.total;
+      })[0]||null;
 
   return [
-    favorite ? {...favorite,choiceType:'favorite'} : null,
-    balanced ? {...balanced,choiceType:'balanced'} : null,
-    alternative ? {...alternative,choiceType:'alternative'} : null
+    main
+      ? {
+          ...main,
+          choiceType:'healthy'
+        }
+      : null,
+
+    alternative
+      ? {
+          ...alternative,
+          choiceType:'alternative'
+        }
+      : null
+
   ].filter(Boolean);
-} 
+}
  function findAlternativeMeal(meal){
   const all=preferenceStats();
 
@@ -2119,12 +2308,14 @@ const total=
    const fallback=pantryFallbackSuggestions();
    let suggestions=[];
    if(meals.length){
-     suggestions=meals.slice(0,2).map((m,i)=>({name:m.name,note:i===0?'Επιλογή με βάση τις προτιμήσεις και την ισορροπία της εβδομάδας.':'Εναλλακτική με βάση όσα έχω μάθει.'}));
+     suggestions=meals.slice(0,2).map((m,i)=>({name:m.name,note:i===0?i===0
+  ? 'Καλύτερη επιλογή με βάση πρώτα την υγιεινή ισορροπία της εβδομάδας και το πόσο πρόσφατα έχετε φάει το ίδιο φαγητό.'
+  : 'Διαφορετική υγιεινή επιλογή που βοηθά την ισορροπία της εβδομάδας.':'Εναλλακτική με βάση όσα έχω μάθει.'}));
    }
    if(suggestions.length<2){
      for(const candidate of [fallback.first,fallback.second]){
        if(candidate&&!suggestions.some(x=>x.name===candidate.name)){
-         suggestions.push({name:candidate.name,note:'Με βάση την ισορροπία της εβδομάδας και τα διαθέσιμα υλικά. '+(candidate.extra?.length?'Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.':'')});
+         suggestions.push({name:candidate.name,note:'Υγιεινή επιλογή με βάση την ισορροπία της εβδομάδας και τα υλικά που έχεις ήδη στην αποθήκη.'+(candidate.extra?.length?'Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.':'')});
        }
        if(suggestions.length===2)break;
      }
