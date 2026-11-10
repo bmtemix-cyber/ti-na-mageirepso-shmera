@@ -157,7 +157,7 @@ export default {
       { status: 500 }
     );
   }
-}
+
 
   const imageUrl =
     "https://raw.githubusercontent.com/bmtemix-cyber/ti-na-mageirepso-shmera/main/images/" +
