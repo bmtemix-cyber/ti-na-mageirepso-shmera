@@ -165,13 +165,6 @@ if (url.pathname === "/api/meal-image") {
 }
 
 
-  try {
-
-    const assetUrl =
-      new URL(
-        "/images/" + file,
-        request.url
-      );
 
     const assetResponse =
       await env.ASSETS.fetch(
