@@ -2396,7 +2396,8 @@ function pantryHasIngredient(name){
 (candidate.extra?.length
   ? ' Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.'
   : ' Έχεις ήδη τα βασικά υλικά για αυτή την επιλογή.'
-)'+candidate.extra.join(', ')+'.':'')});
+ )
+});
        }
        if(suggestions.length===2)break;
      }
