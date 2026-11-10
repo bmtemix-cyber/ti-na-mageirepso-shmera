@@ -383,14 +383,41 @@ if (url.pathname === "/api/search-recipe") {
 
     const recipeHtml = await page.text();
     const recipe = findRecipeJsonLd(recipeHtml);
+const ogImageMatch =
+  recipeHtml.match(
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
+  ) ||
+  recipeHtml.match(
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
+  );
 
+const ogImage =
+  ogImageMatch
+    ? ogImageMatch[1]
+    : null;
+
+let recipeImage = null;
+
+if(Array.isArray(recipe?.image)){
+  recipeImage = recipe.image[recipe.image.length-1];
+}else if(typeof recipe?.image === 'string'){
+  recipeImage = recipe.image;
+}else if(recipe?.image && typeof recipe.image === 'object'){
+  recipeImage =
+    recipe.image.contentUrl ||
+    recipe.image.url ||
+    null;
+}
+
+const bestImage =
+  ogImage ||
+  recipeImage ||
+  null;
     return Response.json({
       ok: true,
       recipe: {
         name: recipe?.name || q,
-        image: Array.isArray(recipe?.image)
-          ? recipe.image[0]
-          : recipe?.image?.url || recipe?.image || "",
+        image: bestImage || "",
         source: "Argiro.gr",
         url: recipeUrl
       }
