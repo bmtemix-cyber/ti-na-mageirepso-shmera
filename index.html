@@ -490,17 +490,49 @@
 
   <h3>📅 Ημερολόγιο γευμάτων</h3>
 
-  <input
-    id="historyDate"
-    type="date"
-    onchange="renderHistory()"
-  >
+  <div style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:10px;
+">
+  <button
+    type="button"
+    onclick="changeHistoryMonth(-1)"
+    style="
+      border:0;
+      background:#edf0ea;
+      border-radius:10px;
+      padding:8px 14px;
+      font-size:20px;
+    "
+  >‹</button>
 
-  <div
-    id="history"
-    class="list"
-    style="margin-top:12px"
-  ></div>
+  <b id="historyCalendarTitle"></b>
+
+  <button
+    type="button"
+    onclick="changeHistoryMonth(1)"
+    style="
+      border:0;
+      background:#edf0ea;
+      border-radius:10px;
+      padding:8px 14px;
+      font-size:20px;
+    "
+  >›</button>
+</div>
+
+<div
+  id="historyCalendar"
+  style="margin-top:10px"
+></div>
+
+<div
+  id="history"
+  class="list"
+  style="margin-top:14px"
+></div>
 
 </div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
@@ -2214,84 +2246,241 @@ const total=
       '<div class="chips" style="margin-top:7px">'+categoryChips()+'</div>'+
     '</div>';
 }
+  let historySelectedDate =
+  new Date().toISOString().slice(0,10);
+
+let historyCalendarMonth = new Date();
+historyCalendarMonth.setDate(1);
+
+
+function changeHistoryMonth(step){
+
+  historyCalendarMonth.setMonth(
+    historyCalendarMonth.getMonth()+step
+  );
+
+  renderHistoryCalendar();
+}
+
+
+function selectHistoryDate(date){
+
+  historySelectedDate=date;
+
+  const parts=date.split('-');
+
+  historyCalendarMonth=
+    new Date(
+      Number(parts[0]),
+      Number(parts[1])-1,
+      1
+    );
+
+  renderHistoryCalendar();
+  renderHistory();
+}
+
+
+function renderHistoryCalendar(){
+
+  const box=$('historyCalendar');
+  const title=$('historyCalendarTitle');
+
+  if(!box || !title)return;
+
+  const year=historyCalendarMonth.getFullYear();
+  const month=historyCalendarMonth.getMonth();
+
+  title.textContent=
+    historyCalendarMonth.toLocaleDateString(
+      'el-GR',
+      {
+        month:'long',
+        year:'numeric'
+      }
+    );
+
+  const mealDates=
+    new Set(
+      s.history.map(h=>h.date)
+    );
+
+  const firstDay=
+    (new Date(year,month,1).getDay()+6)%7;
+
+  const daysInMonth=
+    new Date(year,month+1,0).getDate();
+
+  let html=`
+    <div style="
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:5px;
+      text-align:center;
+    ">
+  `;
+
+  ['Δ','Τ','Τ','Π','Π','Σ','Κ']
+    .forEach(day=>{
+      html+=`
+        <div style="
+          font-size:12px;
+          font-weight:800;
+          padding:5px 0;
+          color:#68716b;
+        ">
+          ${day}
+        </div>
+      `;
+    });
+
+  for(let i=0;i<firstDay;i++){
+    html+='<div></div>';
+  }
+
+  for(let day=1;day<=daysInMonth;day++){
+
+    const mm=
+      String(month+1).padStart(2,'0');
+
+    const dd=
+      String(day).padStart(2,'0');
+
+    const date=
+      year+'-'+mm+'-'+dd;
+
+    const hasMeal=
+      mealDates.has(date);
+
+    const selected=
+      historySelectedDate===date;
+
+    let background='#f4f6f1';
+    let color='#243126';
+    let border='2px solid transparent';
+
+    if(hasMeal){
+      background='#3f8b4d';
+      color='white';
+    }
+
+    if(selected){
+      border='3px solid #2563eb';
+    }
+
+    html+=`
+      <button
+        type="button"
+        onclick="selectHistoryDate('${date}')"
+        style="
+          position:relative;
+          height:42px;
+          border:${border};
+          border-radius:12px;
+          background:${background};
+          color:${color};
+          font-weight:800;
+          font-size:14px;
+        "
+      >
+        ${day}
+        ${
+          hasMeal
+          ? '<span style="position:absolute;right:3px;top:1px;font-size:9px">✓</span>'
+          : ''
+        }
+      </button>
+    `;
+  }
+
+  html+='</div>';
+
+  box.innerHTML=html;
+}
  function renderHistory(){
 
   const historyEl=$('history');
-  const dateEl=$('historyDate');
 
-  if(!historyEl || !dateEl)return;
+  if(!historyEl)return;
 
-  if(!dateEl.value){
-    dateEl.value=new Date().toISOString().slice(0,10);
-  }
-
-  const selectedDate=dateEl.value;
+  renderHistoryCalendar();
 
   const meals=s.history
     .map((h,index)=>({
       ...h,
       realIndex:index
     }))
-    .filter(h=>h.date===selectedDate);
+    .filter(
+      h=>h.date===historySelectedDate
+    );
 
   if(!meals.length){
 
     historyEl.innerHTML=
       '<div class="soft">'+
         '<b>Δεν υπάρχουν γεύματα αυτή την ημέρα.</b>'+
-        '<div class="small" style="margin-top:5px">'+
-          'Διάλεξε άλλη ημερομηνία ή καταχώρισε νέο γεύμα.'+
-        '</div>'+
       '</div>';
 
     return;
   }
 
-  historyEl.innerHTML=meals.map(h=>{
+  historyEl.innerHTML=
+    meals.map(h=>{
 
-    const icon=
-      h.type==='breakfast'
+      const icon=
+        h.type==='breakfast'
         ? '🌅'
         : h.type==='dinner'
-          ? '🌙'
-          : '☀️';
+        ? '🌙'
+        : '☀️';
 
-    const mealType=
-      h.type==='breakfast'
+      const mealType=
+        h.type==='breakfast'
         ? 'Πρωινό'
         : h.type==='dinner'
-          ? 'Βραδινό'
-          : 'Μεσημεριανό';
+        ? 'Βραδινό'
+        : 'Μεσημεριανό';
 
-    const cats=
-      Array.isArray(h.cats) && h.cats.length
+      const cats=
+        Array.isArray(h.cats) && h.cats.length
         ? h.cats
         : (h.cat?[h.cat]:[]);
 
-    const categoryText=
-      cats
-        .map(c=>labels[c]||c)
-        .join(' + ');
+      const categoryText=
+        cats
+          .map(c=>labels[c]||c)
+          .join(' + ');
 
-    return `
-      <div class="item">
-        <b>${icon} ${mealType} · ${h.name}</b>
+      return `
+        <div class="item">
 
-        <div class="small" style="margin-top:5px">
-          ${'★'.repeat(h.rating||3)}
-          ${categoryText ? ' · '+categoryText : ''}
+          <b>
+            ${icon} ${mealType} · ${h.name}
+          </b>
+
+          <div
+            class="small"
+            style="margin-top:5px"
+          >
+            ${'★'.repeat(h.rating||3)}
+            ${
+              categoryText
+              ? ' · '+categoryText
+              : ''
+            }
+          </div>
+
+          <button
+            class="btn ghost"
+            onclick="deleteMeal(${h.realIndex})"
+          >
+            🗑 Διαγραφή
+          </button>
+
         </div>
+      `;
 
-        <button
-          class="btn ghost"
-          onclick="deleteMeal(${h.realIndex})"
-        >
-          🗑 Διαγραφή
-        </button>
-      </div>
-    `;
-
-  }).join('');
+    }).join('');
 }
  function deleteMeal(i){if(!confirm('Θέλεις σίγουρα να διαγράψεις αυτό το γεύμα;'))return;s.history.splice(i,1);save();render()}
  function renderFamily(){
