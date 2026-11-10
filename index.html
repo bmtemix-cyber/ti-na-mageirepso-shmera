@@ -2583,24 +2583,47 @@ function showTodaySuggestion(){
 
 }
 
- async function loadTodayMealImage(name,id){
-  const el = $(id);
-  if(!el) return;
+async function loadTodayMealImage(name,id){
 
-  const localImage = getLocalMealImage(name);
+  const el=$(id);
+  if(!el)return;
+
+  const localImage=getLocalMealImage(name);
 
   if(localImage){
-    const img = document.createElement('img');
-    img.alt = 'Φωτογραφία: ' + name;
-    img.loading = 'lazy';
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:15px;';
-    img.src = localImage;
+
+    const img=document.createElement('img');
+
+    img.alt='Φωτογραφία: '+name;
+
+    img.style.cssText=
+      'width:100%;'+
+      'height:100%;'+
+      'object-fit:cover;'+
+      'border-radius:15px;';
+
+    img.onload=()=>{
+      console.log('✅ Φορτώθηκε εικόνα:',name);
+    };
+
+    img.onerror=()=>{
+      console.error(
+        '❌ Δεν φορτώθηκε εικόνα:',
+        name,
+        img.src
+      );
+
+      el.innerHTML='🍲';
+    };
+
+    img.src=localImage+'&v=3';
+
     el.replaceChildren(img);
+
     return;
   }
 
-  // fallback αν δεν έχουμε δική μας εικόνα
-  el.innerHTML = '🍲';
+  el.innerHTML='🍲';
 }
  async function findRecipeForMeal(name,targetId){
    const box=$(targetId);if(!box)return;
