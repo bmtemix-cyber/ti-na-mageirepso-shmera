@@ -2378,52 +2378,117 @@ function pantryHasIngredient(name){
      '<button class="btn secondary" data-meal="'+encodeURIComponent(name)+'" data-target="'+id+'" onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),this.dataset.target)">📖 Δείξε μου συνταγή</button>'+
      '<div id="'+id+'" style="margin-top:10px"></div></div>';
  }
- function showTodaySuggestion(){
-   const box=$('todaySuggestion');
-   if(!box)return;
-   const meals=smartTodayChoices();
-   const fallback=pantryFallbackSuggestions();
-   let suggestions=[];
-   if(meals.length){
-     suggestions=meals.slice(0,2).map((m,i)=>({name:m.name,note:i===0?i===0
-  ? 'Καλύτερη επιλογή με βάση πρώτα την υγιεινή ισορροπία της εβδομάδας και το πόσο πρόσφατα έχετε φάει το ίδιο φαγητό.'
-  : 'Διαφορετική υγιεινή επιλογή που βοηθά την ισορροπία της εβδομάδας.':'Εναλλακτική με βάση όσα έχω μάθει.'}));
-   }
-   if(suggestions.length<2){
-     for(const candidate of [fallback.first,fallback.second]){
-       if(candidate&&!suggestions.some(x=>x.name===candidate.name)){
-         suggestions.push({name:candidate.name,note:'Υγιεινή επιλογή με βάση την ισορροπία της εβδομάδας και τα υλικά που έχεις ήδη στην αποθήκη.'+
-(candidate.extra?.length
-  ? ' Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.'
-  : ' Έχεις ήδη τα βασικά υλικά για αυτή την επιλογή.'
- )
-});
-       }
-       if(suggestions.length===2)break;
-     }
-   }
-   box.classList.remove('hidden');
-   box.innerHTML='<b>⭐ Προτάσεις για σήμερα</b><div class="small" style="margin-top:5px">Οι προτάσεις βασίζονται στην ισορροπία της εβδομάδας και στα υλικά που έχεις διαθέσιμα.</div>'+
-     (suggestions.length?suggestions.map((m,i)=>recipeCard(m,i,i===0?'🥗 Κύρια πρόταση':'💡 Εναλλακτική',m.note)).join(''):'<p>Πρόσθεσε υλικά ή καταχώρισε γεύματα για να εμφανιστούν προτάσεις.</p>');
-   suggestions.forEach((m,i)=>loadTodayMealImage(m.name,'todayImage'+i));
- }
- async function loadTodayMealImage(name,id){
-   const el=$(id);if(!el)return;
-   try{
-     const r=await fetch('/api/search-recipe?q='+encodeURIComponent(name));
-     if(!r.ok)throw Error('search');
-     const data=await r.json();
-     if(data.ok&&data.recipe&&data.recipe.image){
-       const url=new URL(data.recipe.image,location.href);
-       if(!['https:','http:'].includes(url.protocol))return;
-       const img=document.createElement('img');
-       img.alt='Φωτογραφία: '+name;img.loading='lazy';
-       img.style.cssText='width:100%;height:100%;object-fit:cover';
-       img.onload=()=>{if(el.isConnected)el.replaceChildren(img)};
-       img.src=url.href;
-     }
-   }catch(e){console.warn('Δεν βρέθηκε φωτογραφία',name)}
- }
+function showTodaySuggestion(){
+
+  const box=$('todaySuggestion');
+
+  if(!box)return;
+
+  const meals=smartTodayChoices();
+  const fallback=pantryFallbackSuggestions();
+
+  let suggestions=[];
+
+
+  /* Προτάσεις από όσα έχει μάθει η εφαρμογή */
+
+  if(meals.length){
+
+    suggestions=meals.slice(0,2).map((m,i)=>({
+
+      name:m.name,
+
+      note:
+        i===0
+          ? 'Καλύτερη επιλογή με βάση πρώτα την υγιεινή ισορροπία της εβδομάδας και το πόσο πρόσφατα έχετε φάει το ίδιο φαγητό.'
+          : 'Διαφορετική υγιεινή επιλογή που βοηθά την ισορροπία της εβδομάδας.'
+
+    }));
+
+  }
+
+
+  /* Αν δεν έχουμε δύο προτάσεις,
+     συμπληρώνουμε από την αποθήκη */
+
+  if(suggestions.length<2){
+
+    for(
+      const candidate of
+      [fallback.first,fallback.second]
+    ){
+
+      if(
+        candidate &&
+        !suggestions.some(
+          x=>x.name===candidate.name
+        )
+      ){
+
+        const note=
+          'Υγιεινή επιλογή με βάση την ισορροπία της εβδομάδας και τα υλικά που έχεις ήδη στην αποθήκη.'+
+          (
+            candidate.extra?.length
+              ? ' Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.'
+              : ' Έχεις ήδη τα βασικά υλικά για αυτή την επιλογή.'
+          );
+
+        suggestions.push({
+          name:candidate.name,
+          note:note
+        });
+
+      }
+
+      if(suggestions.length===2){
+        break;
+      }
+
+    }
+
+  }
+
+
+  box.classList.remove('hidden');
+
+
+  box.innerHTML=
+    '<b>⭐ Προτάσεις για σήμερα</b>'+
+
+    '<div class="small" style="margin-top:5px">'+
+      'Οι προτάσεις βασίζονται στην ισορροπία της εβδομάδας και στα υλικά που έχεις διαθέσιμα.'+
+    '</div>'+
+
+    (
+      suggestions.length
+
+        ? suggestions
+            .map(
+              (m,i)=>
+                recipeCard(
+                  m,
+                  i,
+                  i===0
+                    ? '🥗 Κύρια πρόταση'
+                    : '💡 Εναλλακτική',
+                  m.note
+                )
+            )
+            .join('')
+
+        : '<p>Πρόσθεσε υλικά ή καταχώρισε γεύματα για να εμφανιστούν προτάσεις.</p>'
+    );
+
+
+  suggestions.forEach(
+    (m,i)=>
+      loadTodayMealImage(
+        m.name,
+        'todayImage'+i
+      )
+  );
+
+}
  async function findRecipeForMeal(name,targetId){
    const box=$(targetId);if(!box)return;
    box.textContent='👩‍🍳 Το AI ετοιμάζει τη συνταγή σου...';
