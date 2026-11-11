@@ -2491,32 +2491,7 @@ function pantryHasIngredient(name){
   });
 }  
 
- function normalizeIngredientName(name){
-  let x=(name||'')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .trim();
 
-  const aliases={
-    'κρεμμυδια':'κρεμμυδι',
-    'κρεμμυδι':'κρεμμυδι',
-    'καροτα':'καροτο',
-    'καροτο':'καροτο',
-    'ντοματες':'ντοματα',
-    'ντοματα':'ντοματα',
-    'ελαιολαδο':'ελαιολαδο',
-    'λαδι':'ελαιολαδο',
-    'φακες':'φακες',
-    'ρεβιθια':'ρεβιθια',
-    'μακαρονια':'μακαρονια',
-    'σπαγγετι':'μακαρονια',
-    'τυρι':'τυρι',
-    'κεφαλοτυρι':'τυρι'
-  };
-
-  return aliases[x] || x;
-}
 
 function pantryHasIngredient(name){
   const target=normalizeIngredientName(name);
