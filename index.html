@@ -2493,18 +2493,6 @@ function pantryHasIngredient(name){
 
 
 
-function pantryHasIngredient(name){
-  const target=normalizeIngredientName(name);
-
-  return s.pantry.some(p=>{
-    const pantryName=normalizeIngredientName(p.name);
-
-    return pantryName===target ||
-      pantryName.includes(target) ||
-      target.includes(pantryName);
-  });
-}
-
 function missingIngredients(list){
   return (list||[]).filter(
     x=>!pantryHasIngredient(x)
