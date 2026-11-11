@@ -2704,107 +2704,74 @@ function pantryMatches(recipe){
 function showTodaySuggestion(){
 
   const box=$('todaySuggestion');
-
   if(!box)return;
 
   const meals=smartTodayChoices();
   const fallback=pantryFallbackSuggestions();
 
- let suggestions=[];
-
-/*
-  Πρώτα εξετάζουμε πραγματικές επιλογές
-  που ταιριάζουν με την αποθήκη ΚΑΙ
-  βοηθούν την ισορροπία της εβδομάδας.
-*/
-
-for(const candidate of [fallback.first,fallback.second]){
-
-  if(
-    candidate &&
-    candidate.pantryScore >= 2 &&
-    candidate.healthScore > 0 &&
-    !suggestions.some(x=>x.name===candidate.name)
-  ){
-
-    suggestions.push({
-      name:candidate.name,
-      note:
-        'Πολύ καλή επιλογή για την ισορροπία της εβδομάδας και έχεις ήδη τα περισσότερα βασικά υλικά.'+
-        (
-          candidate.extra?.length
-            ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
-            : ' Έχεις ήδη τα βασικά υλικά.'
-        )
-    });
-
-  }
-
-  if(suggestions.length===2)break;
-}
+  let suggestions=[];
 
 
-/*
-  Αν δεν συμπληρώθηκαν δύο προτάσεις,
-  τότε χρησιμοποιούμε όσα έχει μάθει
-  από τα προηγούμενα γεύματα.
-*/
+  /*
+    1. ΠΡΩΤΑ:
+    υγιεινή ισορροπία + υλικά αποθήκης
+  */
 
-if(suggestions.length<2){
-
-  for(const m of meals){
+  for(const candidate of [fallback.first,fallback.second]){
 
     if(
-      !suggestions.some(x=>x.name===m.name)
+      candidate &&
+      candidate.pantryScore >= 2 &&
+      candidate.healthScore > 0 &&
+      !suggestions.some(x=>x.name===candidate.name)
     ){
 
       suggestions.push({
-        name:m.name,
-        note:
-          'Επιλογή με βάση την υγιεινή ισορροπία της εβδομάδας και όσα έχει μάθει από τα γεύματά σας.'
-      });
+        name:candidate.name,
 
+        note:
+          'Πολύ καλή επιλογή για την ισορροπία της εβδομάδας και έχεις ήδη τα περισσότερα βασικά υλικά.'+
+          (
+            candidate.extra?.length
+              ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
+              : ' Έχεις ήδη τα βασικά υλικά.'
+          )
+      });
     }
 
-    if(suggestions.length===2)break;
+    if(suggestions.length===2){
+      break;
+    }
   }
-}
+
+
+  /*
+    2. Αν δεν έχουμε δύο επιλογές,
+    συμπληρώνουμε από όσα έχει μάθει
+    από το ιστορικό.
+  */
 
   if(suggestions.length<2){
 
-    for(
-      const candidate of
-      [fallback.first,fallback.second]
-    ){
+    for(const m of meals){
 
       if(
-        candidate &&
         !suggestions.some(
-          x=>x.name===candidate.name
+          x=>x.name===m.name
         )
       ){
 
-        const note=
-          'Υγιεινή επιλογή με βάση την ισορροπία της εβδομάδας και τα υλικά που έχεις ήδη στην αποθήκη.'+
-          (
-            candidate.extra?.length
-              ? ' Για τη συνταγή μπορεί να χρειαστείς: '+candidate.extra.join(', ')+'.'
-              : ' Έχεις ήδη τα βασικά υλικά για αυτή την επιλογή.'
-          );
-
         suggestions.push({
-          name:candidate.name,
-          note:note
+          name:m.name,
+          note:
+            'Επιλογή με βάση την υγιεινή ισορροπία της εβδομάδας και όσα έχει μάθει από τα γεύματά σας.'
         });
-
       }
 
       if(suggestions.length===2){
         break;
       }
-
     }
-
   }
 
 
