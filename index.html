@@ -952,20 +952,116 @@ function getLocalMealImage(name){
   ];
 
 
-  for(const rule of aliases){
+for(const rule of aliases){
 
-    const matches =
-      rule.words.every(word =>
-        n.includes(word)
-      );
+  const matches =
+    rule.words.every(word =>
+      n.includes(word)
+    );
 
-    if(matches){
-      return rule.image;
-    }
+  if(matches){
+    return rule.image;
+  }
+}
+
+
+/*
+  Τελική αναζήτηση με βάση
+  το βασικό φαγητό.
+  Έτσι αναγνωρίζει και διαφορετικές
+  περιγραφές του ίδιου φαγητού.
+*/
+
+const genericImages = [
+
+  {
+    word:'γαυρ',
+    image:'images/gavros-tiganitos.jpg'
+  },
+
+  {
+    word:'γαβρ',
+    image:'images/gavros-tiganitos.jpg'
+  },
+
+  {
+    word:'μπριζολ',
+    image:'images/mprizola-psiti.png'
+  },
+
+  {
+    word:'μπιφτεκ',
+    image:'images/mpiftekia-me-patates.png'
+  },
+
+  {
+    word:'κοτοπουλ',
+    image:'images/kotopoulo-me-patates.png'
+  },
+
+  {
+    word:'ψαρ',
+    image:'images/psari-psito.png'
+  },
+
+  {
+    word:'γεμιστ',
+    image:'images/gemista.png'
+  },
+
+  {
+    word:'κανελον',
+    image:'images/kanelonia.png'
+  },
+
+  {
+    word:'λαζαν',
+    image:'images/lazania.png'
+  },
+
+  {
+    word:'τηγανια',
+    image:'images/tigania-me-piperies.png'
+  },
+
+  {
+    word:'παπουτσακ',
+    image:'images/papoytsakia.jpg'
+  },
+
+  {
+    word:'σπανακορυζ',
+    image:'images/spanakorizo.jpg'
+  },
+
+  {
+    word:'ρεβιθ',
+    image:'images/revithia-lemonata.png'
+  },
+
+  {
+    word:'φακ',
+    image:'images/fakes-kokkinistes.jpg'
+  },
+
+  {
+    word:'μακαρον',
+    image:'images/makaronia-saltsa-tyri.png'
   }
 
+];
 
-  return '';
+
+for(const item of genericImages){
+
+  if(n.includes(item.word)){
+    return item.image;
+  }
+
+}
+
+
+return '';
 }
   let barcodeCameraStream=null;
 
