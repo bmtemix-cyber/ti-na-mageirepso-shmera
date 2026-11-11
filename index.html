@@ -2602,6 +2602,25 @@ function missingIngredients(list){
       'μανιτάρια'
     ]
   }
+   {
+  name:'Γαύρος ψητός',
+  cat:'seafood',
+  ingredients:[
+    'γαύρος',
+    'ελαιόλαδο',
+    'αλάτι',
+    'λεμόνι'
+  ]
+},
+{
+  name:'Μπριζόλα ψητή',
+  cat:'meat',
+  ingredients:[
+    'μπριζόλα',
+    'ελαιόλαδο',
+    'αλάτι'
+  ]
+} 
 ];
 
 function pantryMatches(recipe){
@@ -2691,29 +2710,65 @@ function showTodaySuggestion(){
   const meals=smartTodayChoices();
   const fallback=pantryFallbackSuggestions();
 
-  let suggestions=[];
+ let suggestions=[];
 
+/*
+  Πρώτα εξετάζουμε πραγματικές επιλογές
+  που ταιριάζουν με την αποθήκη ΚΑΙ
+  βοηθούν την ισορροπία της εβδομάδας.
+*/
 
-  /* Προτάσεις από όσα έχει μάθει η εφαρμογή */
+for(const candidate of [fallback.first,fallback.second]){
 
-  if(meals.length){
+  if(
+    candidate &&
+    candidate.pantryScore >= 2 &&
+    candidate.healthScore > 0 &&
+    !suggestions.some(x=>x.name===candidate.name)
+  ){
 
-    suggestions=meals.slice(0,2).map((m,i)=>({
-
-      name:m.name,
-
+    suggestions.push({
+      name:candidate.name,
       note:
-        i===0
-          ? 'Καλύτερη επιλογή με βάση πρώτα την υγιεινή ισορροπία της εβδομάδας και το πόσο πρόσφατα έχετε φάει το ίδιο φαγητό.'
-          : 'Διαφορετική υγιεινή επιλογή που βοηθά την ισορροπία της εβδομάδας.'
-
-    }));
+        'Πολύ καλή επιλογή για την ισορροπία της εβδομάδας και έχεις ήδη τα περισσότερα βασικά υλικά.'+
+        (
+          candidate.extra?.length
+            ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
+            : ' Έχεις ήδη τα βασικά υλικά.'
+        )
+    });
 
   }
 
+  if(suggestions.length===2)break;
+}
 
-  /* Αν δεν έχουμε δύο προτάσεις,
-     συμπληρώνουμε από την αποθήκη */
+
+/*
+  Αν δεν συμπληρώθηκαν δύο προτάσεις,
+  τότε χρησιμοποιούμε όσα έχει μάθει
+  από τα προηγούμενα γεύματα.
+*/
+
+if(suggestions.length<2){
+
+  for(const m of meals){
+
+    if(
+      !suggestions.some(x=>x.name===m.name)
+    ){
+
+      suggestions.push({
+        name:m.name,
+        note:
+          'Επιλογή με βάση την υγιεινή ισορροπία της εβδομάδας και όσα έχει μάθει από τα γεύματά σας.'
+      });
+
+    }
+
+    if(suggestions.length===2)break;
+  }
+}
 
   if(suggestions.length<2){
 
