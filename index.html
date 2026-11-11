@@ -739,23 +739,234 @@
 </main><nav><button onclick="show('home')">🏠<br>Σήμερα</button><button onclick="show('learn')">🧠<br>Μάθε με</button><button onclick="show('family')">👨‍👩‍👧‍👦<br>Οικογένεια</button><button onclick="show('pantry')">🥬<br>Υλικά</button><button onclick="show('settings')">⚙️<br>Ρυθμίσεις</button></nav></div>
 <script>
 
-  const mealImageMap = {
-  'Φακές κοκκινιστές': 'images/fakes-kokkinistes.jpg',
-  'Ρεβίθια λεμονάτα': 'images/revithia-lemonata.jpg',
-  'Ρεβιθοσαλάτα': 'images/revithosalata.jpg',
-'Μακαρόνια με σάλτσα ντομάτας και τυρί':
-  '/api/meal-image?file=makaronia-saltsa-tyri.png',
+ const mealImageMap = {
 
-'Μακαρόνια με λαχανικά και ντομάτα':
-  '/api/meal-image?file=makaronia-laxanika.png',
-  'Μακαρόνια με κιμά': 'images/makaronia-kima.jpg',
-  'Μπιφτέκια': 'images/biftekia.jpg',
-  'Κοτόπουλο με πατάτες': 'images/kotopoulo-patates.jpg'
+  'φακες κοκκινιστες':
+    'images/fakes-kokkinistes.jpg',
+
+  'φασολαδα':
+    'images/fasolada.jpg',
+
+  'γαυρος τηγανητος':
+    'images/gavros-tiganitos.jpg',
+
+  'γεμιστα':
+    'images/gemista.png',
+
+  'γιουβαρλακια':
+    'images/giyovarlakia.png',
+
+  'κανελονια':
+    'images/kanelonia.png',
+
+  'κοτοπουλο με πατατες':
+    'images/kotopoulo-me-patates.png',
+
+  'λαζανια':
+    'images/lazania.png',
+
+  'μακαρονια με λαχανικα και ντοματα':
+    'images/makaronia-laxanika.png',
+
+  'μακαρονια με κιμα':
+    'images/makaronia-me-kima.png',
+
+  'μακαρονια με σαλτσα ντοματας και τυρι':
+    'images/makaronia-saltsa-tyri.png',
+
+  'μπιφτεκια με πατατες':
+    'images/mpiftekia-me-patates.png',
+
+  'μπριαμ':
+    'images/mpriam.png',
+
+  'μπριζολα ψητη':
+    'images/mprizola-psiti.png',
+
+  'παπουτσακια':
+    'images/papoytsakia.jpg',
+
+  'ψαρι ψητο':
+    'images/psari-psito.png',
+
+  'ρεβιθια λεμονατα':
+    'images/revithia-lemonata.png',
+
+  'σουβλακια':
+    'images/soylakia.jpg',
+
+  'σπανακορυζο':
+    'images/spanakorizo.jpg',
+
+  'τηγανια με πιπεριες':
+    'images/tigania-me-piperies.png'
 };
 
- function getLocalMealImage(name){
-  return mealImageMap[name] || '';
-} 
+
+function normalizeMealImageName(name){
+
+  return String(name || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.,;:!?()]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+
+function getLocalMealImage(name){
+
+  const n = normalizeMealImageName(name);
+
+  // 1. Ακριβές όνομα
+  if(mealImageMap[n]){
+    return mealImageMap[n];
+  }
+
+
+  // 2. Παραλλαγές ονομάτων
+
+  const aliases = [
+
+    {
+      words:['φακ'],
+      image:'images/fakes-kokkinistes.jpg'
+    },
+
+    {
+      words:['φασολαδ'],
+      image:'images/fasolada.jpg'
+    },
+
+    {
+      words:['γαυρ','τηγαν'],
+      image:'images/gavros-tiganitos.jpg'
+    },
+
+    {
+      words:['γεμιστ'],
+      image:'images/gemista.png'
+    },
+
+    {
+      words:['γιουβαρλακ'],
+      image:'images/giyovarlakia.png'
+    },
+
+    {
+      words:['κανελον'],
+      image:'images/kanelonia.png'
+    },
+
+    {
+      words:['κοτοπουλ','πατατ'],
+      image:'images/kotopoulo-me-patates.png'
+    },
+
+    {
+      words:['λαζαν'],
+      image:'images/lazania.png'
+    },
+
+    {
+      words:['μακαρον','κιμα'],
+      image:'images/makaronia-me-kima.png'
+    },
+
+    {
+      words:['σπαγγετ','κιμα'],
+      image:'images/makaronia-me-kima.png'
+    },
+
+    {
+      words:['μπολονεζ'],
+      image:'images/makaronia-me-kima.png'
+    },
+
+    {
+      words:['μακαρον','λαχανικ'],
+      image:'images/makaronia-laxanika.png'
+    },
+
+    {
+      words:['μακαρον','ντοματα','τυρ'],
+      image:'images/makaronia-saltsa-tyri.png'
+    },
+
+    {
+      words:['μακαρον','σαλτσα','ντοματα'],
+      image:'images/makaronia-saltsa-tyri.png'
+    },
+
+    {
+      words:['μπιφτεκ'],
+      image:'images/mpiftekia-me-patates.png'
+    },
+
+    {
+      words:['μπριαμ'],
+      image:'images/mpriam.png'
+    },
+
+    {
+      words:['μπριζολ'],
+      image:'images/mprizola-psiti.png'
+    },
+
+    {
+      words:['παπουτσακ'],
+      image:'images/papoytsakia.jpg'
+    },
+
+    {
+      words:['ψαρ','ψητ'],
+      image:'images/psari-psito.png'
+    },
+
+    {
+      words:['ψαρ','καρβουν'],
+      image:'images/psari-psito.png'
+    },
+
+    {
+      words:['ρεβιθ','λεμον'],
+      image:'images/revithia-lemonata.png'
+    },
+
+    {
+      words:['σουβλακ'],
+      image:'images/soylakia.jpg'
+    },
+
+    {
+      words:['σπανακορυζ'],
+      image:'images/spanakorizo.jpg'
+    },
+
+    {
+      words:['τηγανια'],
+      image:'images/tigania-me-piperies.png'
+    }
+
+  ];
+
+
+  for(const rule of aliases){
+
+    const matches =
+      rule.words.every(word =>
+        n.includes(word)
+      );
+
+    if(matches){
+      return rule.image;
+    }
+  }
+
+
+  return '';
+}
   let barcodeCameraStream=null;
 
 async function openBarcodeCamera(){
