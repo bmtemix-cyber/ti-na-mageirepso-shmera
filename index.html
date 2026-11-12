@@ -2795,22 +2795,47 @@ function showTodaySuggestion(){
       !suggestions.some(x=>x.name===candidate.name)
     ){
 
-      suggestions.push({
-        name:candidate.name,
+     for(const candidate of [fallback.first,fallback.second]){
 
-        note:
-          'Πολύ καλή επιλογή για την ισορροπία της εβδομάδας και έχεις ήδη τα περισσότερα βασικά υλικά.'+
-          (
-            candidate.extra?.length
-              ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
-              : ' Έχεις ήδη τα βασικά υλικά.'
-          )
-      });
-    }
+  if(!candidate)continue;
 
-    if(suggestions.length===2){
-      break;
-    }
+  const daysAgo=daysSinceSameMeal(candidate.name);
+
+  /*
+    Αν το ίδιο φαγητό έχει καταχωριστεί
+    σήμερα ή τις τελευταίες 3 ημέρες,
+    δεν το προτείνουμε ξανά.
+  */
+  if(
+    Number.isFinite(daysAgo) &&
+    daysAgo<=3
+  ){
+    continue;
+  }
+
+  if(
+    candidate.pantryScore >= 2 &&
+    candidate.healthScore > 0 &&
+    !suggestions.some(x=>x.name===candidate.name)
+  ){
+
+    suggestions.push({
+      name:candidate.name,
+      cat:candidate.cat,
+
+      note:
+        'Καλή επιλογή για την ισορροπία της εβδομάδας και ταιριάζει με τα υλικά που έχεις στην αποθήκη.'+
+        (
+          candidate.extra?.length
+            ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
+            : ' Έχεις ήδη τα βασικά υλικά.'
+        )
+    });
+
+  }
+
+  if(suggestions.length===2)break;
+}
   }
 
 
