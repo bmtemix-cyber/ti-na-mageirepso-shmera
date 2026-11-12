@@ -3285,24 +3285,42 @@ function pantryMatches(recipe){
     return Math.max(0,target-eaten);
   }
 
- const scored = recipes.map(recipe => ({
-  ...recipe,
+const scored = recipes.map(recipe => {
 
-  extra:missingIngredients(
-    recipe.ingredients
-  ),
+  const pantryScore =
+    pantryMatches(recipe);
 
-  pantryScore:pantryMatches(recipe),
-  healthScore:weeklyNeed(recipe)
-}));
+  const healthScore =
+    weeklyNeed(recipe);
 
-  scored.sort((a,b)=>{
-    if(b.healthScore !== a.healthScore){
-      return b.healthScore-a.healthScore;
-    }
+  const mainIngredient =
+    recipe.ingredients?.[0] || '';
 
-    return b.pantryScore-a.pantryScore;
-  });
+  const mainInPantry =
+    pantryHasIngredient(mainIngredient);
+
+  return {
+    ...recipe,
+
+    extra:missingIngredients(
+      recipe.ingredients
+    ),
+
+    pantryScore,
+    healthScore,
+    mainInPantry,
+
+    totalScore:
+      healthScore * 4 +
+      pantryScore * 2 +
+      (mainInPantry ? 6 : 0)
+  };
+});
+
+
+scored.sort((a,b)=>{
+  return b.totalScore-a.totalScore;
+});
 
   const first = scored
     .filter(x => x.pantryScore >= 0)
