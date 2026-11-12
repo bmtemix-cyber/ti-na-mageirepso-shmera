@@ -2850,9 +2850,10 @@ function pantryMatches(recipe){
     })[0];
 
   return {
-    first:first || null,
-    second:second || null
-  };
+  first:first || null,
+  second:second || null,
+  all:scored
+};
 } 
  function safeMealHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
  function recipeCard(meal, index, title, note){
@@ -2884,7 +2885,7 @@ function showTodaySuggestion(){
     υγιεινή ισορροπία + υλικά αποθήκης
   */
 
-  for(const candidate of [fallback.first,fallback.second]){
+  for(const candidate of (fallback.all || [fallback.first,fallback.second])){
 
     if(!candidate)continue;
 
@@ -2902,12 +2903,9 @@ function showTodaySuggestion(){
       continue;
     }
 
-    if(
-      candidate.pantryScore >= 2 &&
-      candidate.healthScore > 0 &&
-      !suggestions.some(x=>x.name===candidate.name)
-    ){
-
+  if(
+  !suggestions.some(x=>x.name===candidate.name)
+){
       suggestions.push({
         name:candidate.name,
         cat:candidate.cat,
