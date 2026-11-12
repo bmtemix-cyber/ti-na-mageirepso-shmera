@@ -2138,15 +2138,114 @@ async  function suggestRecipe(){
   };
 } 
 
- function daysSinceSameMeal(mealName){
+function mealHistoryKey(name){
 
-  const key=(mealName||'')
+  const n=String(name || '')
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
     .trim();
+
+
+  // Ίδιο βασικό φαγητό, ανεξάρτητα από την περιγραφή
+
+  if(n.includes('γαυρ') || n.includes('γαβρ')){
+    return 'γαυρος';
+  }
+
+  if(n.includes('μπριζολ')){
+    return 'μπριζολα';
+  }
+
+  if(n.includes('μπιφτεκ')){
+    return 'μπιφτεκια';
+  }
+
+  if(n.includes('φακ')){
+    return 'φακες';
+  }
+
+  if(n.includes('ρεβιθ')){
+    return 'ρεβιθια';
+  }
+
+  if(n.includes('φασολαδ')){
+    return 'φασολαδα';
+  }
+
+  if(n.includes('κοτοπουλ')){
+    return 'κοτοπουλο';
+  }
+
+  if(n.includes('ψαρ')){
+    return 'ψαρι';
+  }
+
+  if(n.includes('γεμιστ')){
+    return 'γεμιστα';
+  }
+
+  if(n.includes('μπριαμ')){
+    return 'μπριαμ';
+  }
+
+  if(n.includes('σπανακορυζ')){
+    return 'σπανακορυζο';
+  }
+
+  if(n.includes('κανελον')){
+    return 'κανελονια';
+  }
+
+  if(n.includes('λαζαν')){
+    return 'λαζανια';
+  }
+
+  if(n.includes('τηγανια')){
+    return 'τηγανια';
+  }
+
+
+  /*
+    Για τα μακαρόνια κρατάμε λίγο περισσότερη πληροφορία,
+    ώστε μακαρόνια με κιμά να μην είναι ακριβώς το ίδιο
+    με μακαρόνια με απλή σάλτσα.
+  */
+
+  if(n.includes('μακαρον') || n.includes('σπαγγετ')){
+
+    if(n.includes('κιμα')){
+      return 'μακαρονια κιμα';
+    }
+
+    if(n.includes('λαχανικ')){
+      return 'μακαρονια λαχανικα';
+    }
+
+    if(
+      n.includes('σαλτσα') ||
+      n.includes('ντοματα') ||
+      n.includes('τυρι')
+    ){
+      return 'μακαρονια σαλτσα';
+    }
+
+    return 'μακαρονια';
+  }
+
+
+  return n;
+}
+
+
+
+function daysSinceSameMeal(mealName){
+
+  const key=mealHistoryKey(mealName);
 
   const previous=s.history
     .filter(h=>
-      (h.name||'').toLowerCase().trim()===key
+      mealHistoryKey(h.name)===key
     )
     .map(h=>day(h.date));
 
@@ -2156,7 +2255,6 @@ async  function suggestRecipe(){
 
   return Math.min(...previous);
 }
-
 
 function pantryScoreForMeal(meal){
 
