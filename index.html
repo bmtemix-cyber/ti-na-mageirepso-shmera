@@ -2786,85 +2786,48 @@ function showTodaySuggestion(){
     υγιεινή ισορροπία + υλικά αποθήκης
   */
 
- for(const candidate of [fallback.first,fallback.second]){
+  for(const candidate of [fallback.first,fallback.second]){
 
-  if(!candidate)continue;
+    if(!candidate)continue;
 
-  const daysAgo=daysSinceSameMeal(candidate.name);
+    const daysAgo=daysSinceSameMeal(candidate.name);
 
-  /*
-    Αν το ίδιο φαγητό έχει καταχωριστεί
-    σήμερα ή τις τελευταίες 3 ημέρες,
-    δεν το προτείνουμε ξανά.
-  */
-  if(
-    Number.isFinite(daysAgo) &&
-    daysAgo<=3
-  ){
-    continue;
-  }
+    /*
+      Αν το ίδιο φαγητό έχει καταχωριστεί
+      σήμερα ή τις τελευταίες 3 ημέρες,
+      δεν το προτείνουμε ξανά.
+    */
+    if(
+      Number.isFinite(daysAgo) &&
+      daysAgo<=3
+    ){
+      continue;
+    }
 
-  if(
-    candidate.pantryScore >= 2 &&
-    candidate.healthScore > 0 &&
-    !suggestions.some(x=>x.name===candidate.name)
-  ){
+    if(
+      candidate.pantryScore >= 2 &&
+      candidate.healthScore > 0 &&
+      !suggestions.some(x=>x.name===candidate.name)
+    ){
 
-    suggestions.push({
-      name:candidate.name,
-      cat:candidate.cat,
+      suggestions.push({
+        name:candidate.name,
+        cat:candidate.cat,
 
-      note:
-        'Καλή επιλογή για την ισορροπία της εβδομάδας και ταιριάζει με τα υλικά που έχεις στην αποθήκη.'+
-        (
-          candidate.extra?.length
-            ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
-            : ' Έχεις ήδη τα βασικά υλικά.'
-        )
-    });
+        note:
+          'Καλή επιλογή για την ισορροπία της εβδομάδας και ταιριάζει με τα υλικά που έχεις στην αποθήκη.'+
+          (
+            candidate.extra?.length
+              ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
+              : ' Έχεις ήδη τα βασικά υλικά.'
+          )
+      });
 
-  }
+    }
 
-  if(suggestions.length===2){
-    break;
-  }
-}
-
-  /*
-    Αν το ίδιο φαγητό έχει καταχωριστεί
-    σήμερα ή τις τελευταίες 3 ημέρες,
-    δεν το προτείνουμε ξανά.
-  */
-  if(
-    Number.isFinite(daysAgo) &&
-    daysAgo<=3
-  ){
-    continue;
-  }
-
-  if(
-    candidate.pantryScore >= 2 &&
-    candidate.healthScore > 0 &&
-    !suggestions.some(x=>x.name===candidate.name)
-  ){
-
-    suggestions.push({
-      name:candidate.name,
-      cat:candidate.cat,
-
-      note:
-        'Καλή επιλογή για την ισορροπία της εβδομάδας και ταιριάζει με τα υλικά που έχεις στην αποθήκη.'+
-        (
-          candidate.extra?.length
-            ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
-            : ' Έχεις ήδη τα βασικά υλικά.'
-        )
-    });
-
-  }
-
-  if(suggestions.length===2)break;
-}
+    if(suggestions.length===2){
+      break;
+    }
   }
 
 
@@ -2879,16 +2842,17 @@ function showTodaySuggestion(){
     for(const m of meals){
 
       if(
-        !suggestions.some(
-          x=>x.name===m.name
-        )
+        !suggestions.some(x=>x.name===m.name)
       ){
 
         suggestions.push({
           name:m.name,
+          cat:m.cat,
+
           note:
             'Επιλογή με βάση την υγιεινή ισορροπία της εβδομάδας και όσα έχει μάθει από τα γεύματά σας.'
         });
+
       }
 
       if(suggestions.length===2){
@@ -2905,7 +2869,7 @@ function showTodaySuggestion(){
     '<b>⭐ Προτάσεις για σήμερα</b>'+
 
     '<div class="small" style="margin-top:5px">'+
-      'Οι προτάσεις βασίζονται στην ισορροπία της εβδομάδας και στα υλικά που έχεις διαθέσιμα.'+
+      'Οι προτάσεις βασίζονται στην ισορροπία της εβδομάδας, στα πρόσφατα γεύματα και στα υλικά που έχεις διαθέσιμα.'+
     '</div>'+
 
     (
