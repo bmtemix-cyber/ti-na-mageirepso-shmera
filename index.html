@@ -3359,85 +3359,135 @@ function showTodaySuggestion(){
   const meals=smartTodayChoices();
   const fallback=pantryFallbackSuggestions();
 
-  let suggestions=[];
+ let suggestions=[];
 
 
-  /*
-    1. ΠΡΩΤΑ:
-    υγιεινή ισορροπία + υλικά αποθήκης
-  */
+/*
+  Ενώνουμε τις προτάσεις της αποθήκης
+  με τις προτάσεις από το ιστορικό.
+*/
 
-  for(const candidate of (fallback.all || [fallback.first,fallback.second])){
+const candidates=[];
 
-    if(!candidate)continue;
 
-    const daysAgo=daysSinceSameMeal(candidate.name);
+/* Προτάσεις από αποθήκη / διατροφική ισορροπία */
 
-    /*
-      Αν το ίδιο φαγητό έχει καταχωριστεί
-      σήμερα ή τις τελευταίες 3 ημέρες,
-      δεν το προτείνουμε ξανά.
-    */
-    if(
-      Number.isFinite(daysAgo) &&
-      daysAgo<=3
-    ){
-      continue;
-    }
+for(const candidate of (fallback.all || [])){
+
+  if(!candidate)continue;
+
+  const daysAgo=daysSinceSameMeal(candidate.name);
+
+  // Δεν ξαναπροτείνουμε φαγητό
+  // που φάγαμε τις τελευταίες 3 ημέρες
+  if(
+    Number.isFinite(daysAgo) &&
+    daysAgo<=3
+  ){
+    continue;
+  }
 
   if(
-  !suggestions.some(x=>x.name===candidate.name)
-){
-      suggestions.push({
-        name:candidate.name,
-        cat:candidate.cat,
+    !candidates.some(x=>x.name===candidate.name)
+  ){
 
-        note:
-          'Καλή επιλογή για την ισορροπία της εβδομάδας και ταιριάζει με τα υλικά που έχεις στην αποθήκη.'+
-          (
-            candidate.extra?.length
-              ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
-              : ' Έχεις ήδη τα βασικά υλικά.'
-          )
-      });
+    candidates.push({
+      name:candidate.name,
+      cat:candidate.cat,
+      note:
+        'Καλή επιλογή για την ισορροπία της εβδομάδας και ταιριάζει με τα υλικά που έχεις στην αποθήκη.'+
+        (
+          candidate.extra?.length
+            ? ' Χρειάζεται επιπλέον: '+candidate.extra.join(', ')+'.'
+            : ' Έχεις ήδη τα βασικά υλικά.'
+        )
+    });
+  }
+}
 
-    }
 
-    if(suggestions.length===2){
-      break;
-    }
+/* Προτάσεις από όσα έχει μάθει */
+
+for(const meal of meals){
+
+  if(!meal)continue;
+
+  const daysAgo=daysSinceSameMeal(meal.name);
+
+  if(
+    Number.isFinite(daysAgo) &&
+    daysAgo<=3
+  ){
+    continue;
   }
 
+  if(
+    !candidates.some(x=>x.name===meal.name)
+  ){
 
-  /*
-    2. Αν δεν έχουμε δύο επιλογές,
-    συμπληρώνουμε από όσα έχει μάθει
-    από το ιστορικό.
-  */
+    candidates.push({
+      name:meal.name,
+      cat:meal.cat,
+      note:
+        'Επιλογή με βάση την υγιεινή ισορροπία της εβδομάδας και όσα έχει μάθει από τα γεύματά σας.'
+    });
+  }
+}
 
-  if(suggestions.length<2){
 
-    for(const m of meals){
+/*
+  ΠΡΩΤΗ ΠΡΟΤΑΣΗ
+*/
 
-      if(
-        !suggestions.some(x=>x.name===m.name)
-      ){
+if(candidates.length){
 
-        suggestions.push({
-          name:m.name,
-          cat:m.cat,
+  suggestions.push(
+    candidates[0]
+  );
+}
 
-          note:
-            'Επιλογή με βάση την υγιεινή ισορροπία της εβδομάδας και όσα έχει μάθει από τα γεύματά σας.'
-        });
 
-      }
+/*
+  ΔΕΥΤΕΡΗ ΠΡΟΤΑΣΗ:
+  προτιμάμε διαφορετική κατηγορία
+*/
 
-      if(suggestions.length===2){
-        break;
-      }
+if(suggestions.length){
+
+  const first=suggestions[0];
+
+  const differentCategory=
+    candidates.find(candidate=>
+      candidate.name!==first.name &&
+      candidate.cat &&
+      first.cat &&
+      candidate.cat!==first.cat
+    );
+
+  if(differentCategory){
+
+    suggestions.push(
+      differentCategory
+    );
+
+  }else{
+
+    /*
+      Μόνο αν δεν υπάρχει διαφορετική
+      κατηγορία, επιτρέπουμε δεύτερο
+      φαγητό ίδιας κατηγορίας.
+    */
+
+    const alternative=
+      candidates.find(candidate=>
+        candidate.name!==first.name
+      );
+
+    if(alternative){
+      suggestions.push(alternative);
     }
   }
+}
 
 
   box.classList.remove('hidden');
