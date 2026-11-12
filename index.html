@@ -482,7 +482,11 @@
 <section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
 <div class="field">
   <label>Ημερομηνία γεύματος</label>
-  <input id="mealDate" type="date">
+ <input
+  type="date"
+  id="mealDate"
+  oninput="if(this.value)this.blur()"
+>
 </div><div class="field"><label>Γεύμα</label><select id="type"><option value="breakfast">Πρωινό</option><option value="lunch">Μεσημεριανό</option><option value="dinner">Βραδινό</option></select></div>
 <div class="field"><label>Τι φτιάξατε;</label><input id="mealName" placeholder="π.χ. γιαούρτι με μέλι ή γαύρος με σαλάτα" oninput="autoCategory()"></div><div id="hint" class="small"></div>
 <div class="field" id="categoryField"><label>Κατηγορίες τροφίμων</label><div id="cat"><label><input type="checkbox" value="drinks"> 🥤 Αναψυκτικά / Ποτά</label><label><input type="checkbox" value="eggs"> 🥚 Αυγά</label><label><input type="checkbox" value="dairy"> 🥛 Γαλακτοκομικά</label><label><input type="checkbox" value="sweets"> 🍰 Γλυκά</label><label><input type="checkbox" value="grains"> 🌾 Δημητριακά</label><label><input type="checkbox" value="seafood"> 🐟 Θαλασσινά</label><label><input type="checkbox" value="meat"> 🥩 Κρέατα</label><label><input type="checkbox" value="vegetables"> 🥒 Λαχανικά</label><label><input type="checkbox" value="legumes"> 🫘 Όσπρια</label><label><input type="checkbox" value="fruit"> 🍎 Φρούτα</label><label><input type="checkbox" value="pasta"> 🍝 Ζυμαρικά</label></div></div>
