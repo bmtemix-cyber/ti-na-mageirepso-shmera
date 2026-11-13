@@ -570,6 +570,10 @@
   class="small"
   style="margin-top:8px"
 ></div><div>
+  <div
+  id="voicePantryPreview"
+  style="margin-top:10px"
+></div>
   <div class="card" style="margin-top:12px">
  <div class="card" style="margin-top:12px">
   <h3>📦 Barcode προϊόντος</h3>
@@ -4525,6 +4529,190 @@ dislikes:$('memberDislikes').value.trim()
    $('unitHint').textContent='Προτεινόμενη μονάδα: '+$('qtyUnit').selectedOptions[0].text+'. Μπορείς να την αλλάξεις.';
  }
 
+  let voicePantryItems=[];
+
+
+function replaceGreekNumbers(text){
+
+  return String(text || '')
+    .replace(/\b(μισό|μισο|μισή|μιση)\b/gi,'0.5')
+    .replace(/\b(ένα|ενα|ένας|ενας|μία|μια)\b/gi,'1')
+    .replace(/\b(δύο|δυο)\b/gi,'2')
+    .replace(/\b(τρία|τρια|τρεις)\b/gi,'3')
+    .replace(/\b(τέσσερα|τεσσερα|τέσσερις|τεσσερις)\b/gi,'4')
+    .replace(/\b(πέντε|πεντε)\b/gi,'5')
+    .replace(/\b(έξι|εξι)\b/gi,'6')
+    .replace(/\b(επτά|επτα|εφτά|εφτα)\b/gi,'7')
+    .replace(/\b(οκτώ|οκτω)\b/gi,'8')
+    .replace(/\b(εννέα|εννεα|εννιά|εννια)\b/gi,'9')
+    .replace(/\b(δέκα|δεκα)\b/gi,'10');
+}
+
+
+function parseVoicePantry(text){
+
+  let clean=String(text || '')
+    .toLowerCase()
+    .replace(/[.;!?]/g,',')
+    .trim();
+
+
+  clean=clean.replace(
+    /^(ναι\s+)?(θέλω\s+να\s+βάλω|θελω\s+να\s+βαλω|βάλε|βαλε|βάλω|βαλω|έχω|εχω|αγόρασα|αγορασα)\s+/i,
+    ''
+  );
+
+
+  clean=replaceGreekNumbers(clean);
+
+
+  const parts=clean
+    .split(/\s*,\s*|\s+και\s+/)
+    .map(x=>x.trim())
+    .filter(Boolean);
+
+
+  return parts.map(part=>{
+
+    const match=part.match(
+      /^(\d+(?:[.,]\d+)?)\s*(κιλά|κιλα|κιλό|κιλο|kg|γραμμάρια|γραμμαρια|γραμμάριο|γραμμαριο|γρ|g|λίτρα|λιτρα|λίτρο|λιτρο|l|ml|τεμάχια|τεμαχια|τεμάχιο|τεμαχιο|τεμ)?\s+(.+)$/i
+    );
+
+
+    if(!match){
+
+      return {
+        name:part,
+        qty:''
+      };
+    }
+
+
+    const amount=
+      match[1].replace(',','.');
+
+    const unit=
+      (match[2] || '').toLowerCase();
+
+    const name=
+      match[3].trim();
+
+
+    let finalUnit='τεμ.';
+
+    if(
+      unit==='κιλά' ||
+      unit==='κιλα' ||
+      unit==='κιλό' ||
+      unit==='κιλο' ||
+      unit==='kg'
+    ){
+      finalUnit='kg';
+    }
+
+    else if(
+      unit.includes('γραμμ') ||
+      unit==='γρ' ||
+      unit==='g'
+    ){
+      finalUnit='g';
+    }
+
+    else if(
+      unit==='λίτρα' ||
+      unit==='λιτρα' ||
+      unit==='λίτρο' ||
+      unit==='λιτρο' ||
+      unit==='l'
+    ){
+      finalUnit='L';
+    }
+
+    else if(unit==='ml'){
+      finalUnit='ml';
+    }
+
+
+    return {
+      name:name,
+      qty:amount+' '+finalUnit
+    };
+
+  });
+}
+
+
+function escapeVoiceHtml(text){
+
+  return String(text || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+
+function renderVoicePantryPreview(items){
+
+  voicePantryItems=items;
+
+  const box=$('voicePantryPreview');
+
+  if(!items.length){
+    box.innerHTML='';
+    return;
+  }
+
+
+  box.innerHTML=
+    '<div class="soft">'+
+      '<b>✅ Έλεγξε τι κατάλαβα</b>'+
+      '<div class="small" style="margin-top:5px">'+
+        'Μπορείς να διορθώσεις προϊόν ή ποσότητα πριν συνεχίσεις.'+
+      '</div>'+
+
+      items.map((item,i)=>
+
+        '<div style="display:grid;grid-template-columns:1fr 110px;gap:8px;margin-top:10px">'+
+
+          '<input id="voiceName'+i+'" '+
+          'value="'+escapeVoiceHtml(item.name)+'">'+
+
+          '<input id="voiceQty'+i+'" '+
+          'value="'+escapeVoiceHtml(item.qty)+'">'+
+
+        '</div>'
+
+      ).join('')+
+
+      '<button class="btn primary" '+
+      'onclick="confirmVoicePantryPreview()">'+
+        'Συνέχεια'+
+      '</button>'+
+
+    '</div>';
+}
+
+
+function confirmVoicePantryPreview(){
+
+  voicePantryItems=
+    voicePantryItems.map((item,i)=>({
+
+      name:
+        $('voiceName'+i).value.trim(),
+
+      qty:
+        $('voiceQty'+i).value.trim()
+
+    }))
+    .filter(x=>x.name);
+
+
+  $('voicePantryStatus').textContent=
+    '✅ Επιβεβαιώθηκαν '+voicePantryItems.length+
+    ' προϊόντα. Επόμενο βήμα: ημερομηνίες λήξης.';
+}
   function startPantryVoice(){
 
   const btn=$('voicePantryBtn');
@@ -4560,12 +4748,17 @@ dislikes:$('memberDislikes').value.trim()
 
   recognition.onresult=(event)=>{
 
-    const text=
-      event.results[0][0].transcript;
+  const text=
+    event.results[0][0].transcript;
 
-    status.textContent=
-      '🎤 Άκουσα: '+text;
-  };
+  status.textContent=
+    '🎤 Άκουσα: '+text;
+
+  const items=
+    parseVoicePantry(text);
+
+  renderVoicePantryPreview(items);
+};
 
 
   recognition.onerror=(event)=>{
