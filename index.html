@@ -5075,6 +5075,97 @@ function parseVoiceExpiry(text){
   recognition.start();
 }
 
+  function parsePantryQuantity(qty){
+
+  const text=String(qty || '')
+    .trim()
+    .replace(',','.');
+
+  const match=text.match(
+    /^(\d+(?:\.\d+)?)\s*(kg|g|L|ml|τεμ\.?)$/i
+  );
+
+  if(!match){
+    return null;
+  }
+
+  return {
+    amount:Number(match[1]),
+    unit:match[2]
+      .replace('τεμ.','τεμ')
+      .toLowerCase()
+  };
+}
+
+
+function addOrMergePantryItem(item){
+
+  const newQty=
+    parsePantryQuantity(item.qty);
+
+  const newName=
+    String(item.name || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .trim();
+
+
+  const existing=
+    s.pantry.find(p=>{
+
+      const oldName=
+        String(p.name || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g,'')
+          .trim();
+
+      const oldQty=
+        parsePantryQuantity(p.qty);
+
+
+      return (
+        oldName===newName &&
+        (p.exp || '')===(item.exp || '') &&
+        oldQty &&
+        newQty &&
+        oldQty.unit===newQty.unit
+      );
+
+    });
+
+
+  if(existing){
+
+    const oldQty=
+      parsePantryQuantity(existing.qty);
+
+    const total=
+      oldQty.amount + newQty.amount;
+
+    const cleanTotal=
+      Number(total.toFixed(3));
+
+    const unit=
+      newQty.unit==='τεμ'
+        ? 'τεμ.'
+        : newQty.unit;
+
+    existing.qty=
+      cleanTotal+' '+unit;
+
+  }else{
+
+    s.pantry.push({
+      name:item.name,
+      qty:item.qty,
+      exp:item.exp || ''
+    });
+
+  }
+}
+
   function saveVoicePantryWithExpiry(){
 
   voicePantryItems=
@@ -5090,17 +5181,9 @@ function parseVoiceExpiry(text){
 
   voicePantryItems.forEach(item=>{
 
-    s.pantry.push({
+  addOrMergePantryItem(item);
 
-      name:item.name,
-
-      qty:item.qty,
-
-      exp:item.exp
-
-    });
-
-  });
+});
 
 
   save();
