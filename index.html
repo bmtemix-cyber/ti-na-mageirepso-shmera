@@ -556,7 +556,20 @@
 ></div>
 </div></section>
 <section id="family" class="view"><div class="card"><h2>👨‍👩‍👧‍👦 Οικογένεια</h2><div id="familyInfo"></div></div></section>
-<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά <span style="font-size:11px;color:#2f6b3a">Έκδοση μονάδων 2</span></h2><div class="field"><label>Υλικό</label><input id="ing" oninput="autoPantryUnit()"></div><div class="field"><label>Ποσότητα</label><div style="display:flex;gap:8px"><input id="qty" type="text" inputmode="decimal" placeholder="π.χ. 0,5" style="flex:1;min-width:0"><select id="qtyUnit" aria-label="Μονάδα μέτρησης" style="width:115px;flex:none"><option value="kg">κιλά (kg)</option><option value="g">γραμ. (g)</option><option value="L">λίτρα (L)</option><option value="ml">ml</option><option value="τμχ.">τεμάχια</option><option value="συσκ.">συσκ.</option></select></div><div class="small" id="unitHint" style="margin-top:5px">Η μονάδα επιλέγεται αυτόματα από το υλικό.</div></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><div>
+<section id="pantry" class="view"><div class="card"><h2>🏠 Υλικά <span style="font-size:11px;color:#2f6b3a">Έκδοση μονάδων 2</span></h2><div class="field"><label>Υλικό</label><input id="ing" oninput="autoPantryUnit()"></div><div class="field"><label>Ποσότητα</label><div style="display:flex;gap:8px"><input id="qty" type="text" inputmode="decimal" placeholder="π.χ. 0,5" style="flex:1;min-width:0"><select id="qtyUnit" aria-label="Μονάδα μέτρησης" style="width:115px;flex:none"><option value="kg">κιλά (kg)</option><option value="g">γραμ. (g)</option><option value="L">λίτρα (L)</option><option value="ml">ml</option><option value="τμχ.">τεμάχια</option><option value="συσκ.">συσκ.</option></select></div><div class="small" id="unitHint" style="margin-top:5px">Η μονάδα επιλέγεται αυτόματα από το υλικό.</div></div><div class="field"><label>Λήξη</label><input id="exp" type="date"></div><button class="btn primary" onclick="addIng()">+ Προσθήκη</button><button
+  class="btn secondary"
+  id="voicePantryBtn"
+  type="button"
+  onclick="startPantryVoice()"
+>
+  🎤 Προσθήκη με φωνή
+</button>
+
+<div
+  id="voicePantryStatus"
+  class="small"
+  style="margin-top:8px"
+></div><div>
   <div class="card" style="margin-top:12px">
  <div class="card" style="margin-top:12px">
   <h3>📦 Barcode προϊόντος</h3>
@@ -4511,6 +4524,68 @@ dislikes:$('memberDislikes').value.trim()
    $('qtyUnit').value=unit;
    $('unitHint').textContent='Προτεινόμενη μονάδα: '+$('qtyUnit').selectedOptions[0].text+'. Μπορείς να την αλλάξεις.';
  }
+
+  function startPantryVoice(){
+
+  const btn=$('voicePantryBtn');
+  const status=$('voicePantryStatus');
+
+  const SpeechRecognition=
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if(!SpeechRecognition){
+    status.textContent=
+      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται σε αυτή τη συσκευή.';
+    return;
+  }
+
+  const recognition=
+    new SpeechRecognition();
+
+  recognition.lang='el-GR';
+  recognition.interimResults=false;
+  recognition.maxAlternatives=1;
+
+
+  recognition.onstart=()=>{
+
+    btn.textContent='🔴 Ακούω...';
+    btn.disabled=true;
+
+    status.textContent=
+      'Πες τα προϊόντα και τις ποσότητες.';
+  };
+
+
+  recognition.onresult=(event)=>{
+
+    const text=
+      event.results[0][0].transcript;
+
+    status.textContent=
+      '🎤 Άκουσα: '+text;
+  };
+
+
+  recognition.onerror=(event)=>{
+
+    console.error(event);
+
+    status.textContent=
+      '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
+  };
+
+
+  recognition.onend=()=>{
+
+    btn.textContent='🎤 Προσθήκη με φωνή';
+    btn.disabled=false;
+  };
+
+
+  recognition.start();
+}
  function addIng(){
    const name=$('ing').value.trim();if(!name)return;
    const amount=$('qty').value.trim().replace(',', '.');
