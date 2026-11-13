@@ -4687,7 +4687,7 @@ function renderVoicePantryPreview(items){
 
       '<button class="btn primary" '+
       'onclick="confirmVoicePantryPreview()">'+
-        'Συνέχεια'+
+        '✅ Προσθήκη στην αποθήκη'+
       '</button>'+
 
     '</div>';
@@ -4709,9 +4709,38 @@ function confirmVoicePantryPreview(){
     .filter(x=>x.name);
 
 
+  if(!voicePantryItems.length){
+
+    $('voicePantryStatus').textContent=
+      '⚠️ Δεν υπάρχουν προϊόντα για προσθήκη.';
+
+    return;
+  }
+
+
+  voicePantryItems.forEach(item=>{
+
+    s.pantry.push({
+      name:item.name,
+      qty:item.qty,
+      exp:''
+    });
+
+  });
+
+
+  save();
+
   $('voicePantryStatus').textContent=
-    '✅ Επιβεβαιώθηκαν '+voicePantryItems.length+
-    ' προϊόντα. Επόμενο βήμα: ημερομηνίες λήξης.';
+    '✅ Προστέθηκαν '+voicePantryItems.length+
+    ' προϊόντα στην αποθήκη.';
+
+
+  $('voicePantryPreview').innerHTML='';
+
+  voicePantryItems=[];
+
+  render();
 }
   function startPantryVoice(){
 
