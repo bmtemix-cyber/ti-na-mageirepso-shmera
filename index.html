@@ -4687,7 +4687,7 @@ function renderVoicePantryPreview(items){
 
       '<button class="btn primary" '+
       'onclick="confirmVoicePantryPreview()">'+
-        '✅ Προσθήκη στην αποθήκη'+
+       'Συνέχεια → ημερομηνίες λήξης'+
       '</button>'+
 
     '</div>';
@@ -4703,8 +4703,9 @@ function confirmVoicePantryPreview(){
         $('voiceName'+i).value.trim(),
 
       qty:
-        $('voiceQty'+i).value.trim()
+        $('voiceQty'+i).value.trim(),
 
+      exp:''
     }))
     .filter(x=>x.name);
 
@@ -4712,18 +4713,391 @@ function confirmVoicePantryPreview(){
   if(!voicePantryItems.length){
 
     $('voicePantryStatus').textContent=
-      '⚠️ Δεν υπάρχουν προϊόντα για προσθήκη.';
+      '⚠️ Δεν υπάρχουν προϊόντα.';
 
     return;
   }
 
 
+  renderVoiceExpiryStep();
+}
+
+  function localDateValue(date){
+
+  const y=date.getFullYear();
+
+  const m=String(
+    date.getMonth()+1
+  ).padStart(2,'0');
+
+  const d=String(
+    date.getDate()
+  ).padStart(2,'0');
+
+  return y+'-'+m+'-'+d;
+}
+
+
+function parseVoiceExpiry(text){
+
+  let t=String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .trim();
+
+
+  t=replaceGreekNumbers(t);
+
+
+  if(
+    t.includes('χωρις ληξη') ||
+    t.includes('δεν ξερω') ||
+    t.includes('δεν εχει ληξη')
+  ){
+    return '';
+  }
+
+
+  const today=new Date();
+
+  today.setHours(12,0,0,0);
+
+
+  /*
+    π.χ. "σε 10 μέρες"
+  */
+
+  let match=t.match(
+    /σε\s+(\d+)\s+(?:μερα|μερες|ημερα|ημερες)/
+  );
+
+  if(match){
+
+    const date=new Date(today);
+
+    date.setDate(
+      date.getDate()+Number(match[1])
+    );
+
+    return localDateValue(date);
+  }
+
+
+  /*
+    π.χ. "σε 2 εβδομάδες"
+  */
+
+  match=t.match(
+    /σε\s+(\d+)\s+(?:εβδομαδα|εβδομαδες)/
+  );
+
+  if(match){
+
+    const date=new Date(today);
+
+    date.setDate(
+      date.getDate()+
+      Number(match[1])*7
+    );
+
+    return localDateValue(date);
+  }
+
+
+  /*
+    π.χ. "σε 2 μήνες"
+  */
+
+  match=t.match(
+    /σε\s+(\d+)\s+(?:μηνα|μηνες)/
+  );
+
+  if(match){
+
+    const date=new Date(today);
+
+    date.setMonth(
+      date.getMonth()+Number(match[1])
+    );
+
+    return localDateValue(date);
+  }
+
+
+  /*
+    π.χ. 20/11
+    ή 20/11/2026
+  */
+
+  match=t.match(
+    /(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/
+  );
+
+  if(match){
+
+    const day=Number(match[1]);
+    const month=Number(match[2])-1;
+
+    let year=
+      match[3]
+        ? Number(match[3])
+        : today.getFullYear();
+
+
+    if(year<100){
+      year+=2000;
+    }
+
+
+    let date=
+      new Date(
+        year,
+        month,
+        day,
+        12
+      );
+
+
+    if(
+      !match[3] &&
+      date<today
+    ){
+
+      date=
+        new Date(
+          year+1,
+          month,
+          day,
+          12
+        );
+    }
+
+
+    return localDateValue(date);
+  }
+
+
+  /*
+    π.χ. "20 Νοεμβρίου"
+  */
+
+  const months={
+
+    'ιανουαριου':0,
+    'φεβρουαριου':1,
+    'μαρτιου':2,
+    'απριλιου':3,
+    'μαιου':4,
+    'ιουνιου':5,
+    'ιουλιου':6,
+    'αυγουστου':7,
+    'σεπτεμβριου':8,
+    'οκτωβριου':9,
+    'νοεμβριου':10,
+    'δεκεμβριου':11
+  };
+
+
+  match=t.match(
+    /(\d{1,2})\s+(ιανουαριου|φεβρουαριου|μαρτιου|απριλιου|μαιου|ιουνιου|ιουλιου|αυγουστου|σεπτεμβριου|οκτωβριου|νοεμβριου|δεκεμβριου)(?:\s+(\d{4}))?/
+  );
+
+
+  if(match){
+
+    const day=Number(match[1]);
+    const month=months[match[2]];
+
+    let year=
+      match[3]
+        ? Number(match[3])
+        : today.getFullYear();
+
+
+    let date=
+      new Date(
+        year,
+        month,
+        day,
+        12
+      );
+
+
+    if(
+      !match[3] &&
+      date<today
+    ){
+
+      date=
+        new Date(
+          year+1,
+          month,
+          day,
+          12
+        );
+    }
+
+
+    return localDateValue(date);
+  }
+
+
+  return null;
+}
+
+  function renderVoiceExpiryStep(){
+
+  const box=$('voicePantryPreview');
+
+
+  box.innerHTML=
+    '<div class="soft">'+
+
+      '<b>📅 Ημερομηνίες λήξης</b>'+
+
+      '<div class="small" style="margin-top:5px">'+
+        'Βάλε ημερομηνία ή πάτησε το μικρόφωνο και πες π.χ. «20 Νοεμβρίου» ή «σε δύο μήνες». '+
+        'Αν δεν χρειάζεται, άφησέ το κενό.'+
+      '</div>'+
+
+      voicePantryItems.map((item,i)=>
+
+        '<div class="item" style="margin-top:10px">'+
+
+          '<b>'+
+            escapeVoiceHtml(item.name)+
+          '</b>'+
+
+          '<div class="small">'+
+            escapeVoiceHtml(item.qty)+
+          '</div>'+
+
+          '<input '+
+            'id="voiceExp'+i+'" '+
+            'type="date" '+
+            'style="margin-top:8px"'+
+          '>'+
+
+          '<button '+
+            'type="button" '+
+            'class="btn secondary" '+
+            'onclick="startVoiceExpiry('+i+')"'+
+          '>'+
+            '🎤 Πες τη λήξη'+
+          '</button>'+
+
+        '</div>'
+
+      ).join('')+
+
+      '<button '+
+        'class="btn primary" '+
+        'onclick="saveVoicePantryWithExpiry()"'+
+      '>'+
+        '✅ Προσθήκη όλων στην αποθήκη'+
+      '</button>'+
+
+    '</div>';
+}
+
+  function startVoiceExpiry(index){
+
+  const SpeechRecognition=
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+
+  if(!SpeechRecognition){
+
+    $('voicePantryStatus').textContent=
+      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.';
+
+    return;
+  }
+
+
+  const recognition=
+    new SpeechRecognition();
+
+
+  recognition.lang='el-GR';
+
+  recognition.interimResults=false;
+
+  recognition.maxAlternatives=1;
+
+
+  $('voicePantryStatus').textContent=
+    '🔴 Πες τη λήξη για '+
+    voicePantryItems[index].name+
+    '...';
+
+
+  recognition.onresult=(event)=>{
+
+    const text=
+      event.results[0][0].transcript;
+
+
+    const date=
+      parseVoiceExpiry(text);
+
+
+    if(date===null){
+
+      $('voicePantryStatus').textContent=
+        '⚠️ Άκουσα «'+text+
+        '», αλλά δεν κατάλαβα την ημερομηνία.';
+
+      return;
+    }
+
+
+    $('voiceExp'+index).value=
+      date;
+
+
+    $('voicePantryStatus').textContent=
+      date
+        ? '✅ Άκουσα: '+text
+        : '✅ Χωρίς ημερομηνία λήξης.';
+  };
+
+
+  recognition.onerror=()=>{
+
+    $('voicePantryStatus').textContent=
+      '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
+  };
+
+
+  recognition.start();
+}
+
+  function saveVoicePantryWithExpiry(){
+
+  voicePantryItems=
+    voicePantryItems.map((item,i)=>({
+
+      ...item,
+
+      exp:
+        $('voiceExp'+i).value || ''
+
+    }));
+
+
   voicePantryItems.forEach(item=>{
 
     s.pantry.push({
+
       name:item.name,
+
       qty:item.qty,
-      exp:''
+
+      exp:item.exp
+
     });
 
   });
@@ -4731,17 +5105,25 @@ function confirmVoicePantryPreview(){
 
   save();
 
-  $('voicePantryStatus').textContent=
-    '✅ Προστέθηκαν '+voicePantryItems.length+
-    ' προϊόντα στην αποθήκη.';
+
+  const count=
+    voicePantryItems.length;
+
+
+  voicePantryItems=[];
 
 
   $('voicePantryPreview').innerHTML='';
 
-  voicePantryItems=[];
+
+  $('voicePantryStatus').textContent=
+    '✅ Προστέθηκαν '+count+
+    ' προϊόντα στην αποθήκη.';
+
 
   render();
 }
+  
   function startPantryVoice(){
 
   const btn=$('voicePantryBtn');
