@@ -4646,114 +4646,145 @@ function normalizeVoiceUnit(unit){
 
 function parseVoicePantry(text){
 
-  let clean=
-    String(text || '')
-      .toLowerCase()
-      .replace(/[.!?]/g,',')
-      .replace(/\s+/g,' ')
-      .trim();
+  let clean=String(text || '')
+    .toLowerCase()
+    .replace(/[.!?]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
 
   clean=replaceGreekNumbers(clean);
+
+  // Αφαιρούμε εκφράσεις όπως:
+  // "θέλω να βάλω", "βάλε", "έχω" κτλ.
+  clean=clean.replace(
+    /^(ναι\s+)?(θέλω\s+να\s+βάλω|θελω\s+να\s+βαλω|βάλε|βαλε|βάλω|βαλω|έχω|εχω|αγόρασα|αγορασα)\s+/i,
+    ''
+  );
 
   const unitPattern=
     'κιλά|κιλα|κιλό|κιλο|kg|'+
     'γραμμάρια|γραμμαρια|γραμμάριο|γραμμαριο|γρ|g|'+
-    'λίτρα|λιτρα|λίτρο|λιτρο|l|ml|'+
+    'λίτρα|λιτρα|λίτρο|λιτρο|l|'+
+    'ml|'+
     'τεμάχια|τεμαχια|τεμάχιο|τεμαχιο|τεμ\\.?|'+
     'πακέτα|πακετα|πακέτο|πακετο';
 
   /*
-    Βρίσκει κάθε:
-    ποσότητα + μονάδα + προϊόν
+    Πρώτα βρίσκουμε ΟΛΑ τα σημεία:
+    αριθμός + μονάδα
 
-    Δεν εξαρτάται πλέον από το "και".
+    π.χ.
+    5 κιλά
+    2 κιλά
+    3 λίτρα
+    4 κιλά
   */
 
-  const re=
+  const markerRegex=
     new RegExp(
-      '(\\d+(?:[.,]\\d+)?)'+
-      '\\s*('+
-        unitPattern+
-      ')\\s+'+
-      '(.+?)'+
-      '(?='+
-        '\\s*'+
-        '(?:(?:,|;)|και)?'+
-        '\\s*'+
-        '\\d+(?:[.,]\\d+)?'+
-        '\\s*(?:'+unitPattern+')'+
-        '\\s+'+
-        '|$'+
+      '(\\d+(?:[.,]\\d+)?)\\s*('+
+      unitPattern+
       ')',
       'gi'
     );
 
-  const items=[];
+  const markers=[];
 
   let match;
 
   while(
-    (match=re.exec(clean))!==null
+    (match=markerRegex.exec(clean))!==null
   ){
-
-    const amount=
-      match[1]
-        .replace(',','.');
-
-    const unit=
-      normalizeVoiceUnit(
-        match[2]
-      );
-
-    const name=
-      match[3]
-        .replace(/[;,\s]+$/g,'')
-        .trim();
-
-    if(!name){
-      continue;
-    }
-
-    items.push({
-      name:name,
-      qty:amount+' '+unit
+    markers.push({
+      start:match.index,
+      end:markerRegex.lastIndex,
+      amount:match[1].replace(',','.'),
+      unit:match[2]
     });
   }
 
+  const items=[];
 
   /*
-    Αν βρήκαμε προϊόντα με μονάδες,
-    επιστρέφουμε όλα όσα βρήκαμε.
+    Αν βρήκαμε ποσότητες + μονάδες,
+    κάθε marker είναι νέο προϊόν.
   */
 
-  if(items.length){
+  if(markers.length){
+
+    for(let i=0;i<markers.length;i++){
+
+      const current=markers[i];
+
+      const nextStart=
+        i<markers.length-1
+          ? markers[i+1].start
+          : clean.length;
+
+      /*
+        Ό,τι υπάρχει μετά τη μονάδα
+        μέχρι την επόμενη ποσότητα,
+        είναι το όνομα του προϊόντος.
+      */
+
+      let name=
+        clean
+          .slice(
+            current.end,
+            nextStart
+          )
+          .trim();
+
+      /*
+        Καθαρίζουμε κόμματα,
+        "και", κτλ. από το τέλος.
+      */
+
+      name=name
+        .replace(/[\s,;]+$/g,'')
+        .replace(/\s+και$/i,'')
+        .replace(/^[,;\s]+/g,'')
+        .trim();
+
+      if(!name){
+        continue;
+      }
+
+      items.push({
+        name:name,
+        qty:
+          current.amount+
+          ' '+
+          normalizeVoiceUnit(
+            current.unit
+          )
+      });
+    }
+
     return items;
   }
 
 
   /*
-    Εναλλακτικά:
+    Εναλλακτική για φράσεις όπως:
     "6 αυγά και 3 ντομάτες"
-
-    θεωρούνται τεμάχια.
+    χωρίς μονάδα.
   */
 
   const parts=
     clean
-      .split(
-        /\s*,\s*|\s+και\s+/
-      )
+      .split(/\s*,\s*|\s+και\s+/)
       .map(x=>x.trim())
       .filter(Boolean);
 
   return parts.map(part=>{
 
-    const match=
+    const m=
       part.match(
-        /^(\d+(?:[.,]\d+)?)\s+(.+)$/i
+        /^(\d+(?:[.,]\d+)?)\s+(.+)$/
       );
 
-    if(!match){
+    if(!m){
       return {
         name:part,
         qty:''
@@ -4761,12 +4792,9 @@ function parseVoicePantry(text){
     }
 
     return {
-      name:
-        match[2].trim(),
-
+      name:m[2].trim(),
       qty:
-        match[1]
-          .replace(',','.')+
+        m[1].replace(',','.')+
         ' τεμ.'
     };
   });
