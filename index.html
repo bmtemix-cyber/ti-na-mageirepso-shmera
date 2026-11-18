@@ -814,6 +814,8 @@
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
 
+ let activePantryRecognition=null; 
+
 
 function normalizeMealImageName(name){
 
@@ -5346,7 +5348,15 @@ function addOrMergePantryItem(item){
 }
 
   function saveVoicePantryWithExpiry(){
+    
+if(activePantryRecognition){
+  try{
+    activePantryRecognition.abort();
+  }catch(e){}
 
+  activePantryRecognition=null;
+}
+    
   voicePantryItems=
     voicePantryItems.map((item,i)=>({
 
@@ -5401,13 +5411,23 @@ function addOrMergePantryItem(item){
     return;
   }
 
-  const recognition=
-    new SpeechRecognition();
+ if(activePantryRecognition){
+  try{
+    activePantryRecognition.abort();
+  }catch(e){}
+  activePantryRecognition=null;
+}
 
-  recognition.lang='el-GR';
-  recognition.interimResults=false;
-  recognition.maxAlternatives=1;
+const recognition=
+  new SpeechRecognition();
 
+activePantryRecognition=
+  recognition;
+
+recognition.lang='el-GR';
+recognition.interimResults=false;
+recognition.continuous=false;
+recognition.maxAlternatives=1;
 
   recognition.onstart=()=>{
 
@@ -5435,6 +5455,9 @@ recognition.onresult=(event)=>{
     ' προϊόντα.';
 
   renderVoicePantryPreview(items);
+  try{
+  recognition.stop();
+}catch(e){}
 };
 
 
@@ -5447,11 +5470,20 @@ recognition.onresult=(event)=>{
   };
 
 
-  recognition.onend=()=>{
+ recognition.onend=()=>{
 
-    btn.textContent='🎤 Προσθήκη με φωνή';
-    btn.disabled=false;
-  };
+  if(
+    activePantryRecognition===
+    recognition
+  ){
+    activePantryRecognition=null;
+  }
+
+  btn.textContent=
+    '🎤 Προσθήκη με φωνή';
+
+  btn.disabled=false;
+};
 
 
   recognition.start();
