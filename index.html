@@ -5424,11 +5424,6 @@ resetPantryVoiceButton();
   
 function startPantryVoice(){
 
-  /*
-    Πριν ανοίξουμε νέο μικρόφωνο,
-    κλείνουμε οτιδήποτε έχει μείνει
-    ενεργό από πριν.
-  */
   closeActiveVoiceRecognition();
 
   const btn=
@@ -5440,6 +5435,7 @@ function startPantryVoice(){
   const SpeechRecognition=
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
+
 
   if(!SpeechRecognition){
 
@@ -5459,17 +5455,13 @@ function startPantryVoice(){
     recognition;
 
 
-  recognition.lang=
-    'el-GR';
+  recognition.lang='el-GR';
 
-  recognition.interimResults=
-    false;
+  recognition.interimResults=false;
 
-  recognition.continuous=
-    false;
+  recognition.continuous=false;
 
-  recognition.maxAlternatives=
-    1;
+  recognition.maxAlternatives=1;
 
 
   recognition.onstart=()=>{
@@ -5499,29 +5491,17 @@ function startPantryVoice(){
       items.length+
       ' προϊόντα.';
 
-    renderVoicePantryPreview(
-      items
-    );
+    renderVoicePantryPreview(items);
 
 
     /*
-      Μόλις πάρουμε αποτέλεσμα,
-      απελευθερώνουμε αμέσως
-      το μικρόφωνο.
+      Ζητάμε κανονικό τερματισμό.
+      Δεν κάνουμε abort εδώ.
     */
 
-    if(
-      activeVoiceRecognition===
-      recognition
-    ){
-      activeVoiceRecognition=null;
-    }
-
     try{
-      recognition.abort();
+      recognition.stop();
     }catch(e){}
-
-    resetPantryVoiceButton();
   };
 
 
@@ -5539,10 +5519,6 @@ function startPantryVoice(){
       activeVoiceRecognition=null;
     }
 
-    try{
-      recognition.abort();
-    }catch(e){}
-
     resetPantryVoiceButton();
 
 
@@ -5557,11 +5533,6 @@ function startPantryVoice(){
 
   recognition.onend=()=>{
 
-    /*
-      Καθαρίζουμε μόνο αν αυτό είναι
-      ακόμη το ενεργό recognition.
-    */
-
     if(
       activeVoiceRecognition===
       recognition
@@ -5569,7 +5540,18 @@ function startPantryVoice(){
       activeVoiceRecognition=null;
     }
 
-    resetPantryVoiceButton();
+
+    /*
+      Περιμένουμε λίγο ώστε το Safari
+      να απελευθερώσει πραγματικά
+      το μικρόφωνο.
+    */
+
+    setTimeout(()=>{
+
+      resetPantryVoiceButton();
+
+    },500);
   };
 
 
