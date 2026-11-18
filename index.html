@@ -814,7 +814,36 @@
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
 
- let activePantryRecognition=null; 
+ letlet activeVoiceRecognition=null;
+
+function closeActiveVoiceRecognition(){
+
+  if(!activeVoiceRecognition){
+    return;
+  }
+
+  const recognition=
+    activeVoiceRecognition;
+
+  activeVoiceRecognition=null;
+
+  try{
+    recognition.abort();
+  }catch(e){
+    console.log(e);
+  }
+}
+
+function resetPantryVoiceButton(){
+
+  const btn=$('voicePantryBtn');
+
+  if(btn){
+    btn.disabled=false;
+    btn.textContent=
+      '🎤 Προσθήκη με φωνή';
+  }
+} activePantryRecognition=null; 
 
 
 function normalizeMealImageName(name){
@@ -5183,7 +5212,7 @@ function parseVoiceExpiry(text){
 }
 
   function startVoiceExpiry(index){
-
+closeActiveVoiceRecognition();
   const SpeechRecognition=
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
@@ -5200,7 +5229,8 @@ function parseVoiceExpiry(text){
 
   const recognition=
     new SpeechRecognition();
-
+activeVoiceRecognition=
+  recognition;
 
   recognition.lang='el-GR';
 
@@ -5347,15 +5377,11 @@ function addOrMergePantryItem(item){
   }
 }
 
-  function saveVoicePantryWithExpiry(){
-    
-if(activePantryRecognition){
-  try{
-    activePantryRecognition.abort();
-  }catch(e){}
+  function saveVoicePantryWithExpiry()
+  {
+    closeActiveVoiceRecognition();
+resetPantryVoiceButton();
 
-  activePantryRecognition=null;
-}
     
   voicePantryItems=
     voicePantryItems.map((item,i)=>({
@@ -5396,97 +5422,175 @@ if(activePantryRecognition){
   render();
 }
   
-  function startPantryVoice(){
+function startPantryVoice(){
 
-  const btn=$('voicePantryBtn');
-  const status=$('voicePantryStatus');
+  /*
+    Πριν ανοίξουμε νέο μικρόφωνο,
+    κλείνουμε οτιδήποτε έχει μείνει
+    ενεργό από πριν.
+  */
+  closeActiveVoiceRecognition();
+
+  const btn=
+    $('voicePantryBtn');
+
+  const status=
+    $('voicePantryStatus');
 
   const SpeechRecognition=
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
 
   if(!SpeechRecognition){
+
     status.textContent=
-      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται σε αυτή τη συσκευή.';
+      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.';
+
+    resetPantryVoiceButton();
+
     return;
   }
 
- if(activePantryRecognition){
-  try{
-    activePantryRecognition.abort();
-  }catch(e){}
-  activePantryRecognition=null;
-}
 
-const recognition=
-  new SpeechRecognition();
+  const recognition=
+    new SpeechRecognition();
 
-activePantryRecognition=
-  recognition;
+  activeVoiceRecognition=
+    recognition;
 
-recognition.lang='el-GR';
-recognition.interimResults=false;
-recognition.continuous=false;
-recognition.maxAlternatives=1;
+
+  recognition.lang=
+    'el-GR';
+
+  recognition.interimResults=
+    false;
+
+  recognition.continuous=
+    false;
+
+  recognition.maxAlternatives=
+    1;
+
 
   recognition.onstart=()=>{
 
-    btn.textContent='🔴 Ακούω...';
     btn.disabled=true;
+
+    btn.textContent=
+      '🔴 Ακούω...';
 
     status.textContent=
       'Πες τα προϊόντα και τις ποσότητες.';
   };
 
 
-recognition.onresult=(event)=>{
+  recognition.onresult=(event)=>{
 
-  const text=
-    event.results[0][0].transcript;
+    const text=
+      event.results[0][0].transcript;
 
-  const items=
-    parseVoicePantry(text);
+    const items=
+      parseVoicePantry(text);
 
-  status.textContent=
-    '🎤 Άκουσα: '+
-    text+
-    ' — Βρήκα '+
-    items.length+
-    ' προϊόντα.';
+    status.textContent=
+      '🎤 Άκουσα: '+
+      text+
+      ' — Βρήκα '+
+      items.length+
+      ' προϊόντα.';
 
-  renderVoicePantryPreview(items);
-  try{
-  recognition.stop();
-}catch(e){}
-};
+    renderVoicePantryPreview(
+      items
+    );
+
+
+    /*
+      Μόλις πάρουμε αποτέλεσμα,
+      απελευθερώνουμε αμέσως
+      το μικρόφωνο.
+    */
+
+    if(
+      activeVoiceRecognition===
+      recognition
+    ){
+      activeVoiceRecognition=null;
+    }
+
+    try{
+      recognition.abort();
+    }catch(e){}
+
+    resetPantryVoiceButton();
+  };
 
 
   recognition.onerror=(event)=>{
 
-    console.error(event);
+    console.log(
+      'Voice error:',
+      event.error
+    );
 
-    status.textContent=
-      '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
+    if(
+      activeVoiceRecognition===
+      recognition
+    ){
+      activeVoiceRecognition=null;
+    }
+
+    try{
+      recognition.abort();
+    }catch(e){}
+
+    resetPantryVoiceButton();
+
+
+    if(
+      event.error!=='aborted'
+    ){
+      status.textContent=
+        '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
+    }
   };
 
 
- recognition.onend=()=>{
+  recognition.onend=()=>{
 
-  if(
-    activePantryRecognition===
-    recognition
-  ){
-    activePantryRecognition=null;
+    /*
+      Καθαρίζουμε μόνο αν αυτό είναι
+      ακόμη το ενεργό recognition.
+    */
+
+    if(
+      activeVoiceRecognition===
+      recognition
+    ){
+      activeVoiceRecognition=null;
+    }
+
+    resetPantryVoiceButton();
+  };
+
+
+  try{
+
+    recognition.start();
+
+  }catch(e){
+
+    console.log(
+      'Speech start error:',
+      e
+    );
+
+    activeVoiceRecognition=null;
+
+    resetPantryVoiceButton();
+
+    status.textContent=
+      '⚠️ Το μικρόφωνο δεν άνοιξε. Πάτησε ξανά.';
   }
-
-  btn.textContent=
-    '🎤 Προσθήκη με φωνή';
-
-  btn.disabled=false;
-};
-
-
-  recognition.start();
 }
  function addIng(){
    const name=$('ing').value.trim();if(!name)return;
