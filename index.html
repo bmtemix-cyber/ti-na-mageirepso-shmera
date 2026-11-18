@@ -4533,111 +4533,242 @@ dislikes:$('memberDislikes').value.trim()
 
 
 function replaceGreekNumbers(text){
+  const map={
+    'μισό':'0.5',
+    'μισο':'0.5',
+    'μισή':'0.5',
+    'μιση':'0.5',
 
-  return String(text || '')
-    .replace(/\b(μισό|μισο|μισή|μιση)\b/gi,'0.5')
-    .replace(/\b(ένα|ενα|ένας|ενας|μία|μια)\b/gi,'1')
-    .replace(/\b(δύο|δυο)\b/gi,'2')
-    .replace(/\b(τρία|τρια|τρεις)\b/gi,'3')
-    .replace(/\b(τέσσερα|τεσσερα|τέσσερις|τεσσερις)\b/gi,'4')
-    .replace(/\b(πέντε|πεντε)\b/gi,'5')
-    .replace(/\b(έξι|εξι)\b/gi,'6')
-    .replace(/\b(επτά|επτα|εφτά|εφτα)\b/gi,'7')
-    .replace(/\b(οκτώ|οκτω)\b/gi,'8')
-    .replace(/\b(εννέα|εννεα|εννιά|εννια)\b/gi,'9')
-    .replace(/\b(δέκα|δεκα)\b/gi,'10');
+    'ένα':'1',
+    'ενα':'1',
+    'ένας':'1',
+    'ενας':'1',
+    'μία':'1',
+    'μια':'1',
+
+    'δύο':'2',
+    'δυο':'2',
+
+    'τρία':'3',
+    'τρια':'3',
+    'τρεις':'3',
+
+    'τέσσερα':'4',
+    'τεσσερα':'4',
+    'τέσσερις':'4',
+    'τεσσερις':'4',
+
+    'πέντε':'5',
+    'πεντε':'5',
+
+    'έξι':'6',
+    'εξι':'6',
+
+    'επτά':'7',
+    'επτα':'7',
+    'εφτά':'7',
+    'εφτα':'7',
+
+    'οκτώ':'8',
+    'οκτω':'8',
+
+    'εννέα':'9',
+    'εννεα':'9',
+    'εννιά':'9',
+    'εννια':'9',
+
+    'δέκα':'10',
+    'δεκα':'10'
+  };
+
+  const re=
+    /(^|[\s,;:])((?:μισό|μισο|μισή|μιση|ένα|ενα|ένας|ενας|μία|μια|δύο|δυο|τρία|τρια|τρεις|τέσσερα|τεσσερα|τέσσερις|τεσσερις|πέντε|πεντε|έξι|εξι|επτά|επτα|εφτά|εφτα|οκτώ|οκτω|εννέα|εννεα|εννιά|εννια|δέκα|δεκα))(?=$|[\s,;:.!?])/gi;
+
+  return String(text || '').replace(
+    re,
+    (full,before,word)=>
+      before+map[word.toLowerCase()]
+  );
+}
+
+
+function normalizeVoiceUnit(unit){
+  const u=
+    String(unit || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .trim();
+
+  if(
+    u==='κιλα' ||
+    u==='κιλο' ||
+    u==='kg'
+  ){
+    return 'kg';
+  }
+
+  if(
+    u.startsWith('γραμμα') ||
+    u==='γρ' ||
+    u==='g'
+  ){
+    return 'g';
+  }
+
+  if(
+    u==='λιτρα' ||
+    u==='λιτρο' ||
+    u==='l'
+  ){
+    return 'L';
+  }
+
+  if(u==='ml'){
+    return 'ml';
+  }
+
+  if(
+    u.startsWith('τεμαχ') ||
+    u==='τεμ' ||
+    u==='τεμ.'
+  ){
+    return 'τεμ.';
+  }
+
+  if(u.startsWith('πακετ')){
+    return 'πακ.';
+  }
+
+  return unit;
 }
 
 
 function parseVoicePantry(text){
 
-  let clean=String(text || '')
-    .toLowerCase()
-    .replace(/[.;!?]/g,',')
-    .trim();
-
-
-  clean=clean.replace(
-    /^(ναι\s+)?(θέλω\s+να\s+βάλω|θελω\s+να\s+βαλω|βάλε|βαλε|βάλω|βαλω|έχω|εχω|αγόρασα|αγορασα)\s+/i,
-    ''
-  );
-
+  let clean=
+    String(text || '')
+      .toLowerCase()
+      .replace(/[.!?]/g,',')
+      .replace(/\s+/g,' ')
+      .trim();
 
   clean=replaceGreekNumbers(clean);
 
+  const unitPattern=
+    'κιλά|κιλα|κιλό|κιλο|kg|'+
+    'γραμμάρια|γραμμαρια|γραμμάριο|γραμμαριο|γρ|g|'+
+    'λίτρα|λιτρα|λίτρο|λιτρο|l|ml|'+
+    'τεμάχια|τεμαχια|τεμάχιο|τεμαχιο|τεμ\\.?|'+
+    'πακέτα|πακετα|πακέτο|πακετο';
 
-  const parts=clean
-    .split(/\s*,\s*|\s+και\s+/)
-    .map(x=>x.trim())
-    .filter(Boolean);
+  /*
+    Βρίσκει κάθε:
+    ποσότητα + μονάδα + προϊόν
 
+    Δεν εξαρτάται πλέον από το "και".
+  */
+
+  const re=
+    new RegExp(
+      '(\\d+(?:[.,]\\d+)?)'+
+      '\\s*('+
+        unitPattern+
+      ')\\s+'+
+      '(.+?)'+
+      '(?='+
+        '\\s*'+
+        '(?:(?:,|;)|και)?'+
+        '\\s*'+
+        '\\d+(?:[.,]\\d+)?'+
+        '\\s*(?:'+unitPattern+')'+
+        '\\s+'+
+        '|$'+
+      ')',
+      'gi'
+    );
+
+  const items=[];
+
+  let match;
+
+  while(
+    (match=re.exec(clean))!==null
+  ){
+
+    const amount=
+      match[1]
+        .replace(',','.');
+
+    const unit=
+      normalizeVoiceUnit(
+        match[2]
+      );
+
+    const name=
+      match[3]
+        .replace(/[;,\s]+$/g,'')
+        .trim();
+
+    if(!name){
+      continue;
+    }
+
+    items.push({
+      name:name,
+      qty:amount+' '+unit
+    });
+  }
+
+
+  /*
+    Αν βρήκαμε προϊόντα με μονάδες,
+    επιστρέφουμε όλα όσα βρήκαμε.
+  */
+
+  if(items.length){
+    return items;
+  }
+
+
+  /*
+    Εναλλακτικά:
+    "6 αυγά και 3 ντομάτες"
+
+    θεωρούνται τεμάχια.
+  */
+
+  const parts=
+    clean
+      .split(
+        /\s*,\s*|\s+και\s+/
+      )
+      .map(x=>x.trim())
+      .filter(Boolean);
 
   return parts.map(part=>{
 
-    const match=part.match(
-      /^(\d+(?:[.,]\d+)?)\s*(κιλά|κιλα|κιλό|κιλο|kg|γραμμάρια|γραμμαρια|γραμμάριο|γραμμαριο|γρ|g|λίτρα|λιτρα|λίτρο|λιτρο|l|ml|τεμάχια|τεμαχια|τεμάχιο|τεμαχιο|τεμ)?\s+(.+)$/i
-    );
-
+    const match=
+      part.match(
+        /^(\d+(?:[.,]\d+)?)\s+(.+)$/i
+      );
 
     if(!match){
-
       return {
         name:part,
         qty:''
       };
     }
 
-
-    const amount=
-      match[1].replace(',','.');
-
-    const unit=
-      (match[2] || '').toLowerCase();
-
-    const name=
-      match[3].trim();
-
-
-    let finalUnit='τεμ.';
-
-    if(
-      unit==='κιλά' ||
-      unit==='κιλα' ||
-      unit==='κιλό' ||
-      unit==='κιλο' ||
-      unit==='kg'
-    ){
-      finalUnit='kg';
-    }
-
-    else if(
-      unit.includes('γραμμ') ||
-      unit==='γρ' ||
-      unit==='g'
-    ){
-      finalUnit='g';
-    }
-
-    else if(
-      unit==='λίτρα' ||
-      unit==='λιτρα' ||
-      unit==='λίτρο' ||
-      unit==='λιτρο' ||
-      unit==='l'
-    ){
-      finalUnit='L';
-    }
-
-    else if(unit==='ml'){
-      finalUnit='ml';
-    }
-
-
     return {
-      name:name,
-      qty:amount+' '+finalUnit
-    };
+      name:
+        match[2].trim(),
 
+      qty:
+        match[1]
+          .replace(',','.')+
+        ' τεμ.'
+    };
   });
 }
 
@@ -5240,16 +5371,20 @@ function addOrMergePantryItem(item){
   };
 
 
-  recognition.onresult=(event)=>{
+recognition.onresult=(event)=>{
 
   const text=
     event.results[0][0].transcript;
 
-  status.textContent=
-    '🎤 Άκουσα: '+text;
-
   const items=
     parseVoicePantry(text);
+
+  status.textContent=
+    '🎤 Άκουσα: '+
+    text+
+    ' — Βρήκα '+
+    items.length+
+    ' προϊόντα.';
 
   renderVoicePantryPreview(items);
 };
