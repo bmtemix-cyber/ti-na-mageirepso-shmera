@@ -906,6 +906,11 @@
 const result=
   parseLearnVoice(text);
 
+  window.learnVoiceFoods=
+  result.foods;
+
+window.learnVoiceDate=
+  result.date;    
 
 status.textContent=
   '✅ Σε κατάλαβα.';
@@ -930,10 +935,73 @@ if(result.type){
 
 if(result.meal){
 
-  $('mealName').value=
-    result.meal;
+$('mealName').value=
+  result.foods.join(' + ');
 
-  autoCategory();
+
+/*
+  Αν υπάρχει το πεδίο ημερομηνίας
+  της εφαρμογής, το ενημερώνουμε.
+*/
+
+if($('mealDate')){
+
+  $('mealDate').value=
+    result.date;
+}
+
+
+/*
+  Κατηγορίες από ΟΛΑ
+  τα ξεχωριστά πιάτα.
+*/
+
+const allCats=[];
+
+
+result.foods.forEach(food=>{
+
+  const detected=
+    detect(food);
+
+
+  const cats=
+    Array.isArray(detected)
+      ? detected
+      : (detected ? [detected] : []);
+
+
+  cats.forEach(cat=>{
+
+    if(!allCats.includes(cat)){
+      allCats.push(cat);
+    }
+
+  });
+
+});
+
+
+document
+  .querySelectorAll(
+    '#cat input[type="checkbox"]'
+  )
+  .forEach(box=>{
+
+    box.checked=
+      allCats.includes(
+        box.value
+      );
+  });
+
+
+$('hint').textContent=
+  allCats.length
+    ? '✨ Αναγνώρισα: '+
+      allCats
+        .map(c=>labels[c]||c)
+        .join(' + ')
+    : 'Δεν είμαι σίγουρη για τις κατηγορίες.';
 }
 
 
@@ -1053,46 +1121,132 @@ if(result.meal){
 
  let activeVoiceRecognition=null;
 
- function parseLearnVoice(text){
+  function learnLocalDate(daysBack=0){
+
+  const d=new Date();
+
+  d.setDate(
+    d.getDate()-daysBack
+  );
+
+  const y=d.getFullYear();
+
+  const m=String(
+    d.getMonth()+1
+  ).padStart(2,'0');
+
+  const day=String(
+    d.getDate()
+  ).padStart(2,'0');
+
+  return y+'-'+m+'-'+day;
+}
+
+
+function splitLearnFoods(text){
 
   let clean=
     String(text || '')
       .trim();
 
+
+  /*
+    Χωρίζουμε όταν μετά το "και"
+    αρχίζει ξεχωριστό συνοδευτικό/πιάτο.
+
+    Δεν χωρίζουμε π.χ.
+    "μακαρόνια με κιμά και τυρί".
+  */
+
+  const parts=
+    clean.split(
+      /\s+και\s+(?=(?:σαλάτα|σαλατα|πατάτες|πατατες|ρύζι|ρυζι|ψωμί|ψωμι|φέτα|φετα|γιαούρτι|γιαουρτι|φρούτο|φρουτο|λαχανικά|λαχανικα|μπρόκολο|μπροκολο)\b)/i
+    );
+
+
+  return parts
+    .map(x=>x.trim())
+    .filter(Boolean);
+}
+
+function parseLearnVoice(text){
+
+  let clean=
+    String(text || '')
+      .trim();
+
+
   const lower=
     clean.toLowerCase();
 
+
+  /*
+    Ημερομηνία
+  */
+
+  let date=
+    learnLocalDate(0);
+
+
+  if(
+    lower.includes('προχθές') ||
+    lower.includes('προχτες')
+  ){
+
+    date=
+      learnLocalDate(2);
+  }
+
+  else if(
+    lower.includes('χθες')
+  ){
+
+    date=
+      learnLocalDate(1);
+  }
+
+
+  /*
+    Είδος γεύματος
+  */
 
   let type='';
 
 
   if(
     lower.includes('πρωί') ||
-    lower.includes('πρωινό')
+    lower.includes('πρωι') ||
+    lower.includes('πρωινό') ||
+    lower.includes('πρωινο')
   ){
+
     type='breakfast';
   }
 
   else if(
     lower.includes('μεσημέρι') ||
-    lower.includes('μεσημεριανό')
+    lower.includes('μεσημερι') ||
+    lower.includes('μεσημεριανό') ||
+    lower.includes('μεσημεριανο')
   ){
+
     type='lunch';
   }
 
   else if(
     lower.includes('βράδυ') ||
-    lower.includes('βραδινό')
+    lower.includes('βραδυ') ||
+    lower.includes('βραδινό') ||
+    lower.includes('βραδινο')
   ){
+
     type='dinner';
   }
 
 
   /*
-    Αφαιρούμε φράσεις όπως:
-    "σήμερα φάγαμε"
-    "χθες φάγαμε"
-    "το μεσημέρι φάγαμε"
+    Αφαιρούμε τις πληροφορίες
+    που δεν αποτελούν όνομα φαγητού.
   */
 
   let meal=
@@ -1106,17 +1260,32 @@ if(result.meal){
         ''
       )
       .replace(
-        /^(φάγαμε|φαγαμε|φάμε|φαμε|μαγειρέψαμε|μαγειρεψαμε)\s*/i,
+        /^(φάγαμε|φαγαμε|μαγειρέψαμε|μαγειρεψαμε)\s*/i,
         ''
       )
       .trim();
 
 
+  /*
+    Χωρίζουμε τα ξεχωριστά πιάτα.
+  */
+
+  const foods=
+    splitLearnFoods(meal);
+
+
   return {
+
+    date:date,
+
+    type:type,
+
     meal:meal,
-    type:type
+
+    foods:foods
+
   };
-} 
+}
 
 function closeActiveVoiceRecognition(){
 
