@@ -900,21 +900,41 @@
     recognition.onresult=(event)=>{
 
       const text=
-        event.results[0][0].transcript;
+  event.results[0][0].transcript;
 
 
-      status.textContent=
-        '✅ Σε κατάλαβα.';
+const result=
+  parseLearnVoice(text);
 
 
-      preview.classList.remove(
-        'hidden'
-      );
+status.textContent=
+  '✅ Σε κατάλαβα.';
 
 
-      preview.innerHTML=
-        '<b>🎤 Άκουσα:</b><br>'+
-        text;
+preview.classList.remove(
+  'hidden'
+);
+
+
+preview.innerHTML=
+  '<b>🎤 Άκουσα:</b><br>'+
+  text;
+
+
+if(result.type){
+
+  $('type').value=
+    result.type;
+}
+
+
+if(result.meal){
+
+  $('mealName').value=
+    result.meal;
+
+  autoCategory();
+}
 
 
       /*
@@ -1032,6 +1052,71 @@
 } 
 
  let activeVoiceRecognition=null;
+
+ function parseLearnVoice(text){
+
+  let clean=
+    String(text || '')
+      .trim();
+
+  const lower=
+    clean.toLowerCase();
+
+
+  let type='';
+
+
+  if(
+    lower.includes('πρωί') ||
+    lower.includes('πρωινό')
+  ){
+    type='breakfast';
+  }
+
+  else if(
+    lower.includes('μεσημέρι') ||
+    lower.includes('μεσημεριανό')
+  ){
+    type='lunch';
+  }
+
+  else if(
+    lower.includes('βράδυ') ||
+    lower.includes('βραδινό')
+  ){
+    type='dinner';
+  }
+
+
+  /*
+    Αφαιρούμε φράσεις όπως:
+    "σήμερα φάγαμε"
+    "χθες φάγαμε"
+    "το μεσημέρι φάγαμε"
+  */
+
+  let meal=
+    clean
+      .replace(
+        /^(σήμερα|σημερα|χθες|προχθές|προχτες)\s*/i,
+        ''
+      )
+      .replace(
+        /^(το\s+)?(πρωί|πρωι|μεσημέρι|μεσημερι|βράδυ|βραδυ)\s*/i,
+        ''
+      )
+      .replace(
+        /^(φάγαμε|φαγαμε|φάμε|φαμε|μαγειρέψαμε|μαγειρεψαμε)\s*/i,
+        ''
+      )
+      .trim();
+
+
+  return {
+    meal:meal,
+    type:type
+  };
+} 
 
 function closeActiveVoiceRecognition(){
 
