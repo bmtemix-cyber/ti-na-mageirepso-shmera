@@ -480,6 +480,27 @@
 <div class="card"><div class="row"><b>🧠 Τι έχω μάθει</b><span id="learnCount" class="small"></span></div><div id="insights"></div><div id="todaySuggestion" class="soft hidden" style="margin-top:10px"></div><button class="btn secondary" onclick="showTodaySuggestion()">⭐ Δείξε πρόταση για σήμερα</button></div></div>
 <div class="card"><div class="row"><b>🥗 Ισορροπία 7 ημερών</b><span id="weekScore" class="small"></span></div><p id="weekStatus" class="reason"></p><div id="bars"></div></div></section>
 <section id="learn" class="view"><div class="card"><h2>🧠 Μάθε με</h2>
+
+<button
+  type="button"
+  class="btn secondary"
+  onclick="startLearnVoice()"
+>
+  🎤 Καταχώριση με φωνή
+</button>
+
+<div
+  id="learnVoiceStatus"
+  class="small"
+  style="margin-top:8px"
+></div>
+
+<div
+  id="learnVoicePreview"
+  class="soft hidden"
+  style="margin-top:10px"
+></div>
+  
 <div class="field">
   <label>Ημερομηνία γεύματος</label>
  <input
@@ -813,6 +834,202 @@
   'Ψαρόσουπα': 'images/psarosoupa.jpg',
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
+
+ function startLearnVoice(){
+
+  const status=
+    $('learnVoiceStatus');
+
+  const preview=
+    $('learnVoicePreview');
+
+  const SpeechRecognition=
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+
+  if(!SpeechRecognition){
+
+    status.textContent=
+      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.';
+
+    return;
+  }
+
+
+  /*
+    Δεν ανοίγουμε δεύτερη αναγνώριση
+    αν υπάρχει ήδη ενεργή.
+  */
+
+  if(activeVoiceRecognition){
+
+    status.textContent=
+      '⏳ Περίμενε λίγο να κλείσει το μικρόφωνο.';
+
+    return;
+  }
+
+
+  const startListening=()=>{
+
+    const recognition=
+      new SpeechRecognition();
+
+
+    activeVoiceRecognition=
+      recognition;
+
+
+    recognition.lang='el-GR';
+
+    recognition.interimResults=false;
+
+    recognition.continuous=false;
+
+    recognition.maxAlternatives=1;
+
+
+    recognition.onstart=()=>{
+
+      status.textContent=
+        '🔴 Σε ακούω...';
+    };
+
+
+    recognition.onresult=(event)=>{
+
+      const text=
+        event.results[0][0].transcript;
+
+
+      status.textContent=
+        '✅ Σε κατάλαβα.';
+
+
+      preview.classList.remove(
+        'hidden'
+      );
+
+
+      preview.innerHTML=
+        '<b>🎤 Άκουσα:</b><br>'+
+        text;
+
+
+      /*
+        Δεν κάνουμε stop ή abort.
+        Αφήνουμε το Safari
+        να κλείσει φυσιολογικά.
+      */
+    };
+
+
+    recognition.onerror=(event)=>{
+
+      console.log(
+        'Learn voice error:',
+        event.error
+      );
+
+
+      if(
+        activeVoiceRecognition===
+        recognition
+      ){
+        activeVoiceRecognition=null;
+      }
+
+
+      if(event.error!=='aborted'){
+
+        status.textContent=
+          '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
+      }
+    };
+
+
+    recognition.onend=()=>{
+
+      if(
+        activeVoiceRecognition===
+        recognition
+      ){
+        activeVoiceRecognition=null;
+      }
+    };
+
+
+    try{
+
+      recognition.start();
+
+    }catch(e){
+
+      console.log(
+        'Learn voice start error:',
+        e
+      );
+
+      activeVoiceRecognition=null;
+
+      status.textContent=
+        '⚠️ Το μικρόφωνο δεν άνοιξε.';
+    }
+  };
+
+
+  /*
+    Το workaround που ήδη
+    δουλεύει σωστά στο iPhone.
+  */
+
+  if(
+    'speechSynthesis' in window &&
+    'SpeechSynthesisUtterance' in window
+  ){
+
+    window.speechSynthesis.cancel();
+
+
+    const prompt=
+      new SpeechSynthesisUtterance(
+        'Πες μου τι φάγατε'
+      );
+
+
+    prompt.lang='el-GR';
+
+    prompt.rate=0.72;
+
+
+    prompt.onend=()=>{
+
+      setTimeout(
+        startListening,
+        200
+      );
+    };
+
+
+    prompt.onerror=()=>{
+
+      setTimeout(
+        startListening,
+        200
+      );
+    };
+
+
+    window.speechSynthesis.speak(
+      prompt
+    );
+
+  }else{
+
+    startListening();
+  }
+} 
 
  let activeVoiceRecognition=null;
 
