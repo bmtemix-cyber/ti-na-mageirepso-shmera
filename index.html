@@ -5491,19 +5491,49 @@ function startPantryVoice(){
     const text=
       event.results[0][0].transcript;
 
-    const items=
-      parseVoicePantry(text);
+   const items=
+  parseVoicePantry(text);
 
 
-    status.textContent=
-      '🎤 Άκουσα: '+
-      text+
-      ' — Βρήκα '+
-      items.length+
-      ' προϊόντα.';
+/*
+  Κρατάμε όσα προϊόντα υπάρχουν ήδη
+  στο πινακάκι, μαζί με τυχόν διορθώσεις
+  που έχει κάνει ο χρήστης.
+*/
+
+const previousItems=
+  voicePantryItems.map((item,i)=>({
+
+    name:
+      $('voiceName'+i)
+        ? $('voiceName'+i).value.trim()
+        : item.name,
+
+    qty:
+      $('voiceQty'+i)
+        ? $('voiceQty'+i).value.trim()
+        : item.qty
+
+  }));
 
 
-    renderVoicePantryPreview(items);
+const allItems=[
+  ...previousItems,
+  ...items
+];
+
+
+status.textContent=
+  '🎤 Άκουσα: '+
+  text+
+  ' — Πρόσθεσα '+
+  items.length+
+  ' προϊόντα.';
+
+
+renderVoicePantryPreview(
+  allItems
+);
 
 
     /*
@@ -5603,13 +5633,13 @@ function startPantryVoice(){
 
     const prompt=
       new SpeechSynthesisUtterance(
-        'Πες τα προϊόντα'
+        'Πολή καλά πες τα προϊόντα'
       );
 
 
     prompt.lang='el-GR';
 
-    prompt.rate=1.1;
+    prompt.rate=0.75;
 
 
     prompt.onend=()=>{
