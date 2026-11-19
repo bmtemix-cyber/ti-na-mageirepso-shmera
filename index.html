@@ -906,22 +906,8 @@ function startLearnVoice(){
 try{
 
   result=
-    parseLearnVoice(text);
-
-  alert(
-    'Το parse δούλεψε: '+
-    JSON.stringify(result)
-  );
-
-}catch(e){
-
-  alert(
-    'Λάθος στο parse: '+
-    e.message
-  );
-
-  return;
-}
+ const result=
+  parseLearnVoice(text);
 
       /*
         Κρατάμε τα ξεχωριστά φαγητά
@@ -1007,6 +993,13 @@ try{
         learnCatsFromFoods(
           result.foods
         );
+
+      alert(
+  'FOODS: '+
+  JSON.stringify(result.foods)+
+  '\n\nCATS: '+
+  JSON.stringify(allCats)
+);
 
 
       document
