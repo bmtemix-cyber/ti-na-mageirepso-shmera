@@ -1285,22 +1285,25 @@ function parseLearnVoice(text){
     learnLocalDate(0);
 
 
-  if(
-    lower.includes('προχθές') ||
-    lower.includes('προχτες')
-  ){
+ if(
+  lower.includes('προχθές') ||
+  lower.includes('προχθες') ||
+  lower.includes('προχτές') ||
+  lower.includes('προχτες')
+){
 
-    date=
-      learnLocalDate(2);
-  }
+  date=
+    learnLocalDate(2);
+}
 
-  else if(
-    lower.includes('χθες')
-  ){
+else if(
+  lower.includes('χθες') ||
+  lower.includes('χτες')
+){
 
-    date=
-      learnLocalDate(1);
-  }
+  date=
+    learnLocalDate(1);
+}
 
 
   /*
@@ -1349,9 +1352,9 @@ function parseLearnVoice(text){
   let meal=
     clean
       .replace(
-        /^(σήμερα|σημερα|χθες|προχθές|προχτες)\s*/i,
-        ''
-      )
+  /^(σήμερα|σημερα|χθες|χτες|προχθές|προχθες|προχτές|προχτες)\s*/i,
+  ''
+)
       .replace(
         /^(το\s+)?(πρωί|πρωι|μεσημέρι|μεσημερι|βράδυ|βραδυ)\s*/i,
         ''
