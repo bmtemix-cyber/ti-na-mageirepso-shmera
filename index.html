@@ -1145,28 +1145,59 @@ $('hint').textContent=
 
 function splitLearnFoods(text){
 
-  let clean=
+  const clean=
     String(text || '')
+      .replace(/\s+/g,' ')
       .trim();
 
+  if(!clean){
+    return [];
+  }
 
-  /*
-    Χωρίζουμε όταν μετά το "και"
-    αρχίζει ξεχωριστό συνοδευτικό/πιάτο.
 
-    Δεν χωρίζουμε π.χ.
-    "μακαρόνια με κιμά και τυρί".
-  */
+  const sideFoods=
+    'σαλάτα|σαλατα|'+
+    'πατάτες|πατατες|'+
+    'ρύζι|ρυζι|'+
+    'πουρές|πουρες|'+
+    'ψωμί|ψωμι|'+
+    'φέτα|φετα|'+
+    'γιαούρτι|γιαουρτι|'+
+    'φρούτο|φρουτο|'+
+    'φρούτα|φρουτα|'+
+    'λαχανικά|λαχανικα|'+
+    'μπρόκολο|μπροκολο|'+
+    'χόρτα|χορτα';
 
-  const parts=
-    clean.split(
-      /\s+και\s+(?=(?:σαλάτα|σαλατα|πατάτες|πατατες|ρύζι|ρυζι|ψωμί|ψωμι|φέτα|φετα|γιαούρτι|γιαουρτι|φρούτο|φρουτο|λαχανικά|λαχανικα|μπρόκολο|μπροκολο)\b)/i
+
+  const separator=
+    new RegExp(
+      '\\s+(?:με|και)\\s+(?=(?:'+
+      sideFoods+
+      ')\\b)',
+      'gi'
     );
 
 
-  return parts
-    .map(x=>x.trim())
-    .filter(Boolean);
+  const firstParts=
+    clean.split(/\s*\+\s*/);
+
+
+  const foods=[];
+
+
+  firstParts.forEach(part=>{
+
+    part
+      .split(separator)
+      .map(x=>x.trim())
+      .filter(Boolean)
+      .forEach(x=>foods.push(x));
+
+  });
+
+
+  return foods;
 }
 
 function parseLearnVoice(text){
@@ -2415,7 +2446,7 @@ const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά'
     ['vegetables',['μπριαμ','μπαμι','φασολακ','λαδερο','σαλατ','κολοκυθ','μελιτζ','ντοματ','πατατ']],
     ['legumes',['φακ','ρεβιθ','φασολ','γιγαντ','οσπρ']],
     ['fruit',['μηλ','μπανα','πορτοκαλ','καρπουζ','πεπον','φρουτ','αχλαδ','ροδακιν']],
-    ['pasta',['μακαρον','ζυμαρ','σπαγγετ','πεννε','πέννε','ταλιατελ','κριθαρακ','λαζαν','τορτελιν','ραβιολ']]
+    ['pasta',['μακαρον','παστι','κανελον','ζυμαρ','σπαγγετ','πεννε','πέννε','ταλιατελ','κριθαρακ','λαζαν','τορτελιν','ραβιολ']]
   ];
   return rules.filter(([c,arr])=>arr.some(x=>t.includes(x))).map(([c])=>c);
 }
@@ -2515,74 +2546,290 @@ async  function suggestRecipe(){
 }
  function useRecipe(){if(!window.foundRecipe)return;$('recipe').value=window.foundRecipe.ingredients.join('\n')+'\n\nΟδηγίες:\n'+window.foundRecipe.instructions}
  function saveMeal(){
-  const mealName=$('mealName').value.trim();
+
+  const mealName=
+    $('mealName').value.trim();
+
+
   if(!mealName){
-    $('saveStatus').textContent='⚠️ Γράψε πρώτα το γεύμα.';
+
+    $('saveStatus').textContent=
+      '⚠️ Γράψε πρώτα το γεύμα.';
+
     return;
   }
 
-  const cats=[...document.querySelectorAll('#cat input[type="checkbox"]:checked')].map(x=>x.value);
+
+  /*
+    Αν το γεύμα προήλθε από φωνή,
+    χρησιμοποιούμε τα πιάτα που
+    ήδη αναγνωρίστηκαν.
+
+    Διαφορετικά τα χωρίζουμε τώρα.
+  */
+
+  let foods=
+    Array.isArray(window.learnVoiceFoods) &&
+    window.learnVoiceFoods.length
+      ? window.learnVoiceFoods
+      : splitLearnFoods(mealName);
+
+
+  foods=
+    foods
+      .map(x=>String(x).trim())
+      .filter(Boolean);
+
+
+  if(!foods.length){
+
+    foods=[mealName];
+  }
+
+
+  /*
+    Βρίσκουμε αυτόματα τις κατηγορίες
+    από ΟΛΑ τα επιμέρους φαγητά.
+  */
+
+  const autoCats=[];
+
+
+  foods.forEach(food=>{
+
+    const detected=
+      detect(food);
+
+
+    const foodCats=
+      Array.isArray(detected)
+        ? detected
+        : (detected ? [detected] : []);
+
+
+    foodCats.forEach(cat=>{
+
+      if(!autoCats.includes(cat)){
+        autoCats.push(cat);
+      }
+
+    });
+
+  });
+
+
+  /*
+    Κρατάμε επίσης τυχόν κατηγορίες
+    που επέλεξε χειροκίνητα ο χρήστης.
+  */
+
+  const manualCats=
+    [...document.querySelectorAll(
+      '#cat input[type="checkbox"]:checked'
+    )]
+    .map(x=>x.value);
+
+
+  const cats=
+    [...new Set([
+      ...autoCats,
+      ...manualCats
+    ])];
+
 
   if(!cats.length){
-    $('saveStatus').textContent='⚠️ Διάλεξε τουλάχιστον μία κατηγορία.';
+
+    $('saveStatus').textContent=
+      '⚠️ Δεν βρήκα κατηγορία τροφίμων.';
+
     return;
   }
 
+
   s.history.push({
-    date:$('mealDate').value || new Date().toISOString().slice(0,10),
-    type:$('type').value,
-    name:mealName,
-    cats:cats,
-    cat:cats[0],
-    recipe:$('recipe').value.trim(),
-    rating:Number($('rating').value)
+
+    date:
+      $('mealDate').value ||
+      new Date().toISOString().slice(0,10),
+
+    type:
+      $('type').value,
+
+    /*
+      Ολόκληρο το γεύμα για εμφάνιση.
+    */
+
+    name:
+      mealName,
+
+    /*
+      Ξεχωριστά φαγητά για μάθηση.
+    */
+
+    foods:
+      foods,
+
+    cats:
+      cats,
+
+    cat:
+      cats[0],
+
+    recipe:
+      $('recipe').value.trim(),
+
+    rating:
+      Number($('rating').value)
+
   });
+
 
   save();
 
+
+  /*
+    Καθαρισμός μετά την αποθήκευση.
+  */
+
+  window.learnVoiceFoods=[];
+
+  window.learnVoiceDate=null;
+
+
   $('mealName').value='';
+
   $('recipe').value='';
+
   $('hint').textContent='';
-  document.querySelectorAll('#cat input[type="checkbox"]').forEach(x=>x.checked=false);
-  $('saveStatus').textContent='✅ Το γεύμα καταγράφηκε.';
+
+
+  document
+    .querySelectorAll(
+      '#cat input[type="checkbox"]'
+    )
+    .forEach(x=>x.checked=false);
+
+
+  $('saveStatus').textContent=
+    '✅ Το γεύμα καταγράφηκε.';
+
+
   render();
+
   show('learn');
 }
-  function preferenceStats(){
+ function preferenceStats(){
+
   const meals={};
 
+
   s.history.forEach(h=>{
-    const name=(h.name||'').trim();
-    if(!name)return;
 
-    const key=name.toLowerCase();
+    /*
+      Νέες καταχωρίσεις:
+      χρησιμοποιούν το foods[].
 
-    if(!meals[key]){
-      meals[key]={
-        name:name,
-        total:0,
-        count:0,
-        cats:new Set()
-      };
+      Παλιές καταχωρίσεις:
+      προσπαθούμε να τις χωρίσουμε
+      από το παλιό name.
+    */
+
+    let foods=
+      Array.isArray(h.foods) &&
+      h.foods.length
+        ? h.foods
+        : splitLearnFoods(
+            h.name || ''
+          );
+
+
+    if(!foods.length){
+      return;
     }
 
-    meals[key].total+=Number(h.rating||3);
-    meals[key].count++;
 
-    const cats=Array.isArray(h.cats)&&h.cats.length
-      ? h.cats
-      : (h.cat?[h.cat]:[]);
+    foods.forEach(food=>{
 
-    cats.forEach(c=>meals[key].cats.add(c));
+      const name=
+        String(food || '')
+          .trim();
+
+
+      if(!name){
+        return;
+      }
+
+
+      const key=
+        name
+          .toLowerCase()
+          .trim();
+
+
+      if(!meals[key]){
+
+        meals[key]={
+
+          name:name,
+
+          total:0,
+
+          count:0,
+
+          cats:new Set()
+
+        };
+
+      }
+
+
+      meals[key].total+=
+        Number(h.rating || 3);
+
+
+      meals[key].count++;
+
+
+      /*
+        Κατηγορία ειδικά
+        αυτού του φαγητού.
+      */
+
+      const detected=
+        detect(name);
+
+
+      const foodCats=
+        Array.isArray(detected)
+          ? detected
+          : (detected ? [detected] : []);
+
+
+      foodCats.forEach(cat=>
+        meals[key].cats.add(cat)
+      );
+
+    });
+
   });
 
-  return Object.values(meals).map(m=>({
-    name:m.name,
-    count:m.count,
-    average:m.total/m.count,
-    cats:[...m.cats]
-  }));
-} 
+
+  return Object
+    .values(meals)
+    .map(m=>({
+
+      name:m.name,
+
+      count:m.count,
+
+      average:
+        m.total/m.count,
+
+      cats:
+        [...m.cats]
+
+    }));
+}
   function categoryPreferenceStats(){
   const stats={};
 
