@@ -899,7 +899,6 @@ function startLearnVoice(){
       const text=
         event.results[0][0].transcript;
 
-      alert('Άκουσα: '+text);
 
 
       let result;
@@ -1247,6 +1246,26 @@ function splitLearnFoods(text){
   return cats;
 } 
 
+ function learnLocalDate(daysBack=0){
+
+  const d=new Date();
+
+  d.setDate(
+    d.getDate()-daysBack
+  );
+
+  const y=d.getFullYear();
+
+  const m=String(
+    d.getMonth()+1
+  ).padStart(2,'0');
+
+  const day=String(
+    d.getDate()
+  ).padStart(2,'0');
+
+  return y+'-'+m+'-'+day;
+} 
 function parseLearnVoice(text){
 
   let clean=
