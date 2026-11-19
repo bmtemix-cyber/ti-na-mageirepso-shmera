@@ -4365,59 +4365,590 @@ function toggleMealStats(){
   save();
   renderFamily();
 }
-  function showAddMember(){
+ let familyVoiceStep=0;
+
+let familyVoiceDraft={
+  likes:'',
+  dislikes:'',
+  name:'',
+  age:'',
+  sex:'',
+  height:'',
+  weight:''
+};
+
+
+const familyVoiceQuestions=[
+
+  {
+    key:'likes',
+    text:'Ποιο είναι το αγαπημένο φαγητό του μέλους;'
+  },
+
+  {
+    key:'dislikes',
+    text:'Ποιο φαγητό δεν προτιμά το μέλος;'
+  },
+
+  {
+    key:'name',
+    text:'Ποιο είναι το όνομα του μέλους;'
+  },
+
+  {
+    key:'age',
+    text:'Πόσων ετών είναι;'
+  },
+
+  {
+    key:'sex',
+    text:'Ποιο είναι το φύλο του μέλους; Πες άνδρας, γυναίκα ή άλλο.'
+  },
+
+  {
+    key:'height',
+    text:'Ποιο είναι το ύψος του σε εκατοστά;'
+  },
+
+  {
+    key:'weight',
+    text:'Ποιο είναι το βάρος του σε κιλά;'
+  }
+
+];
+
+
+function showAddMember(){
+
   const box=$('memberEditor');
 
   box.classList.remove('hidden');
 
+
+  familyVoiceStep=0;
+
+  familyVoiceDraft={
+    likes:'',
+    dislikes:'',
+    name:'',
+    age:'',
+    sex:'',
+    height:'',
+    weight:''
+  };
+
+
   box.innerHTML=
-    '<div class="field">'+
-  '<label>❤️ Αγαπημένα φαγητά</label>'+
-  '<textarea id="memberLikes" placeholder="π.χ. Μακαρόνια, κοτόπουλο, παστίτσιο"></textarea>'+
-'</div>'+
-
-'<div class="field">'+
-  '<label>🚫 Φαγητά που δεν προτιμά</label>'+
-  '<textarea id="memberDislikes" placeholder="π.χ. Μανιτάρια, φακές"></textarea>'+
-'</div>'+
     '<div class="soft">'+
-      '<b>➕ Νέο μέλος</b>'+
 
-      '<div class="field">'+
-        '<label>Όνομα</label>'+
-        '<input id="memberName" placeholder="π.χ. Γιώργος">'+
+      '<b>🎤 Προσθήκη νέου μέλους</b>'+
+
+      '<div id="familyVoiceQuestion" '+
+        'style="margin-top:12px;font-weight:700">'+
       '</div>'+
 
-      '<div class="field">'+
-        '<label>Ηλικία</label>'+
-        '<input id="memberAge" type="number" min="0" max="120">'+
+      '<div id="familyVoiceStatus" '+
+        'class="small" '+
+        'style="margin-top:8px">'+
+        'Ξεκινά η φωνητική συμπλήρωση...'+
       '</div>'+
 
-      '<div class="field">'+
-        '<label>Φύλο</label>'+
-        '<select id="memberSex">'+
-          '<option value="">—</option>'+
-          '<option value="Άνδρας">Άνδρας</option>'+
-          '<option value="Γυναίκα">Γυναίκα</option>'+
-          '<option value="Άλλο">Άλλο</option>'+
-        '</select>'+
-      '</div>'+
-
-      '<div class="field">'+
-        '<label>Ύψος (cm)</label>'+
-        '<input id="memberHeight" type="number" min="50" max="250">'+
-      '</div>'+
-
-      '<div class="field">'+
-        '<label>Βάρος (kg)</label>'+
-        '<input id="memberWeight" type="number" min="10" max="300" step="0.1">'+
-      '</div>'+
-
-      '<button class="btn primary" onclick="saveFamilyMember()">'+
-        '💾 Αποθήκευση μέλους'+
+      '<button '+
+        'type="button" '+
+        'class="btn secondary" '+
+        'onclick="repeatFamilyVoiceQuestion()">'+
+        '🔁 Επανάληψη ερώτησης'+
       '</button>'+
+
+      '<div id="familyVoiceReview"></div>'+
+
     '</div>';
-} 
+
+
+  setTimeout(
+    askFamilyVoiceQuestion,
+    500
+  );
+}
+
+function normalizeFamilyVoiceText(text){
+
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .trim();
+}
+
+
+function familyGreekNumber(text){
+
+  const t=
+    normalizeFamilyVoiceText(text);
+
+
+  const digit=
+    t.match(/\d+(?:[.,]\d+)?/);
+
+  if(digit){
+    return Number(
+      digit[0].replace(',','.')
+    );
+  }
+
+
+  const numbers={
+
+    'ενα':1,
+    'μια':1,
+    'ενας':1,
+    'δυο':2,
+    'τρια':3,
+    'τρεις':3,
+    'τεσσερα':4,
+    'τεσσερις':4,
+    'πεντε':5,
+    'εξι':6,
+    'επτα':7,
+    'εφτα':7,
+    'οκτω':8,
+    'εννεα':9,
+    'εννια':9,
+
+    'δεκα':10,
+    'εντεκα':11,
+    'δωδεκα':12,
+    'δεκατρια':13,
+    'δεκατεσσερα':14,
+    'δεκαπεντε':15,
+    'δεκαεξι':16,
+    'δεκαεπτα':17,
+    'δεκαοκτω':18,
+    'δεκαεννεα':19,
+
+    'εικοσι':20,
+    'τριαντα':30,
+    'σαραντα':40,
+    'πενηντα':50,
+    'εξηντα':60,
+    'εβδομηντα':70,
+    'ογδοντα':80,
+    'ενενηντα':90,
+
+    'εκατο':100,
+    'εκατον':100,
+    'διακοσια':200
+  };
+
+
+  const words=
+    t.split(/\s+/);
+
+  let total=0;
+  let found=false;
+
+
+  words.forEach(word=>{
+
+    if(numbers[word]!=null){
+
+      total+=numbers[word];
+
+      found=true;
+    }
+
+  });
+
+
+  return found
+    ? total
+    : '';
+}
+
+
+function processFamilyVoiceAnswer(
+  key,
+  text
+){
+
+  if(
+    key==='age' ||
+    key==='height' ||
+    key==='weight'
+  ){
+
+    return familyGreekNumber(text);
+  }
+
+
+  if(key==='sex'){
+
+    const t=
+      normalizeFamilyVoiceText(text);
+
+
+    if(
+      t.includes('γυναικ') ||
+      t.includes('κοριτσ')
+    ){
+      return 'Γυναίκα';
+    }
+
+
+    if(
+      t.includes('ανδρα') ||
+      t.includes('ανδρ') ||
+      t.includes('αγορ')
+    ){
+      return 'Άνδρας';
+    }
+
+
+    if(t.includes('αλλο')){
+      return 'Άλλο';
+    }
+
+
+    return text.trim();
+  }
+
+
+  return text.trim();
+}
+
+  function askFamilyVoiceQuestion(){
+
+  if(
+    familyVoiceStep>=
+    familyVoiceQuestions.length
+  ){
+
+    renderFamilyVoiceReview();
+
+    return;
+  }
+
+
+  const question=
+    familyVoiceQuestions[
+      familyVoiceStep
+    ];
+
+
+  const questionBox=
+    $('familyVoiceQuestion');
+
+  const status=
+    $('familyVoiceStatus');
+
+
+  questionBox.textContent=
+    question.text;
+
+
+  status.textContent=
+    '🔊 Άκουσε την ερώτηση...';
+
+
+  /*
+    Χρησιμοποιούμε το ίδιο workaround
+    που δουλεύει ήδη στο iPhone.
+  */
+
+  const startListening=()=>{
+
+    const SpeechRecognition=
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
+
+
+    if(!SpeechRecognition){
+
+      status.textContent=
+        '⚠️ Δεν υποστηρίζεται η φωνητική αναγνώριση.';
+
+      return;
+    }
+
+
+    if(activeVoiceRecognition){
+      return;
+    }
+
+
+    const recognition=
+      new SpeechRecognition();
+
+
+    activeVoiceRecognition=
+      recognition;
+
+
+    recognition.lang='el-GR';
+
+    recognition.interimResults=false;
+
+    recognition.continuous=false;
+
+    recognition.maxAlternatives=1;
+
+
+    recognition.onstart=()=>{
+
+      status.textContent=
+        '🔴 Σε ακούω...';
+    };
+
+
+    recognition.onresult=(event)=>{
+
+      const text=
+        event.results[0][0].transcript;
+
+
+      const value=
+        processFamilyVoiceAnswer(
+          question.key,
+          text
+        );
+
+
+      familyVoiceDraft[
+        question.key
+      ]=value;
+
+
+      status.textContent=
+        '✅ Άκουσα: '+text;
+    };
+
+
+    recognition.onerror=(event)=>{
+
+      console.log(
+        'Family voice error:',
+        event.error
+      );
+
+
+      if(
+        activeVoiceRecognition===
+        recognition
+      ){
+        activeVoiceRecognition=null;
+      }
+
+
+      if(event.error!=='aborted'){
+
+        status.textContent=
+          '⚠️ Δεν κατάλαβα. Πάτησε επανάληψη.';
+      }
+    };
+
+
+    recognition.onend=()=>{
+
+      if(
+        activeVoiceRecognition===
+        recognition
+      ){
+        activeVoiceRecognition=null;
+      }
+
+
+      /*
+        Αν πήραμε απάντηση,
+        περνάμε αυτόματα
+        στην επόμενη ερώτηση.
+      */
+
+      if(
+        familyVoiceDraft[
+          question.key
+        ]!=='' &&
+        familyVoiceDraft[
+          question.key
+        ]!=null
+      ){
+
+        familyVoiceStep++;
+
+
+        setTimeout(
+          askFamilyVoiceQuestion,
+          700
+        );
+      }
+    };
+
+
+    recognition.start();
+  };
+
+
+  /*
+    Πρώτα μιλάει η εφαρμογή.
+  */
+
+  if(
+    'speechSynthesis' in window &&
+    'SpeechSynthesisUtterance' in window
+  ){
+
+    window.speechSynthesis.cancel();
+
+
+    const voice=
+      new SpeechSynthesisUtterance(
+        question.text
+      );
+
+
+    voice.lang='el-GR';
+
+    /*
+      Πιο αργή και καθαρή φωνή.
+    */
+
+    voice.rate=0.72;
+
+
+    voice.onend=()=>{
+
+      setTimeout(
+        startListening,
+        200
+      );
+    };
+
+
+    voice.onerror=()=>{
+
+      setTimeout(
+        startListening,
+        200
+      );
+    };
+
+
+    window.speechSynthesis.speak(
+      voice
+    );
+
+  }else{
+
+    startListening();
+  }
+}
+
+  function repeatFamilyVoiceQuestion(){
+
+  if(activeVoiceRecognition){
+    return;
+  }
+
+  askFamilyVoiceQuestion();
+}
+
+  function renderFamilyVoiceReview(){
+
+  const status=
+    $('familyVoiceStatus');
+
+  const box=
+    $('familyVoiceReview');
+
+
+  $('familyVoiceQuestion').textContent=
+    '✅ Ολοκληρώθηκε η φωνητική συμπλήρωση';
+
+
+  status.textContent=
+    'Έλεγξε τα στοιχεία πριν τα αποθηκεύσεις.';
+
+
+  box.innerHTML=
+
+    '<div class="field">'+
+      '<label>Όνομα</label>'+
+      '<input id="memberName" value="'+
+        (familyVoiceDraft.name||'')+
+      '">'+
+    '</div>'+
+
+    '<div class="field">'+
+      '<label>Ηλικία</label>'+
+      '<input id="memberAge" type="number" value="'+
+        (familyVoiceDraft.age||'')+
+      '">'+
+    '</div>'+
+
+    '<div class="field">'+
+      '<label>Φύλο</label>'+
+      '<select id="memberSex">'+
+
+        '<option value="">—</option>'+
+
+        '<option value="Άνδρας" '+
+          (familyVoiceDraft.sex==='Άνδρας'
+            ? 'selected'
+            : '')+
+        '>Άνδρας</option>'+
+
+        '<option value="Γυναίκα" '+
+          (familyVoiceDraft.sex==='Γυναίκα'
+            ? 'selected'
+            : '')+
+        '>Γυναίκα</option>'+
+
+        '<option value="Άλλο" '+
+          (familyVoiceDraft.sex==='Άλλο'
+            ? 'selected'
+            : '')+
+        '>Άλλο</option>'+
+
+      '</select>'+
+    '</div>'+
+
+    '<div class="field">'+
+      '<label>Ύψος (cm)</label>'+
+      '<input id="memberHeight" type="number" value="'+
+        (familyVoiceDraft.height||'')+
+      '">'+
+    '</div>'+
+
+    '<div class="field">'+
+      '<label>Βάρος (kg)</label>'+
+      '<input id="memberWeight" type="number" step="0.1" value="'+
+        (familyVoiceDraft.weight||'')+
+      '">'+
+    '</div>'+
+
+    '<div class="field">'+
+      '<label>❤️ Αγαπημένα φαγητά</label>'+
+      '<textarea id="memberLikes">'+
+        (familyVoiceDraft.likes||'')+
+      '</textarea>'+
+    '</div>'+
+
+    '<div class="field">'+
+      '<label>🚫 Φαγητά που δεν προτιμά</label>'+
+      '<textarea id="memberDislikes">'+
+        (familyVoiceDraft.dislikes||'')+
+      '</textarea>'+
+    '</div>'+
+
+    '<button '+
+      'type="button" '+
+      'class="btn primary" '+
+      'onclick="saveFamilyMember()">'+
+
+      '💾 Αποθήκευση μέλους'+
+
+    '</button>';
+}
+  
   function saveFamilyMember(){
   const name=$('memberName').value.trim();
   const age=$('memberAge').value;
