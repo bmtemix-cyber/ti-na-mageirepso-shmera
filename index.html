@@ -5424,8 +5424,6 @@ resetPantryVoiceButton();
   
 function startPantryVoice(){
 
-  closeActiveVoiceRecognition();
-
   const btn=
     $('voicePantryBtn');
 
@@ -5442,7 +5440,19 @@ function startPantryVoice(){
     status.textContent=
       '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.';
 
-    resetPantryVoiceButton();
+    return;
+  }
+
+
+  /*
+    Αν υπάρχει ήδη ενεργή αναγνώριση,
+    δεν ξεκινάμε δεύτερη πάνω της.
+  */
+
+  if(activeVoiceRecognition){
+
+    status.textContent=
+      '⏳ Περίμενε να κλείσει το προηγούμενο μικρόφωνο.';
 
     return;
   }
@@ -5484,6 +5494,7 @@ function startPantryVoice(){
     const items=
       parseVoicePantry(text);
 
+
     status.textContent=
       '🎤 Άκουσα: '+
       text+
@@ -5491,17 +5502,18 @@ function startPantryVoice(){
       items.length+
       ' προϊόντα.';
 
+
     renderVoicePantryPreview(items);
 
 
     /*
-      Ζητάμε κανονικό τερματισμό.
-      Δεν κάνουμε abort εδώ.
-    */
+      ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ ΓΙΑ iPHONE:
+      ΔΕΝ κάνουμε stop()
+      ΔΕΝ κάνουμε abort()
 
-    try{
-      recognition.stop();
-    }catch(e){}
+      Αφήνουμε το Safari να ολοκληρώσει
+      μόνο του τη συνεδρία.
+    */
   };
 
 
@@ -5512,6 +5524,7 @@ function startPantryVoice(){
       event.error
     );
 
+
     if(
       activeVoiceRecognition===
       recognition
@@ -5519,12 +5532,14 @@ function startPantryVoice(){
       activeVoiceRecognition=null;
     }
 
+
     resetPantryVoiceButton();
 
 
     if(
       event.error!=='aborted'
     ){
+
       status.textContent=
         '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
     }
@@ -5541,37 +5556,87 @@ function startPantryVoice(){
     }
 
 
-    /*
-      Περιμένουμε λίγο ώστε το Safari
-      να απελευθερώσει πραγματικά
-      το μικρόφωνο.
-    */
-
     setTimeout(()=>{
 
       resetPantryVoiceButton();
 
-    },500);
+    },300);
   };
 
 
-  try{
+  /*
+    Workaround για το bug του iOS/WebKit:
+    μιλάει για λίγο η εφαρμογή και
+    μόλις τελειώσει ξεκινά η αναγνώριση.
+  */
 
-    recognition.start();
+  const startRecognition=()=>{
 
-  }catch(e){
+    try{
 
-    console.log(
-      'Speech start error:',
-      e
+      recognition.start();
+
+    }catch(e){
+
+      console.log(
+        'Speech start error:',
+        e
+      );
+
+      activeVoiceRecognition=null;
+
+      resetPantryVoiceButton();
+
+      status.textContent=
+        '⚠️ Το μικρόφωνο δεν άνοιξε. Πάτησε ξανά.';
+    }
+  };
+
+
+  if(
+    'speechSynthesis' in window &&
+    'SpeechSynthesisUtterance' in window
+  ){
+
+    window.speechSynthesis.cancel();
+
+
+    const prompt=
+      new SpeechSynthesisUtterance(
+        'Πες τα προϊόντα'
+      );
+
+
+    prompt.lang='el-GR';
+
+    prompt.rate=1.1;
+
+
+    prompt.onend=()=>{
+
+      setTimeout(
+        startRecognition,
+        150
+      );
+    };
+
+
+    prompt.onerror=()=>{
+
+      setTimeout(
+        startRecognition,
+        150
+      );
+    };
+
+
+    window.speechSynthesis.speak(
+      prompt
     );
 
-    activeVoiceRecognition=null;
+  }else{
 
-    resetPantryVoiceButton();
-
-    status.textContent=
-      '⚠️ Το μικρόφωνο δεν άνοιξε. Πάτησε ξανά.';
+    startRecognition();
   }
 }
  function addIng(){
