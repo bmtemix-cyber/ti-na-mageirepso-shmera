@@ -2497,8 +2497,13 @@ let s=JSON.parse(localStorage.getItem('cookv2')||'null')||defaults;s.history=s.h
 const $=id=>document.getElementById(id);const save=()=>localStorage.setItem('cookv2',JSON.stringify(s));const day=x=>Math.max(0,Math.floor((new Date()-new Date(x+'T12:00:00'))/86400000));const rem=()=>Math.max(0,s.learningDays-day(s.created));
 const targets={drinks:7,eggs:3,dairy:7,sweets:2,grains:7,seafood:2,meat:3,vegetables:7,legumes:2,pasta:3,fruit:7};
 const labels={drinks:'🥤 Αναψυκτικά / Ποτά',eggs:'🥚 Αυγά',dairy:'🥛 Γαλακτοκομικά',sweets:'🍰 Γλυκά',grains:'🌾 Δημητριακά',seafood:'🐟 Θαλασσινά',meat:'🥩 Κρέατα',vegetables:'🥬 Λαχανικά',legumes:'🫘 Όσπρια',pasta:'🍝 Ζυμαρικά',fruit:'🍎 Φρούτα'};
- function detect(text){
-  const t=(text||'').toLowerCase();
+function detect(text){
+
+  const t=
+    String(text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'');
   const rules=[
     ['drinks',['αναψυκ','χυμ','κρασ','μπυρ','ποτο','καφε','τσαι']],
     ['eggs',['αυγ','ομελετ']],
