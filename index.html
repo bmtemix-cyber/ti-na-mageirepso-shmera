@@ -906,57 +906,33 @@
 const result=
   parseLearnVoice(text);
 
-  window.learnVoiceFoods=
-  result.foods;
-
-window.learnVoiceDate=
-  result.date;    
-
-status.textContent=
-  '✅ Σε κατάλαβα.';
+  const allCats=
+  learnCatsFromFoods(
+    result.foods
+  );
 
 
-preview.classList.remove(
-  'hidden'
-);
+document
+  .querySelectorAll(
+    '#cat input[type="checkbox"]'
+  )
+  .forEach(box=>{
+
+    box.checked=
+      allCats.includes(
+        box.value
+      );
+
+  });
 
 
-preview.innerHTML=
-  '<b>🎤 Άκουσα:</b><br>'+
-  text;
-
-
-if(result.type){
-
-  $('type').value=
-    result.type;
-}
-
-
-if(result.meal){
-
-$('mealName').value=
-  result.foods.join(' + ');
-
-
-/*
-  Αν υπάρχει το πεδίο ημερομηνίας
-  της εφαρμογής, το ενημερώνουμε.
-*/
-
-if($('mealDate')){
-
-  $('mealDate').value=
-    result.date;
-}
-
-
-/*
-  Κατηγορίες από ΟΛΑ
-  τα ξεχωριστά πιάτα.
-*/
-
-const allCats=[];
+$('hint').textContent=
+  allCats.length
+    ? '✨ Αναγνώρισα: '+
+      allCats
+        .map(c=>labels[c]||c)
+        .join(' + ')
+    : 'Δεν είμαι σίγουρη για τις κατηγορίες.';
 
 
 result.foods.forEach(food=>{
@@ -1155,32 +1131,45 @@ function splitLearnFoods(text){
   }
 
 
-  const sideFoods=
+  /*
+    Όταν μετά από "με" ή "και"
+    ξεκινά κάτι από αυτά,
+    το θεωρούμε ξεχωριστό φαγητό.
+  */
+
+  const separateStarts=
     'σαλάτα|σαλατα|'+
     'πατάτες|πατατες|'+
     'ρύζι|ρυζι|'+
-    'πουρές|πουρες|'+
+    'αυγό|αυγο|αυγά|αυγα|'+
+    'ομελέτα|ομελετα|'+
     'ψωμί|ψωμι|'+
     'φέτα|φετα|'+
     'γιαούρτι|γιαουρτι|'+
-    'φρούτο|φρουτο|'+
-    'φρούτα|φρουτα|'+
+    'φρούτο|φρουτο|φρούτα|φρουτα|'+
     'λαχανικά|λαχανικα|'+
     'μπρόκολο|μπροκολο|'+
-    'χόρτα|χορτα';
+    'χόρτα|χορτα|'+
+    'πουρές|πουρες|πουρέ|πουρε';
 
 
   const separator=
     new RegExp(
-      '\\s+(?:με|και)\\s+(?=(?:'+
-      sideFoods+
-      ')\\b)',
+      '\\s+(?:με|και)\\s+'+
+      '(?=(?:'+separateStarts+')(?:\\s|$))',
       'gi'
     );
 
 
+  /*
+    Πρώτα χωρίζουμε κόμμα,
+    ελληνικό ερωτηματικό ή +
+  */
+
   const firstParts=
-    clean.split(/\s*\+\s*/);
+    clean
+      .replace(/\s*[,;]\s*/g,' + ')
+      .split(/\s*\+\s*/);
 
 
   const foods=[];
@@ -1199,6 +1188,37 @@ function splitLearnFoods(text){
 
   return foods;
 }
+
+ function learnCatsFromFoods(foods){
+
+  const cats=[];
+
+
+  (foods || []).forEach(food=>{
+
+    const detected=
+      detect(food);
+
+
+    const foodCats=
+      Array.isArray(detected)
+        ? detected
+        : (detected ? [detected] : []);
+
+
+    foodCats.forEach(cat=>{
+
+      if(!cats.includes(cat)){
+        cats.push(cat);
+      }
+
+    });
+
+  });
+
+
+  return cats;
+} 
 
 function parseLearnVoice(text){
 
@@ -2561,67 +2581,21 @@ async  function suggestRecipe(){
 
 
   /*
-    Αν το γεύμα προήλθε από φωνή,
-    χρησιμοποιούμε τα πιάτα που
-    ήδη αναγνωρίστηκαν.
-
-    Διαφορετικά τα χωρίζουμε τώρα.
+    Χωρίζουμε ΠΑΝΤΑ ξανά
+    το κείμενο τη στιγμή της αποθήκευσης.
   */
 
-  let foods=
-    Array.isArray(window.learnVoiceFoods) &&
-    window.learnVoiceFoods.length
-      ? window.learnVoiceFoods
-      : splitLearnFoods(mealName);
+  const foods=
+    splitLearnFoods(
+      mealName
+    );
 
 
-  foods=
-    foods
-      .map(x=>String(x).trim())
-      .filter(Boolean);
+  const autoCats=
+    learnCatsFromFoods(
+      foods
+    );
 
-
-  if(!foods.length){
-
-    foods=[mealName];
-  }
-
-
-  /*
-    Βρίσκουμε αυτόματα τις κατηγορίες
-    από ΟΛΑ τα επιμέρους φαγητά.
-  */
-
-  const autoCats=[];
-
-
-  foods.forEach(food=>{
-
-    const detected=
-      detect(food);
-
-
-    const foodCats=
-      Array.isArray(detected)
-        ? detected
-        : (detected ? [detected] : []);
-
-
-    foodCats.forEach(cat=>{
-
-      if(!autoCats.includes(cat)){
-        autoCats.push(cat);
-      }
-
-    });
-
-  });
-
-
-  /*
-    Κρατάμε επίσης τυχόν κατηγορίες
-    που επέλεξε χειροκίνητα ο χρήστης.
-  */
 
   const manualCats=
     [...document.querySelectorAll(
@@ -2656,14 +2630,15 @@ async  function suggestRecipe(){
       $('type').value,
 
     /*
-      Ολόκληρο το γεύμα για εμφάνιση.
+      Ολόκληρο γεύμα για εμφάνιση.
     */
 
     name:
       mealName,
 
     /*
-      Ξεχωριστά φαγητά για μάθηση.
+      Ξεχωριστά φαγητά
+      για στατιστικά και μάθηση.
     */
 
     foods:
@@ -2686,10 +2661,6 @@ async  function suggestRecipe(){
 
   save();
 
-
-  /*
-    Καθαρισμός μετά την αποθήκευση.
-  */
 
   window.learnVoiceFoods=[];
 
@@ -2718,7 +2689,7 @@ async  function suggestRecipe(){
 
   show('learn');
 }
- function preferenceStats(){
+function preferenceStats(){
 
   const meals={};
 
@@ -2726,44 +2697,33 @@ async  function suggestRecipe(){
   s.history.forEach(h=>{
 
     /*
-      Νέες καταχωρίσεις:
-      χρησιμοποιούν το foods[].
+      Παίρνουμε ό,τι έχει αποθηκευτεί
+      και το ξαναχωρίζουμε.
 
-      Παλιές καταχωρίσεις:
-      προσπαθούμε να τις χωρίσουμε
-      από το παλιό name.
+      Έτσι διορθώνονται και παλιότερες
+      λανθασμένες καταχωρήσεις.
     */
 
-    let foods=
+    const rawFoods=
       Array.isArray(h.foods) &&
       h.foods.length
         ? h.foods
-        : splitLearnFoods(
-            h.name || ''
-          );
+        : [h.name || ''];
 
 
-    if(!foods.length){
-      return;
-    }
+    const foods=
+      rawFoods
+        .flatMap(food=>
+          splitLearnFoods(food)
+        )
+        .map(x=>x.trim())
+        .filter(Boolean);
 
 
-    foods.forEach(food=>{
-
-      const name=
-        String(food || '')
-          .trim();
-
-
-      if(!name){
-        return;
-      }
-
+    foods.forEach(name=>{
 
       const key=
-        name
-          .toLowerCase()
-          .trim();
+        name.toLowerCase();
 
 
       if(!meals[key]){
@@ -2790,23 +2750,12 @@ async  function suggestRecipe(){
       meals[key].count++;
 
 
-      /*
-        Κατηγορία ειδικά
-        αυτού του φαγητού.
-      */
-
-      const detected=
+      const foodCats=
         detect(name);
 
 
-      const foodCats=
-        Array.isArray(detected)
-          ? detected
-          : (detected ? [detected] : []);
-
-
-      foodCats.forEach(cat=>
-        meals[key].cats.add(cat)
+      foodCats.forEach(c=>
+        meals[key].cats.add(c)
       );
 
     });
