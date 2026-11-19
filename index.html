@@ -902,9 +902,27 @@ function startLearnVoice(){
       alert('Άκουσα: '+text);
 
 
-      const result=
-        parseLearnVoice(text);
+      let result;
 
+try{
+
+  result=
+    parseLearnVoice(text);
+
+  alert(
+    'Το parse δούλεψε: '+
+    JSON.stringify(result)
+  );
+
+}catch(e){
+
+  alert(
+    'Λάθος στο parse: '+
+    e.message
+  );
+
+  return;
+}
 
       /*
         Κρατάμε τα ξεχωριστά φαγητά
