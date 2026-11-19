@@ -484,7 +484,7 @@
 <button
   type="button"
   class="btn secondary"
-  onclick="startLearnVoice()"
+  onclick="()"
 >
   🎤 Καταχώριση με φωνή
 </button>
@@ -835,7 +835,7 @@
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
 
- function startLearnVoice(){
+function startLearnVoice(){
 
   const status=
     $('learnVoiceStatus');
@@ -856,11 +856,6 @@
     return;
   }
 
-
-  /*
-    Δεν ανοίγουμε δεύτερη αναγνώριση
-    αν υπάρχει ήδη ενεργή.
-  */
 
   if(activeVoiceRecognition){
 
@@ -900,91 +895,125 @@
     recognition.onresult=(event)=>{
 
       const text=
-  event.results[0][0].transcript;
+        event.results[0][0].transcript;
 
 
-const result=
-  parseLearnVoice(text);
-
-  const allCats=
-  learnCatsFromFoods(
-    result.foods
-  );
+      const result=
+        parseLearnVoice(text);
 
 
-document
-  .querySelectorAll(
-    '#cat input[type="checkbox"]'
-  )
-  .forEach(box=>{
+      /*
+        Κρατάμε τα ξεχωριστά φαγητά
+        και την ημερομηνία.
+      */
 
-    box.checked=
-      allCats.includes(
-        box.value
+      window.learnVoiceFoods=
+        result.foods;
+
+      window.learnVoiceDate=
+        result.date;
+
+
+      /*
+        Εμφανίζουμε τι ακούσαμε.
+      */
+
+      status.textContent=
+        '✅ Σε κατάλαβα.';
+
+
+      preview.classList.remove(
+        'hidden'
       );
 
-  });
+
+      preview.innerHTML=
+        '<b>🎤 Άκουσα:</b><br>'+
+        text;
 
 
-$('hint').textContent=
-  allCats.length
-    ? '✨ Αναγνώρισα: '+
-      allCats
-        .map(c=>labels[c]||c)
-        .join(' + ')
-    : 'Δεν είμαι σίγουρη για τις κατηγορίες.';
+      /*
+        Πρωινό / μεσημεριανό / βραδινό
+      */
+
+      if(result.type){
+
+        $('type').value=
+          result.type;
+      }
 
 
-result.foods.forEach(food=>{
+      /*
+        Ημερομηνία
+      */
 
-  const detected=
-    detect(food);
+      if(
+        $('mealDate') &&
+        result.date
+      ){
 
-
-  const cats=
-    Array.isArray(detected)
-      ? detected
-      : (detected ? [detected] : []);
-
-
-  cats.forEach(cat=>{
-
-    if(!allCats.includes(cat)){
-      allCats.push(cat);
-    }
-
-  });
-
-});
+        $('mealDate').value=
+          result.date;
+      }
 
 
-document
-  .querySelectorAll(
-    '#cat input[type="checkbox"]'
-  )
-  .forEach(box=>{
+      /*
+        Εμφανίζουμε τα φαγητά
+        χωρισμένα με +
+      */
 
-    box.checked=
-      allCats.includes(
-        box.value
-      );
-  });
+      if(
+        result.foods &&
+        result.foods.length
+      ){
+
+        $('mealName').value=
+          result.foods.join(' + ');
+
+      }else{
+
+        $('mealName').value=
+          result.meal;
+      }
 
 
-$('hint').textContent=
-  allCats.length
-    ? '✨ Αναγνώρισα: '+
-      allCats
-        .map(c=>labels[c]||c)
-        .join(' + ')
-    : 'Δεν είμαι σίγουρη για τις κατηγορίες.';
-}
+      /*
+        Βρίσκουμε όλες τις κατηγορίες
+        από όλα τα φαγητά.
+      */
+
+      const allCats=
+        learnCatsFromFoods(
+          result.foods
+        );
+
+
+      document
+        .querySelectorAll(
+          '#cat input[type="checkbox"]'
+        )
+        .forEach(box=>{
+
+          box.checked=
+            allCats.includes(
+              box.value
+            );
+        });
+
+
+      $('hint').textContent=
+        allCats.length
+          ? '✨ Αναγνώρισα: '+
+            allCats
+              .map(c=>labels[c]||c)
+              .join(' + ')
+          : 'Δεν είμαι σίγουρη για τις κατηγορίες.';
 
 
       /*
         Δεν κάνουμε stop ή abort.
-        Αφήνουμε το Safari
-        να κλείσει φυσιολογικά.
+        Αφήνουμε το Safari να κλείσει
+        φυσιολογικά το μικρόφωνο.
       */
     };
 
@@ -1044,8 +1073,7 @@ $('hint').textContent=
 
 
   /*
-    Το workaround που ήδη
-    δουλεύει σωστά στο iPhone.
+    Workaround για iPhone / Safari.
   */
 
   if(
@@ -1093,29 +1121,6 @@ $('hint').textContent=
 
     startListening();
   }
-} 
-
- let activeVoiceRecognition=null;
-
-  function learnLocalDate(daysBack=0){
-
-  const d=new Date();
-
-  d.setDate(
-    d.getDate()-daysBack
-  );
-
-  const y=d.getFullYear();
-
-  const m=String(
-    d.getMonth()+1
-  ).padStart(2,'0');
-
-  const day=String(
-    d.getDate()
-  ).padStart(2,'0');
-
-  return y+'-'+m+'-'+day;
 }
 
 
