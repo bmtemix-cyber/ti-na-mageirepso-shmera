@@ -2753,70 +2753,79 @@ function preferenceStats(){
 
   const meals={};
 
-
   s.history.forEach(h=>{
 
     /*
-      Παίρνουμε ό,τι έχει αποθηκευτεί
-      και το ξαναχωρίζουμε.
+      Αν η καταχώριση έχει ήδη ξεχωριστά foods,
+      τα χρησιμοποιούμε.
 
-      Έτσι διορθώνονται και παλιότερες
-      λανθασμένες καταχωρήσεις.
+      Για παλιότερες καταχωρίσεις που έχουν
+      μόνο name, προσπαθούμε να τις χωρίσουμε
+      με τη splitLearnFoods().
     */
 
-    const rawFoods=
+    const sourceFoods=
       Array.isArray(h.foods) &&
       h.foods.length
         ? h.foods
         : [h.name || ''];
 
+    const foods=[];
 
-    const foods=
-      rawFoods
-        .flatMap(food=>
-          splitLearnFoods(food)
-        )
+    sourceFoods.forEach(food=>{
+
+      splitLearnFoods(food)
         .map(x=>x.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .forEach(x=>{
+          foods.push(x);
+        });
+
+    });
 
 
     foods.forEach(name=>{
 
-      const key=
-        name.toLowerCase();
+      /*
+        Ίδιο φαγητό με ή χωρίς τόνους
+        να μετράει σαν το ίδιο.
+      */
 
+      const key=
+        name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g,'')
+          .trim();
 
       if(!meals[key]){
 
         meals[key]={
-
           name:name,
-
           total:0,
-
           count:0,
-
           cats:new Set()
-
         };
 
       }
 
-
       meals[key].total+=
         Number(h.rating || 3);
-
 
       meals[key].count++;
 
 
-      const foodCats=
+      const detected=
         detect(name);
 
+      const foodCats=
+        Array.isArray(detected)
+          ? detected
+          : (detected ? [detected] : []);
 
-      foodCats.forEach(c=>
-        meals[key].cats.add(c)
-      );
+      foodCats.forEach(cat=>{
+        meals[key].cats.add(cat);
+      });
 
     });
 
@@ -2828,17 +2837,17 @@ function preferenceStats(){
     .map(m=>({
 
       name:m.name,
-
       count:m.count,
-
       average:
-        m.total/m.count,
-
+        m.total / m.count,
       cats:
         [...m.cats]
 
     }));
+
 }
+
+  
   function categoryPreferenceStats(){
   const stats={};
 
