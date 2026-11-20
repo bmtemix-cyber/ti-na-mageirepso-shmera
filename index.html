@@ -32,10 +32,27 @@
   position:fixed;
 
   right:18px;
-  bottom:95px;
+  bottom:110px;
 
-  width:90px;
-  height:90px;
+  width:88px;
+  height:88px;
+
+  z-index:99999;
+
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+
+  cursor:pointer;
+}
+
+#chefAssistant{
+  position:fixed;
+  right:18px;
+  bottom:110px;
+
+  width:88px;
+  height:88px;
 
   z-index:99999;
 
@@ -55,36 +72,65 @@
   pointer-events:none;
   -webkit-user-drag:none;
 
-  filter:drop-shadow(
-    0 5px 8px rgba(0,0,0,.22)
-  );
+  filter:
+    drop-shadow(
+      0 4px 8px rgba(0,0,0,.22)
+    );
 
   transition:
-    transform .18s ease;
+    transform .15s ease;
 }
 
-#chefAssistant.chef-smile #chefAssistantImg{
-  transform:scale(1.12) rotate(-3deg);
+#chefAssistant.chef-tickle
+#chefAssistantImg{
+  animation:chefTickle .12s infinite alternate;
+}
+
+@keyframes chefTickle{
+
+  from{
+    transform:
+      translateX(-2px)
+      rotate(-2deg);
+  }
+
+  to{
+    transform:
+      translateX(2px)
+      rotate(2deg);
+  }
+
 }
 
 #chefBubble{
   position:absolute;
-  right:55px;
-  bottom:58px;
-  width:190px;
+
+  right:70px;
+  bottom:65px;
+
+  width:210px;
+
   padding:10px 12px;
+
   background:white;
+
   border-radius:16px;
-  box-shadow:0 4px 18px rgba(0,0,0,.18);
+
+  box-shadow:
+    0 4px 18px
+    rgba(0,0,0,.18);
+
   font-size:14px;
   font-weight:700;
-  line-height:1.3;
+
+  line-height:1.35;
+
   color:#333;
 }
 
 #chefBubble.hidden{
   display:none;
-} 
+}
   
 }</style><style>
   /* Λήξη σε 3-4 ημέρες */
@@ -856,7 +902,7 @@ onclick="startLearnVoice()"
 
   <img
     id="chefAssistantImg"
-    src="images/chef-assistant.png"
+    src="images/chef-idle.png"
     alt="Βοηθός κουζίνας"
   >
 
@@ -958,15 +1004,19 @@ function chefTap(){
       'chefAssistant'
     );
 
+  const img=
+    document.getElementById(
+      'chefAssistantImg'
+    );
+
   const bubble=
     document.getElementById(
       'chefBubble'
     );
 
 
-  chef.classList.add(
-    'chef-smile'
-  );
+  img.src=
+    'images/chef-wave.png';
 
 
   bubble.textContent=
@@ -984,20 +1034,90 @@ function chefTap(){
 
   setTimeout(()=>{
 
-    chef.classList.remove(
-      'chef-smile'
-    );
-
-  },500);
-
-
-  setTimeout(()=>{
+    img.src=
+      'images/chef-idle.png';
 
     bubble.classList.add(
       'hidden'
     );
 
-  },4000);
+  },3500);
+
+}
+
+  let chefHoldTimer=null;
+let chefLongPress=false;
+
+  function chefTickle(){
+
+  const chef=
+    document.getElementById(
+      'chefAssistant'
+    );
+
+  const img=
+    document.getElementById(
+      'chefAssistantImg'
+    );
+
+  const bubble=
+    document.getElementById(
+      'chefBubble'
+    );
+
+
+  img.src=
+    'images/chef-laugh.png';
+
+
+  chef.classList.add(
+    'chef-tickle'
+  );
+
+
+  const phrases=[
+    'Χα χα χα! Άσε τα αστεία, πάμε να μαγειρέψουμε!',
+    'Χα χα! Εντάξει, εντάξει! Πάμε στην κουζίνα!',
+    'Χα χα χα! Θα μας κάψεις το φαγητό έτσι!'
+  ];
+
+
+  const phrase=
+    phrases[
+      Math.floor(
+        Math.random()*
+        phrases.length
+      )
+    ];
+
+
+  bubble.textContent=
+    phrase;
+
+  bubble.classList.remove(
+    'hidden'
+  );
+
+
+  chefSpeak(
+    phrase
+  );
+
+
+  setTimeout(()=>{
+
+    chef.classList.remove(
+      'chef-tickle'
+    );
+
+    img.src=
+      'images/chef-idle.png';
+
+    bubble.classList.add(
+      'hidden'
+    );
+
+  },3000);
 
 }
 
@@ -1031,6 +1151,25 @@ function chefTap(){
 
       startX=e.clientX;
       startY=e.clientY;
+
+      chefLongPress=false;
+
+clearTimeout(
+  chefHoldTimer
+);
+
+chefHoldTimer=
+  setTimeout(()=>{
+
+    if(!moved){
+
+      chefLongPress=true;
+
+      chefTickle();
+
+    }
+
+  },900);
 
 
       const rect=
@@ -1073,11 +1212,17 @@ function chefTap(){
 
 
       if(
-        Math.abs(dx)>5 ||
-        Math.abs(dy)>5
-      ){
-        moved=true;
-      }
+  Math.abs(dx)>5 ||
+  Math.abs(dy)>5
+){
+
+  moved=true;
+
+  clearTimeout(
+    chefHoldTimer
+  );
+
+}
 
 
       let newLeft=
@@ -1127,6 +1272,9 @@ function chefTap(){
 
   chef.addEventListener(
     'pointerup',
+    clearTimeout(
+  chefHoldTimer
+);
     e=>{
 
       if(!dragging)return;
@@ -1134,11 +1282,16 @@ function chefTap(){
       dragging=false;
 
 
-      if(!moved){
+     if(chefLongPress){
 
-        chefTap();
+  chefLongPress=false;
 
-      }else{
+}
+else if(!moved){
+
+  chefTap();
+
+}else{
 
         localStorage.setItem(
           'chefPosition',
