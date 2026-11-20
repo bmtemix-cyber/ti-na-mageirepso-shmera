@@ -934,7 +934,7 @@ onclick="startLearnVoice()"
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
 
-  function chefSpeak(text){
+ function chefSpeak(text){
 
   if(
     !('speechSynthesis' in window) ||
@@ -945,14 +945,73 @@ onclick="startLearnVoice()"
 
   window.speechSynthesis.cancel();
 
-  const voice=
+  const utterance=
     new SpeechSynthesisUtterance(text);
 
-  voice.lang='el-GR';
-  voice.rate=0.78;
+  utterance.lang='el-GR';
+
+  /*
+    Λίγο πιο αργή και χαμηλή φωνή,
+    για πιο ώριμο και γλυκό χαρακτήρα.
+  */
+  utterance.rate=0.72;
+  utterance.pitch=0.82;
+  utterance.volume=1;
+
+
+  const voices=
+    window.speechSynthesis.getVoices();
+
+  const greekVoices=
+    voices.filter(v=>
+      String(v.lang || '')
+        .toLowerCase()
+        .startsWith('el')
+    );
+
+
+  /*
+    Προτιμάμε αντρική ελληνική φωνή,
+    αν υπάρχει στη συσκευή.
+  */
+  const maleVoice=
+    greekVoices.find(v=>{
+
+      const name=
+        String(v.name || '')
+          .toLowerCase();
+
+      return (
+        name.includes('male') ||
+        name.includes('nikos') ||
+        name.includes('nikolaos') ||
+        name.includes('alexandros')
+      );
+
+    });
+
+
+  if(maleVoice){
+
+    utterance.voice=
+      maleVoice;
+
+  }else if(greekVoices.length){
+
+    /*
+      Αν δεν βρίσκει συγκεκριμένα
+      αντρική, χρησιμοποιεί την πρώτη
+      ελληνική φωνή της συσκευής.
+    */
+
+    utterance.voice=
+      greekVoices[0];
+
+  }
+
 
   window.speechSynthesis.speak(
-    voice
+    utterance
   );
 
 }
