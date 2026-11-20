@@ -4674,53 +4674,85 @@ function mealStatistics(){
 
   s.history.forEach(h=>{
 
-    const name=(h.name || '').trim();
+    /*
+      Παίρνουμε τα ξεχωριστά φαγητά.
+      Αν είναι παλιά καταχώριση χωρίς foods,
+      προσπαθούμε να χωρίσουμε το name.
+    */
 
-    if(!name)return;
+    const sourceFoods=
+      Array.isArray(h.foods) &&
+      h.foods.length
+        ? h.foods
+        : [h.name || ''];
 
-    const key=normalizeMealName(name);
+    const foods=
+      sourceFoods
+        .flatMap(food=>
+          splitLearnFoods(food)
+        )
+        .map(food=>food.trim())
+        .filter(Boolean);
 
-    if(!stats[key]){
 
-      stats[key]={
-        name:name,
-        count:0,
-        monthCount:0,
-        lastDate:'',
-        ratings:[]
-      };
+    foods.forEach(name=>{
 
-    }
+      const key=
+        normalizeMealName(name);
 
-    stats[key].count++;
+      if(!stats[key]){
 
-    if(h.date){
+        stats[key]={
+          name:name,
+          count:0,
+          monthCount:0,
+          lastDate:'',
+          ratings:[]
+        };
 
-      const d=new Date(h.date+'T00:00:00');
-
-      if(
-        d.getFullYear()===currentYear &&
-        d.getMonth()===currentMonth
-      ){
-        stats[key].monthCount++;
       }
 
-    }
 
-    if(
-      !stats[key].lastDate ||
-      h.date>stats[key].lastDate
-    ){
-      stats[key].lastDate=h.date;
-    }
+      stats[key].count++;
 
-    if(h.rating){
-      stats[key].ratings.push(
-        Number(h.rating)
-      );
-    }
+
+      if(h.date){
+
+        const d=
+          new Date(
+            h.date+'T00:00:00'
+          );
+
+        if(
+          d.getFullYear()===currentYear &&
+          d.getMonth()===currentMonth
+        ){
+          stats[key].monthCount++;
+        }
+
+      }
+
+
+      if(
+        !stats[key].lastDate ||
+        h.date>stats[key].lastDate
+      ){
+        stats[key].lastDate=h.date;
+      }
+
+
+      if(h.rating){
+
+        stats[key].ratings.push(
+          Number(h.rating)
+        );
+
+      }
+
+    });
 
   });
+
 
   return Object.values(stats)
     .sort((a,b)=>{
@@ -4735,6 +4767,7 @@ function mealStatistics(){
       );
 
     });
+
 }
 
 
