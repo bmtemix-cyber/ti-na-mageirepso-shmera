@@ -961,11 +961,233 @@ onclick="startLearnVoice()"
 
 function chefTap(){
 
+ window.addEventListener('load',function(){
+
   const chef=
-    document.getElementById(
-      'chefAssistant'
+    document.getElementById('chefAssistantImg');
+
+  if(!chef){
+    console.log('Δεν βρέθηκε chefAssistantImg');
+    return;
+  }
+
+  let dragging=false;
+  let moved=false;
+
+  let startX=0;
+  let startY=0;
+
+  let startLeft=0;
+  let startTop=0;
+
+
+  chef.style.setProperty(
+    'touch-action',
+    'none',
+    'important'
+  );
+
+
+  chef.addEventListener(
+    'pointerdown',
+    function(e){
+
+      e.preventDefault();
+
+      dragging=true;
+      moved=false;
+
+      startX=e.clientX;
+      startY=e.clientY;
+
+      const rect=
+        chef.getBoundingClientRect();
+
+      startLeft=rect.left;
+      startTop=rect.top;
+
+      /*
+        Αφαιρούμε το right / bottom
+        που είχαμε βάλει με !important.
+      */
+
+      chef.style.setProperty(
+        'right',
+        'auto',
+        'important'
+      );
+
+      chef.style.setProperty(
+        'bottom',
+        'auto',
+        'important'
+      );
+
+      chef.style.setProperty(
+        'left',
+        startLeft+'px',
+        'important'
+      );
+
+      chef.style.setProperty(
+        'top',
+        startTop+'px',
+        'important'
+      );
+
+      chef.setPointerCapture(
+        e.pointerId
+      );
+
+    }
+  );
+
+
+  chef.addEventListener(
+    'pointermove',
+    function(e){
+
+      if(!dragging)return;
+
+      e.preventDefault();
+
+      const dx=
+        e.clientX-startX;
+
+      const dy=
+        e.clientY-startY;
+
+      if(
+        Math.abs(dx)>5 ||
+        Math.abs(dy)>5
+      ){
+        moved=true;
+      }
+
+
+      let left=
+        startLeft+dx;
+
+      let top=
+        startTop+dy;
+
+
+      const maxLeft=
+        window.innerWidth-
+        chef.offsetWidth;
+
+      const maxTop=
+        window.innerHeight-
+        chef.offsetHeight;
+
+
+      left=
+        Math.max(
+          0,
+          Math.min(left,maxLeft)
+        );
+
+      top=
+        Math.max(
+          0,
+          Math.min(top,maxTop)
+        );
+
+
+      chef.style.setProperty(
+        'left',
+        left+'px',
+        'important'
+      );
+
+      chef.style.setProperty(
+        'top',
+        top+'px',
+        'important'
+      );
+
+    }
+  );
+
+
+  chef.addEventListener(
+    'pointerup',
+    function(e){
+
+      e.preventDefault();
+
+      if(!dragging)return;
+
+      dragging=false;
+
+
+      if(!moved){
+
+        chefTap();
+
+      }else{
+
+        localStorage.setItem(
+          'chefPosition',
+          JSON.stringify({
+            left:
+              chef.style.left,
+            top:
+              chef.style.top
+          })
+        );
+
+      }
+
+    }
+  );
+
+
+  /*
+    Επαναφορά της τελευταίας θέσης
+  */
+
+  const saved=
+    localStorage.getItem(
+      'chefPosition'
     );
 
+  if(saved){
+
+    try{
+
+      const pos=
+        JSON.parse(saved);
+
+      chef.style.setProperty(
+        'right',
+        'auto',
+        'important'
+      );
+
+      chef.style.setProperty(
+        'bottom',
+        'auto',
+        'important'
+      );
+
+      chef.style.setProperty(
+        'left',
+        pos.left,
+        'important'
+      );
+
+      chef.style.setProperty(
+        'top',
+        pos.top,
+        'important'
+      );
+
+    }catch(e){}
+
+  }
+
+});
   const bubble=
     document.getElementById(
       'chefBubble'
