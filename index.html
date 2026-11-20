@@ -27,6 +27,51 @@
   padding:0 !important;
   margin:4px 0 !important;
 }
+
+ #chefAssistant{
+  position:fixed;
+  right:16px;
+  bottom:85px;
+  width:72px;
+  height:72px;
+  z-index:9999;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  cursor:pointer;
+}
+
+#chefAssistantImg{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  pointer-events:none;
+  transition:transform .18s ease;
+}
+
+#chefAssistant.chef-smile #chefAssistantImg{
+  transform:scale(1.12) rotate(-3deg);
+}
+
+#chefBubble{
+  position:absolute;
+  right:55px;
+  bottom:58px;
+  width:190px;
+  padding:10px 12px;
+  background:white;
+  border-radius:16px;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+  font-size:14px;
+  font-weight:700;
+  line-height:1.3;
+  color:#333;
+}
+
+#chefBubble.hidden{
+  display:none;
+} 
+  
 }</style><style>
   /* Λήξη σε 3-4 ημέρες */
 .expiry-warning{
@@ -834,6 +879,269 @@ onclick="startLearnVoice()"
   'Ψαρόσουπα': 'images/psarosoupa.jpg',
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
+
+  function chefSpeak(text){
+
+  if(
+    !('speechSynthesis' in window) ||
+    !('SpeechSynthesisUtterance' in window)
+  ){
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const voice=
+    new SpeechSynthesisUtterance(text);
+
+  voice.lang='el-GR';
+  voice.rate=0.78;
+
+  window.speechSynthesis.speak(
+    voice
+  );
+
+}
+
+
+
+function chefTap(){
+
+  const chef=
+    document.getElementById(
+      'chefAssistant'
+    );
+
+  const bubble=
+    document.getElementById(
+      'chefBubble'
+    );
+
+
+  chef.classList.add(
+    'chef-smile'
+  );
+
+
+  bubble.textContent=
+    'Πώς μπορώ να σας βοηθήσω;';
+
+  bubble.classList.remove(
+    'hidden'
+  );
+
+
+  chefSpeak(
+    'Πώς μπορώ να σας βοηθήσω;'
+  );
+
+
+  setTimeout(()=>{
+
+    chef.classList.remove(
+      'chef-smile'
+    );
+
+  },500);
+
+
+  setTimeout(()=>{
+
+    bubble.classList.add(
+      'hidden'
+    );
+
+  },4000);
+
+}
+
+  (function(){
+
+  const chef=
+    document.getElementById(
+      'chefAssistant'
+    );
+
+  if(!chef)return;
+
+
+  let dragging=false;
+
+  let startX=0;
+  let startY=0;
+
+  let startLeft=0;
+  let startTop=0;
+
+  let moved=false;
+
+
+  chef.addEventListener(
+    'pointerdown',
+    e=>{
+
+      dragging=true;
+      moved=false;
+
+      startX=e.clientX;
+      startY=e.clientY;
+
+
+      const rect=
+        chef.getBoundingClientRect();
+
+      startLeft=rect.left;
+      startTop=rect.top;
+
+
+      chef.style.right='auto';
+      chef.style.bottom='auto';
+
+      chef.style.left=
+        startLeft+'px';
+
+      chef.style.top=
+        startTop+'px';
+
+
+      chef.setPointerCapture(
+        e.pointerId
+      );
+
+    }
+  );
+
+
+  chef.addEventListener(
+    'pointermove',
+    e=>{
+
+      if(!dragging)return;
+
+
+      const dx=
+        e.clientX-startX;
+
+      const dy=
+        e.clientY-startY;
+
+
+      if(
+        Math.abs(dx)>5 ||
+        Math.abs(dy)>5
+      ){
+        moved=true;
+      }
+
+
+      let newLeft=
+        startLeft+dx;
+
+      let newTop=
+        startTop+dy;
+
+
+      const maxLeft=
+        window.innerWidth-
+        chef.offsetWidth;
+
+      const maxTop=
+        window.innerHeight-
+        chef.offsetHeight;
+
+
+      newLeft=
+        Math.max(
+          0,
+          Math.min(
+            newLeft,
+            maxLeft
+          )
+        );
+
+      newTop=
+        Math.max(
+          0,
+          Math.min(
+            newTop,
+            maxTop
+          )
+        );
+
+
+      chef.style.left=
+        newLeft+'px';
+
+      chef.style.top=
+        newTop+'px';
+
+    }
+  );
+
+
+  chef.addEventListener(
+    'pointerup',
+    e=>{
+
+      if(!dragging)return;
+
+      dragging=false;
+
+
+      if(!moved){
+
+        chefTap();
+
+      }else{
+
+        localStorage.setItem(
+          'chefPosition',
+          JSON.stringify({
+            left:
+              chef.style.left,
+            top:
+              chef.style.top
+          })
+        );
+
+      }
+
+    }
+  );
+
+
+  /*
+    Θυμάται πού τον άφησε
+    ο χρήστης.
+  */
+
+  const saved=
+    localStorage.getItem(
+      'chefPosition'
+    );
+
+
+  if(saved){
+
+    try{
+
+      const pos=
+        JSON.parse(saved);
+
+      chef.style.right='auto';
+      chef.style.bottom='auto';
+
+      chef.style.left=
+        pos.left;
+
+      chef.style.top=
+        pos.top;
+
+    }catch(e){}
+
+  }
+
+})();
 
   let activeVoiceRecognition=null;
 
