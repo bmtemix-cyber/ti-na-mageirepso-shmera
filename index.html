@@ -957,247 +957,21 @@ onclick="startLearnVoice()"
 
 }
 
-
-
-function chefTap(){
-
- window.addEventListener('load',function(){
+ function chefTap(){
 
   const chef=
-    document.getElementById('chefAssistantImg');
-
-  if(!chef){
-    console.log('Δεν βρέθηκε chefAssistantImg');
-    return;
-  }
-
-  let dragging=false;
-  let moved=false;
-
-  let startX=0;
-  let startY=0;
-
-  let startLeft=0;
-  let startTop=0;
-
-
-  chef.style.setProperty(
-    'touch-action',
-    'none',
-    'important'
-  );
-
-
-  chef.addEventListener(
-    'pointerdown',
-    function(e){
-
-      e.preventDefault();
-
-      dragging=true;
-      moved=false;
-
-      startX=e.clientX;
-      startY=e.clientY;
-
-      const rect=
-        chef.getBoundingClientRect();
-
-      startLeft=rect.left;
-      startTop=rect.top;
-
-      /*
-        Αφαιρούμε το right / bottom
-        που είχαμε βάλει με !important.
-      */
-
-      chef.style.setProperty(
-        'right',
-        'auto',
-        'important'
-      );
-
-      chef.style.setProperty(
-        'bottom',
-        'auto',
-        'important'
-      );
-
-      chef.style.setProperty(
-        'left',
-        startLeft+'px',
-        'important'
-      );
-
-      chef.style.setProperty(
-        'top',
-        startTop+'px',
-        'important'
-      );
-
-      chef.setPointerCapture(
-        e.pointerId
-      );
-
-    }
-  );
-
-
-  chef.addEventListener(
-    'pointermove',
-    function(e){
-
-      if(!dragging)return;
-
-      e.preventDefault();
-
-      const dx=
-        e.clientX-startX;
-
-      const dy=
-        e.clientY-startY;
-
-      if(
-        Math.abs(dx)>5 ||
-        Math.abs(dy)>5
-      ){
-        moved=true;
-      }
-
-
-      let left=
-        startLeft+dx;
-
-      let top=
-        startTop+dy;
-
-
-      const maxLeft=
-        window.innerWidth-
-        chef.offsetWidth;
-
-      const maxTop=
-        window.innerHeight-
-        chef.offsetHeight;
-
-
-      left=
-        Math.max(
-          0,
-          Math.min(left,maxLeft)
-        );
-
-      top=
-        Math.max(
-          0,
-          Math.min(top,maxTop)
-        );
-
-
-      chef.style.setProperty(
-        'left',
-        left+'px',
-        'important'
-      );
-
-      chef.style.setProperty(
-        'top',
-        top+'px',
-        'important'
-      );
-
-    }
-  );
-
-
-  chef.addEventListener(
-    'pointerup',
-    function(e){
-
-      e.preventDefault();
-
-      if(!dragging)return;
-
-      dragging=false;
-
-
-      if(!moved){
-
-        chefTap();
-
-      }else{
-
-        localStorage.setItem(
-          'chefPosition',
-          JSON.stringify({
-            left:
-              chef.style.left,
-            top:
-              chef.style.top
-          })
-        );
-
-      }
-
-    }
-  );
-
-
-  /*
-    Επαναφορά της τελευταίας θέσης
-  */
-
-  const saved=
-    localStorage.getItem(
-      'chefPosition'
+    document.getElementById(
+      'chefAssistantImg'
     );
 
-  if(saved){
-
-    try{
-
-      const pos=
-        JSON.parse(saved);
-
-      chef.style.setProperty(
-        'right',
-        'auto',
-        'important'
-      );
-
-      chef.style.setProperty(
-        'bottom',
-        'auto',
-        'important'
-      );
-
-      chef.style.setProperty(
-        'left',
-        pos.left,
-        'important'
-      );
-
-      chef.style.setProperty(
-        'top',
-        pos.top,
-        'important'
-      );
-
-    }catch(e){}
-
-  }
-
-});
   const bubble=
     document.getElementById(
       'chefBubble'
     );
 
-
-  chef.classList.add(
-    'chef-smile'
-  );
-
+  if(!chef || !bubble){
+    return;
+  }
 
   bubble.textContent=
     'Πώς μπορώ να σας βοηθήσω;';
@@ -1206,20 +980,9 @@ function chefTap(){
     'hidden'
   );
 
-
   chefSpeak(
     'Πώς μπορώ να σας βοηθήσω;'
   );
-
-
-  setTimeout(()=>{
-
-    chef.classList.remove(
-      'chef-smile'
-    );
-
-  },500);
-
 
   setTimeout(()=>{
 
@@ -1231,195 +994,263 @@ function chefTap(){
 
 }
 
- 
-
-  (function(){
-
-  const chef=
-    document.getElementById(
-      'chefAssistant'
-    );
-
-  if(!chef)return;
 
 
-  let dragging=false;
+window.addEventListener(
+  'load',
+  function(){
 
-  let startX=0;
-  let startY=0;
-
-  let startLeft=0;
-  let startTop=0;
-
-  let moved=false;
-
-
-  chef.addEventListener(
-    'pointerdown',
-    e=>{
-
-      dragging=true;
-      moved=false;
-
-      startX=e.clientX;
-      startY=e.clientY;
-
-
-      const rect=
-        chef.getBoundingClientRect();
-
-      startLeft=rect.left;
-      startTop=rect.top;
-
-
-      chef.style.right='auto';
-      chef.style.bottom='auto';
-
-      chef.style.left=
-        startLeft+'px';
-
-      chef.style.top=
-        startTop+'px';
-
-
-      chef.setPointerCapture(
-        e.pointerId
+    const chef=
+      document.getElementById(
+        'chefAssistantImg'
       );
 
+    if(!chef){
+      console.log(
+        'Δεν βρέθηκε chefAssistantImg'
+      );
+      return;
     }
-  );
 
 
-  chef.addEventListener(
-    'pointermove',
-    e=>{
+    let dragging=false;
+    let moved=false;
 
-      if(!dragging)return;
+    let startX=0;
+    let startY=0;
 
-
-      const dx=
-        e.clientX-startX;
-
-      const dy=
-        e.clientY-startY;
+    let startLeft=0;
+    let startTop=0;
 
 
-      if(
-        Math.abs(dx)>5 ||
-        Math.abs(dy)>5
-      ){
-        moved=true;
-      }
+    chef.style.setProperty(
+      'touch-action',
+      'none',
+      'important'
+    );
 
-
-      let newLeft=
-        startLeft+dx;
-
-      let newTop=
-        startTop+dy;
-
-
-      const maxLeft=
-        window.innerWidth-
-        chef.offsetWidth;
-
-      const maxTop=
-        window.innerHeight-
-        chef.offsetHeight;
-
-
-      newLeft=
-        Math.max(
-          0,
-          Math.min(
-            newLeft,
-            maxLeft
-          )
-        );
-
-      newTop=
-        Math.max(
-          0,
-          Math.min(
-            newTop,
-            maxTop
-          )
-        );
-
-
-      chef.style.left=
-        newLeft+'px';
-
-      chef.style.top=
-        newTop+'px';
-
-    }
-  );
-
-
-  chef.addEventListener(
-    'pointerup',
-    e=>{
-
-      if(!dragging)return;
-
-      dragging=false;
-
-
-      if(!moved){
-
-        chefTap();
-
-      }else{
-
-        localStorage.setItem(
-          'chefPosition',
-          JSON.stringify({
-            left:
-              chef.style.left,
-            top:
-              chef.style.top
-          })
-        );
-
-      }
-
-    }
-  );
-
-
-  /*
-    Θυμάται πού τον άφησε
-    ο χρήστης.
-  */
-
-  const saved=
-    localStorage.getItem(
-      'chefPosition'
+    chef.style.setProperty(
+      'pointer-events',
+      'auto',
+      'important'
     );
 
 
-  if(saved){
+    chef.addEventListener(
+      'pointerdown',
+      function(e){
 
-    try{
+        e.preventDefault();
 
-      const pos=
-        JSON.parse(saved);
+        dragging=true;
+        moved=false;
 
-      chef.style.right='auto';
-      chef.style.bottom='auto';
+        startX=e.clientX;
+        startY=e.clientY;
 
-      chef.style.left=
-        pos.left;
+        const rect=
+          chef.getBoundingClientRect();
 
-      chef.style.top=
-        pos.top;
+        startLeft=
+          rect.left;
 
-    }catch(e){}
+        startTop=
+          rect.top;
+
+
+        chef.style.setProperty(
+          'right',
+          'auto',
+          'important'
+        );
+
+        chef.style.setProperty(
+          'bottom',
+          'auto',
+          'important'
+        );
+
+        chef.style.setProperty(
+          'left',
+          startLeft+'px',
+          'important'
+        );
+
+        chef.style.setProperty(
+          'top',
+          startTop+'px',
+          'important'
+        );
+
+
+        try{
+
+          chef.setPointerCapture(
+            e.pointerId
+          );
+
+        }catch(err){}
+
+      }
+    );
+
+
+    chef.addEventListener(
+      'pointermove',
+      function(e){
+
+        if(!dragging){
+          return;
+        }
+
+        e.preventDefault();
+
+
+        const dx=
+          e.clientX-startX;
+
+        const dy=
+          e.clientY-startY;
+
+
+        if(
+          Math.abs(dx)>6 ||
+          Math.abs(dy)>6
+        ){
+          moved=true;
+        }
+
+
+        let left=
+          startLeft+dx;
+
+        let top=
+          startTop+dy;
+
+
+        const maxLeft=
+          window.innerWidth-
+          chef.offsetWidth;
+
+        const maxTop=
+          window.innerHeight-
+          chef.offsetHeight;
+
+
+        left=
+          Math.max(
+            0,
+            Math.min(
+              left,
+              maxLeft
+            )
+          );
+
+        top=
+          Math.max(
+            0,
+            Math.min(
+              top,
+              maxTop
+            )
+          );
+
+
+        chef.style.setProperty(
+          'left',
+          left+'px',
+          'important'
+        );
+
+        chef.style.setProperty(
+          'top',
+          top+'px',
+          'important'
+        );
+
+      }
+    );
+
+
+    chef.addEventListener(
+      'pointerup',
+      function(e){
+
+        if(!dragging){
+          return;
+        }
+
+        e.preventDefault();
+
+        dragging=false;
+
+
+        if(!moved){
+
+          chefTap();
+
+        }else{
+
+          localStorage.setItem(
+            'chefPosition',
+            JSON.stringify({
+              left:
+                chef.style.left,
+              top:
+                chef.style.top
+            })
+          );
+
+        }
+
+      }
+    );
+
+
+    const saved=
+      localStorage.getItem(
+        'chefPosition'
+      );
+
+
+    if(saved){
+
+      try{
+
+        const pos=
+          JSON.parse(saved);
+
+
+        chef.style.setProperty(
+          'right',
+          'auto',
+          'important'
+        );
+
+        chef.style.setProperty(
+          'bottom',
+          'auto',
+          'important'
+        );
+
+        chef.style.setProperty(
+          'left',
+          pos.left,
+          'important'
+        );
+
+        chef.style.setProperty(
+          'top',
+          pos.top,
+          'important'
+        );
+
+      }catch(err){}
+
+    }
 
   }
-
-})();
+); 
 
   let activeVoiceRecognition=null;
 
