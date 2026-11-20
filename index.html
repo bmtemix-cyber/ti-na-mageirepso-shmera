@@ -30,12 +30,11 @@
 
 #chefAssistant{
   position:fixed;
+  right:16px;
+  bottom:90px;
 
-  right:18px;
-  bottom:95px;
-
-  width:90px;
-  height:90px;
+  width:84px;
+  height:84px;
 
   z-index:99999;
 
@@ -55,36 +54,39 @@
   pointer-events:none;
   -webkit-user-drag:none;
 
-  filter:drop-shadow(
-    0 5px 8px rgba(0,0,0,.22)
-  );
-
-  transition:
-    transform .18s ease;
-}
-
-#chefAssistant.chef-smile #chefAssistantImg{
-  transform:scale(1.12) rotate(-3deg);
+  filter:
+    drop-shadow(
+      0 4px 8px rgba(0,0,0,.22)
+    );
 }
 
 #chefBubble{
   position:absolute;
-  right:55px;
+
+  right:68px;
   bottom:58px;
+
   width:190px;
+
   padding:10px 12px;
+
   background:white;
+
   border-radius:16px;
-  box-shadow:0 4px 18px rgba(0,0,0,.18);
+
+  box-shadow:
+    0 4px 18px rgba(0,0,0,.18);
+
   font-size:14px;
   font-weight:700;
   line-height:1.3;
+
   color:#333;
 }
 
 #chefBubble.hidden{
   display:none;
-} 
+}
   
 }</style><style>
   /* Λήξη σε 3-4 ημέρες */
