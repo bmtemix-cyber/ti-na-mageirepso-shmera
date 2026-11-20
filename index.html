@@ -58,7 +58,6 @@
 
   object-fit:contain;
 
-  pointer-events:none;
   -webkit-user-drag:none;
 
   filter:drop-shadow(
@@ -1008,6 +1007,184 @@ function chefTap(){
   },4000);
 
 }
+
+ (function(){
+
+  const chef=
+    document.getElementById(
+      'chefAssistantImg'
+    );
+
+  if(!chef)return;
+
+
+  let dragging=false;
+
+  let startX=0;
+  let startY=0;
+
+  let startLeft=0;
+  let startTop=0;
+
+  let moved=false;
+
+
+  chef.addEventListener(
+    'pointerdown',
+    e=>{
+
+      dragging=true;
+      moved=false;
+
+      startX=e.clientX;
+      startY=e.clientY;
+
+      const rect=
+        chef.getBoundingClientRect();
+
+      startLeft=rect.left;
+      startTop=rect.top;
+
+      chef.style.right='auto';
+      chef.style.bottom='auto';
+
+      chef.style.left=
+        startLeft+'px';
+
+      chef.style.top=
+        startTop+'px';
+
+      chef.setPointerCapture(
+        e.pointerId
+      );
+
+    }
+  );
+
+
+  chef.addEventListener(
+    'pointermove',
+    e=>{
+
+      if(!dragging)return;
+
+      const dx=
+        e.clientX-startX;
+
+      const dy=
+        e.clientY-startY;
+
+      if(
+        Math.abs(dx)>5 ||
+        Math.abs(dy)>5
+      ){
+        moved=true;
+      }
+
+
+      let newLeft=
+        startLeft+dx;
+
+      let newTop=
+        startTop+dy;
+
+
+      const maxLeft=
+        window.innerWidth-
+        chef.offsetWidth;
+
+      const maxTop=
+        window.innerHeight-
+        chef.offsetHeight;
+
+
+      newLeft=
+        Math.max(
+          0,
+          Math.min(
+            newLeft,
+            maxLeft
+          )
+        );
+
+      newTop=
+        Math.max(
+          0,
+          Math.min(
+            newTop,
+            maxTop
+          )
+        );
+
+
+      chef.style.left=
+        newLeft+'px';
+
+      chef.style.top=
+        newTop+'px';
+
+    }
+  );
+
+
+  chef.addEventListener(
+    'pointerup',
+    e=>{
+
+      if(!dragging)return;
+
+      dragging=false;
+
+
+      if(!moved){
+
+        chefTap();
+
+      }else{
+
+        localStorage.setItem(
+          'chefPosition',
+          JSON.stringify({
+            left:
+              chef.style.left,
+            top:
+              chef.style.top
+          })
+        );
+
+      }
+
+    }
+  );
+
+
+  const saved=
+    localStorage.getItem(
+      'chefPosition'
+    );
+
+
+  if(saved){
+
+    try{
+
+      const pos=
+        JSON.parse(saved);
+
+      chef.style.right='auto';
+      chef.style.bottom='auto';
+
+      chef.style.left=
+        pos.left;
+
+      chef.style.top=
+        pos.top;
+
+    }catch(e){}
+
+  }
+
+})(); 
 
   (function(){
 
