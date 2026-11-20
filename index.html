@@ -837,18 +837,27 @@ onclick="startLearnVoice()"
 
   let activeVoiceRecognition=null;
 
-function startLearnVoice(){
+  function normalizeLearnVoiceAnswer(text){
 
-  const status=
-    $('learnVoiceStatus');
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.,;!?]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
 
-  const preview=
-    $('learnVoicePreview');
+}
+
+
+
+function learnSpeakAndListen(promptText,onText){
+
+  const status=$('learnVoiceStatus');
 
   const SpeechRecognition=
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
-
 
   if(!SpeechRecognition){
 
@@ -859,163 +868,39 @@ function startLearnVoice(){
   }
 
 
-  if(activeVoiceRecognition){
-
-    status.textContent=
-      '⏳ Περίμενε λίγο να κλείσει το μικρόφωνο.';
-
-    return;
-  }
-
-
   const startListening=()=>{
+
+    if(activeVoiceRecognition){
+      return;
+    }
 
     const recognition=
       new SpeechRecognition();
 
-
     activeVoiceRecognition=
       recognition;
 
-
     recognition.lang='el-GR';
-
     recognition.interimResults=false;
-
     recognition.continuous=false;
-
     recognition.maxAlternatives=1;
+
+    let heard='';
 
 
     recognition.onstart=()=>{
 
       status.textContent=
         '🔴 Σε ακούω...';
+
     };
 
 
     recognition.onresult=(event)=>{
 
-      const text=
+      heard=
         event.results[0][0].transcript;
 
-
-
-const result=
-  parseLearnVoice(text);
-
-      /*
-        Κρατάμε τα ξεχωριστά φαγητά
-        και την ημερομηνία.
-      */
-
-      window.learnVoiceFoods=
-        result.foods;
-
-      window.learnVoiceDate=
-        result.date;
-
-
-      /*
-        Εμφανίζουμε τι ακούσαμε.
-      */
-
-      status.textContent=
-        '✅ Σε κατάλαβα.';
-
-
-      preview.classList.remove(
-        'hidden'
-      );
-
-
-      preview.innerHTML=
-        '<b>🎤 Άκουσα:</b><br>'+
-        text;
-
-
-      /*
-        Πρωινό / μεσημεριανό / βραδινό
-      */
-
-      if(result.type){
-
-        $('type').value=
-          result.type;
-      }
-
-
-      /*
-        Ημερομηνία
-      */
-
-      if(
-        $('mealDate') &&
-        result.date
-      ){
-
-        $('mealDate').value=
-          result.date;
-      }
-
-
-      /*
-        Εμφανίζουμε τα φαγητά
-        χωρισμένα με +
-      */
-
-      if(
-        result.foods &&
-        result.foods.length
-      ){
-
-        $('mealName').value=
-          result.foods.join(' + ');
-
-      }else{
-
-        $('mealName').value=
-          result.meal;
-      }
-
-
-      /*
-        Βρίσκουμε όλες τις κατηγορίες
-        από όλα τα φαγητά.
-      */
-
-      const allCats=
-        learnCatsFromFoods(
-          result.foods
-        );
-
-      document
-        .querySelectorAll(
-          '#cat input[type="checkbox"]'
-        )
-        .forEach(box=>{
-
-          box.checked=
-            allCats.includes(
-              box.value
-            );
-        });
-
-
-      $('hint').textContent=
-        allCats.length
-          ? '✨ Αναγνώρισα: '+
-            allCats
-              .map(c=>labels[c]||c)
-              .join(' + ')
-          : 'Δεν είμαι σίγουρη για τις κατηγορίες.';
-
-
-      /*
-        Δεν κάνουμε stop ή abort.
-        Αφήνουμε το Safari να κλείσει
-        φυσιολογικά το μικρόφωνο.
-      */
     };
 
 
@@ -1026,20 +911,13 @@ const result=
         event.error
       );
 
-
-      if(
-        activeVoiceRecognition===
-        recognition
-      ){
-        activeVoiceRecognition=null;
-      }
-
-
       if(event.error!=='aborted'){
 
         status.textContent=
           '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
+
       }
+
     };
 
 
@@ -1051,6 +929,18 @@ const result=
       ){
         activeVoiceRecognition=null;
       }
+
+      if(heard){
+
+        status.textContent=
+          '✅ Σε άκουσα.';
+
+        setTimeout(()=>{
+          onText(heard);
+        },200);
+
+      }
+
     };
 
 
@@ -1067,15 +957,10 @@ const result=
 
       activeVoiceRecognition=null;
 
-      status.textContent=
-        '⚠️ Το μικρόφωνο δεν άνοιξε.';
     }
+
   };
 
-
-  /*
-    Workaround για iPhone / Safari.
-  */
 
   if(
     'speechSynthesis' in window &&
@@ -1084,15 +969,12 @@ const result=
 
     window.speechSynthesis.cancel();
 
-
     const prompt=
       new SpeechSynthesisUtterance(
-        'Πες μου τι φάγατε'
+        promptText
       );
 
-
     prompt.lang='el-GR';
-
     prompt.rate=0.72;
 
 
@@ -1102,6 +984,7 @@ const result=
         startListening,
         200
       );
+
     };
 
 
@@ -1111,6 +994,7 @@ const result=
         startListening,
         200
       );
+
     };
 
 
@@ -1121,9 +1005,278 @@ const result=
   }else{
 
     startListening();
+
   }
+
 }
 
+
+
+function applyLearnVoiceText(
+  text,
+  append=false
+){
+
+  const status=$('learnVoiceStatus');
+  const preview=$('learnVoicePreview');
+
+  let source=
+    String(text || '').trim();
+
+
+  /*
+    Αν είναι δεύτερη προσθήκη,
+    καθαρίζουμε φράσεις όπως:
+    "φάγαμε και..."
+  */
+
+  if(append){
+
+    source=
+      source
+        .replace(
+          /^(φάγαμε|φαγαμε|έφαγα|εφαγα|ήπιαμε|ηπιαμε)\s+/i,
+          ''
+        )
+        .replace(
+          /^και\s+/i,
+          ''
+        )
+        .trim();
+
+  }
+
+
+  const result=
+    parseLearnVoice(source);
+
+
+  const incomingFoods=
+    result.foods &&
+    result.foods.length
+      ? result.foods
+      : (
+          result.meal
+            ? [result.meal]
+            : []
+        );
+
+
+  if(append){
+
+    window.learnVoiceFoods=[
+      ...(window.learnVoiceFoods || []),
+      ...incomingFoods
+    ];
+
+  }else{
+
+    window.learnVoiceFoods=
+      incomingFoods;
+
+    window.learnVoiceDate=
+      result.date;
+
+  }
+
+
+  if(!append){
+
+    if(result.type){
+      $('type').value=
+        result.type;
+    }
+
+    if(
+      $('mealDate') &&
+      result.date
+    ){
+      $('mealDate').value=
+        result.date;
+    }
+
+  }
+
+
+  $('mealName').value=
+    (window.learnVoiceFoods || [])
+      .join(' + ');
+
+
+  const allCats=
+    learnCatsFromFoods(
+      window.learnVoiceFoods
+    );
+
+
+  document
+    .querySelectorAll(
+      '#cat input[type="checkbox"]'
+    )
+    .forEach(box=>{
+
+      box.checked=
+        allCats.includes(
+          box.value
+        );
+
+    });
+
+
+  $('hint').textContent=
+    allCats.length
+      ?
+      '✨ Αναγνώρισα: '+
+      allCats
+        .map(c=>labels[c] || c)
+        .join(' + ')
+      :
+      'Δεν είμαι σίγουρη για τις κατηγορίες.';
+
+
+  preview.classList.remove(
+    'hidden'
+  );
+
+
+  if(append){
+
+    preview.innerHTML+=
+      '<br><b>➕ Πρόσθεσα:</b><br>'+
+      text;
+
+  }else{
+
+    preview.innerHTML=
+      '<b>🎤 Άκουσα:</b><br>'+
+      text;
+
+  }
+
+
+  status.textContent=
+    '✅ Καταγράφηκε η φωνή.';
+
+}
+
+
+
+function askLearnVoiceConfirmation(){
+
+  learnSpeakAndListen(
+    'Είστε εντάξει με αυτά; Πείτε ναι ή όχι.',
+    answer=>{
+
+      const a=
+        normalizeLearnVoiceAnswer(
+          answer
+        );
+
+
+      /*
+        ΝΑΙ
+      */
+
+      if(
+        a.startsWith('ναι') ||
+        a==='ενταξει' ||
+        a.includes('ειμαι ενταξει')
+      ){
+
+        $('learnVoiceStatus')
+          .textContent=
+          '✅ Εντάξει. Η καταχώριση είναι έτοιμη.';
+
+        return;
+
+      }
+
+
+      /*
+        ΟΧΙ
+      */
+
+      if(
+        a.startsWith('οχι') ||
+        a.includes('κατι αλλο')
+      ){
+
+        learnSpeakAndListen(
+          'Πες μου τι άλλο φάγατε.',
+          moreText=>{
+
+            applyLearnVoiceText(
+              moreText,
+              true
+            );
+
+            setTimeout(
+              askLearnVoiceConfirmation,
+              300
+            );
+
+          }
+        );
+
+        return;
+
+      }
+
+
+      /*
+        Δεν κατάλαβε ναι / όχι
+      */
+
+      $('learnVoiceStatus')
+        .textContent=
+        '⚠️ Δεν κατάλαβα την απάντηση.';
+
+      setTimeout(
+        askLearnVoiceConfirmation,
+        400
+      );
+
+    }
+  );
+
+}
+
+function startLearnVoice(){
+
+  window.learnVoiceFoods=[];
+  window.learnVoiceDate=null;
+
+  const preview=
+    $('learnVoicePreview');
+
+  if(preview){
+
+    preview.innerHTML='';
+    preview.classList.add(
+      'hidden'
+    );
+
+  }
+
+
+  learnSpeakAndListen(
+    'Πες μου τι φάγατε.',
+    text=>{
+
+      applyLearnVoiceText(
+        text,
+        false
+      );
+
+      setTimeout(
+        askLearnVoiceConfirmation,
+        300
+      );
+
+    }
+  );
+
+}
 
 function splitLearnFoods(text){
 
