@@ -7847,19 +7847,33 @@ function handleChefCommand(text){
 
 
   if(
-    t.includes('αποθηκη') ||
-    t.includes('υλικ') ||
-    t.includes('προιον')
-  ){
+  t.includes('αποθηκη') ||
+  t.includes('υλικ') ||
+  t.includes('προιον')
+){
 
-    show('pantry');
+  show('pantry');
 
-    chefSpeak(
-      'Πάμε στα υλικά.'
-    );
+  setTimeout(()=>{
 
-    return;
-  }
+    if(
+      typeof startPantryVoice==='function'
+    ){
+
+      startPantryVoice();
+
+    }else{
+
+      chefSpeak(
+        'Δεν μπόρεσα να ανοίξω τη φωνητική προσθήκη υλικών.'
+      );
+
+    }
+
+  },400);
+
+  return;
+}
 
 
   if(
