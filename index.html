@@ -943,43 +943,7 @@ onclick="startLearnVoice()"
 };
 
 
-  function showGreekVoices(){
-
-  const voices=
-    window.speechSynthesis.getVoices();
-
-  const greekVoices=
-    voices.filter(v=>
-      String(v.lang || '')
-        .toLowerCase()
-        .startsWith('el')
-    );
-
-  if(!greekVoices.length){
-
-    alert(
-      'Δεν βρήκα ελληνικές φωνές.'
-    );
-
-    return;
-  }
-
-  const text=
-    greekVoices
-      .map((v,i)=>
-        (i+1)+
-        '. '+
-        v.name+
-        ' — '+
-        v.lang
-      )
-      .join('\n');
-
-  alert(
-    'Ελληνικές φωνές:\n\n'+
-    text
-  );
-}
+  
 
  function chefSpeak(text){
 
@@ -1086,9 +1050,49 @@ onclick="startLearnVoice()"
     'hidden'
   );
 
-  chefSpeak(
-    'Πώς μπορώ να σας βοηθήσω;'
+ if(
+  'speechSynthesis' in window &&
+  'SpeechSynthesisUtterance' in window
+){
+
+  window.speechSynthesis.cancel();
+
+  const utterance=
+    new SpeechSynthesisUtterance(
+      'Πώς μπορώ να σας βοηθήσω;'
+    );
+
+  utterance.lang='el-GR';
+  utterance.rate=0.67;
+  utterance.pitch=0.66;
+
+  const voices=
+    window.speechSynthesis.getVoices();
+
+  const melina=
+    voices.find(v=>
+      v.name==='Melina' &&
+      v.lang==='el-GR'
+    );
+
+  if(melina){
+    utterance.voice=melina;
+  }
+
+  utterance.onend=()=>{
+
+    setTimeout(
+      startChefListening,
+      250
+    );
+
+  };
+
+  window.speechSynthesis.speak(
+    utterance
   );
+
+}
 
   setTimeout(()=>{
 
@@ -7800,6 +7804,162 @@ renderVoicePantryPreview(
 if($('reminderTime')){
   $('reminderTime').value=reminderTime;
 } 
+
+function handleChefCommand(text){
+
+  const t=
+    String(text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/[.,;!?]/g,' ')
+      .replace(/\s+/g,' ')
+      .trim();
+
+
+  if(
+    t.includes('μελος') ||
+    t.includes('οικογενεια')
+  ){
+
+    show('family');
+
+    chefSpeak(
+      'Πάμε στην οικογένεια.'
+    );
+
+    return;
+  }
+
+
+  if(
+    t.includes('αποθηκη') ||
+    t.includes('υλικ') ||
+    t.includes('προιον')
+  ){
+
+    show('pantry');
+
+    chefSpeak(
+      'Πάμε στα υλικά.'
+    );
+
+    return;
+  }
+
+
+  if(
+    t.includes('φαγαμε') ||
+    t.includes('γευμα') ||
+    t.includes('χθες') ||
+    t.includes('προχθες')
+  ){
+
+    show('learn');
+
+    chefSpeak(
+      'Πάμε να καταγράψουμε το γεύμα.'
+    );
+
+    return;
+  }
+
+
+  if(
+    t.includes('μαγειρεψ') ||
+    t.includes('τι να φαμε') ||
+    t.includes('προταση')
+  ){
+
+    show('home');
+
+    chefSpeak(
+      'Πάμε να δούμε τι θα μαγειρέψουμε σήμερα.'
+    );
+
+    return;
+  }
+
+
+  if(
+    t.includes('ρυθμισ')
+  ){
+
+    show('settings');
+
+    chefSpeak(
+      'Ανοίγω τις ρυθμίσεις.'
+    );
+
+    return;
+  }
+
+
+  chefSpeak(
+    'Δεν κατάλαβα ακριβώς. Πείτε μου ξανά τι θέλετε να κάνουμε.'
+  );
+
+}
+
+ function startChefListening(){
+
+  const SpeechRecognition=
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if(!SpeechRecognition){
+
+    chefSpeak(
+      'Η φωνητική αναγνώριση δεν υποστηρίζεται.'
+    );
+
+    return;
+  }
+
+
+  const recognition=
+    new SpeechRecognition();
+
+  recognition.lang='el-GR';
+  recognition.interimResults=false;
+  recognition.continuous=false;
+  recognition.maxAlternatives=1;
+
+
+  recognition.onresult=(event)=>{
+
+    const text=
+      event.results[0][0].transcript;
+
+    handleChefCommand(text);
+
+  };
+
+
+  recognition.onerror=()=>{
+
+    chefSpeak(
+      'Δεν σας κατάλαβα. Δοκιμάστε ξανά.'
+    );
+
+  };
+
+
+  try{
+
+    recognition.start();
+
+  }catch(e){
+
+    console.log(
+      'Chef voice error:',
+      e
+    );
+
+  }
+
+} 
+  
 async function markAppOpenedToday(){
   const today=new Date().toISOString().slice(0,10);
 
