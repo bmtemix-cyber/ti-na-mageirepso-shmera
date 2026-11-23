@@ -7876,22 +7876,36 @@ function handleChefCommand(text){
 }
 
 
-  if(
-    t.includes('φαγαμε') ||
-    t.includes('γευμα') ||
-    t.includes('χθες') ||
-    t.includes('προχθες')
-  ){
+ if(
+  t.includes('φαγαμε') ||
+  t.includes('γευμα') ||
+  t.includes('χθες') ||
+  t.includes('προχθες') ||
+  t.includes('καταγραψ')
+){
 
-    show('learn');
+  show('learn');
 
-    chefSpeak(
-      'Πάμε να καταγράψουμε το γεύμα.'
-    );
+  setTimeout(()=>{
 
-    return;
-  }
+    if(
+      typeof startLearnVoice==='function'
+    ){
 
+      startLearnVoice();
+
+    }else{
+
+      chefSpeak(
+        'Δεν μπόρεσα να ανοίξω τη φωνητική καταγραφή γεύματος.'
+      );
+
+    }
+
+  },400);
+
+  return;
+}
 
   if(
     t.includes('μαγειρεψ') ||
