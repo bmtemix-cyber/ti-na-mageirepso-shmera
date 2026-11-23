@@ -796,6 +796,14 @@ onclick="startLearnVoice()"
   <div class="card">
     <h2>⚙️ Ρυθμίσεις</h2>
 
+    <button
+  type="button"
+  class="btn secondary"
+  onclick="showGreekVoices()"
+>
+  🎙️ Δείξε ελληνικές φωνές
+</button>
+
     <div class="field">
       <label>Περίοδος εκμάθησης</label>
       <select id="learnDays" onchange="changeLearn()">
@@ -933,6 +941,45 @@ onclick="startLearnVoice()"
   'Ψαρόσουπα': 'images/psarosoupa.jpg',
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
+
+
+  function showGreekVoices(){
+
+  const voices=
+    window.speechSynthesis.getVoices();
+
+  const greekVoices=
+    voices.filter(v=>
+      String(v.lang || '')
+        .toLowerCase()
+        .startsWith('el')
+    );
+
+  if(!greekVoices.length){
+
+    alert(
+      'Δεν βρήκα ελληνικές φωνές.'
+    );
+
+    return;
+  }
+
+  const text=
+    greekVoices
+      .map((v,i)=>
+        (i+1)+
+        '. '+
+        v.name+
+        ' — '+
+        v.lang
+      )
+      .join('\n');
+
+  alert(
+    'Ελληνικές φωνές:\n\n'+
+    text
+  );
+}
 
  function chefSpeak(text){
 
