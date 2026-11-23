@@ -7817,19 +7817,33 @@ function handleChefCommand(text){
       .trim();
 
 
-  if(
-    t.includes('μελος') ||
-    t.includes('οικογενεια')
-  ){
+ if(
+  t.includes('μελος') ||
+  t.includes('οικογενεια')
+){
 
-    show('family');
+  show('family');
 
-    chefSpeak(
-      'Πάμε στην οικογένεια.'
-    );
+  setTimeout(()=>{
 
-    return;
-  }
+    if(
+      typeof showAddMember==='function'
+    ){
+
+      showAddMember();
+
+    }else{
+
+      chefSpeak(
+        'Δεν μπόρεσα να ανοίξω την προσθήκη μέλους.'
+      );
+
+    }
+
+  },400);
+
+  return;
+}
 
 
   if(
