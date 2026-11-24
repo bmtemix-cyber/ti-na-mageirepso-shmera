@@ -1423,7 +1423,7 @@ function learnSpeakAndListen(promptText,onText){
     };
 
 
-    =(event)=>{
+    recognition.onresult=(event)=>{
 
       heard=
         event.results[0][0].transcript;
@@ -7846,12 +7846,10 @@ function handleChefCommand(text){
 }
 
 
-if(
+  if(
   t.includes('αποθηκη') ||
   t.includes('υλικ') ||
-  t.includes('προιον') ||
-  t.includes('αγορασα') ||
-  t.includes('πηρα')
+  t.includes('προιον')
 ){
 
   show('pantry');
@@ -7862,8 +7860,12 @@ if(
       typeof startPantryVoice==='function'
     ){
 
-      startPantryVoice(
-        text
+      startPantryVoice();
+
+    }else{
+
+      chefSpeak(
+        'Δεν μπόρεσα να ανοίξω τη φωνητική προσθήκη υλικών.'
       );
 
     }
