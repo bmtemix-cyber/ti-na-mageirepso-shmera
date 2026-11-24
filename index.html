@@ -7521,75 +7521,13 @@ resetPantryVoiceButton();
   render();
 }
   
-function startPantryVoice(initialText=''){
+function startPantryVoice(){
 
   const btn=
     $('voicePantryBtn');
 
   const status=
     $('voicePantryStatus');
-
-
-  const processPantryText=(text)=>{
-
-    const items=
-      parseVoicePantry(text);
-
-
-    const previousItems=
-      voicePantryItems.map((item,i)=>({
-
-        name:
-          $('voiceName'+i)
-            ? $('voiceName'+i).value.trim()
-            : item.name,
-
-        qty:
-          $('voiceQty'+i)
-            ? $('voiceQty'+i).value.trim()
-            : item.qty
-
-      }));
-
-
-    const allItems=[
-      ...previousItems,
-      ...items
-    ];
-
-
-    status.textContent=
-      '🎤 Άκουσα: '+
-      text+
-      ' — Πρόσθεσα '+
-      items.length+
-      ' προϊόντα.';
-
-
-    renderVoicePantryPreview(
-      allItems
-    );
-
-  };
-
-
-  /*
-    Αν η φράση έχει ήδη έρθει
-    από τη μαγείρισσα,
-    δεν ανοίγουμε νέο μικρόφωνο.
-  */
-
-  if(initialText){
-
-    processPantryText(
-      initialText
-    );
-
-    resetPantryVoiceButton();
-
-    return;
-  }
-
 
   const SpeechRecognition=
     window.SpeechRecognition ||
@@ -7605,6 +7543,11 @@ function startPantryVoice(initialText=''){
   }
 
 
+  /*
+    Αν υπάρχει ήδη ενεργή αναγνώριση,
+    δεν ξεκινάμε δεύτερη πάνω της.
+  */
+
   if(activeVoiceRecognition){
 
     status.textContent=
@@ -7616,7 +7559,6 @@ function startPantryVoice(initialText=''){
 
   const recognition=
     new SpeechRecognition();
-
 
   activeVoiceRecognition=
     recognition;
@@ -7640,7 +7582,6 @@ function startPantryVoice(initialText=''){
 
     status.textContent=
       'Πες τα προϊόντα και τις ποσότητες.';
-
   };
 
 
@@ -7649,17 +7590,66 @@ function startPantryVoice(initialText=''){
     const text=
       event.results[0][0].transcript;
 
-    processPantryText(
-      text
-    );
+   const items=
+  parseVoicePantry(text);
 
+
+/*
+  Κρατάμε όσα προϊόντα υπάρχουν ήδη
+  στο πινακάκι, μαζί με τυχόν διορθώσεις
+  που έχει κάνει ο χρήστης.
+*/
+
+const previousItems=
+  voicePantryItems.map((item,i)=>({
+
+    name:
+      $('voiceName'+i)
+        ? $('voiceName'+i).value.trim()
+        : item.name,
+
+    qty:
+      $('voiceQty'+i)
+        ? $('voiceQty'+i).value.trim()
+        : item.qty
+
+  }));
+
+
+const allItems=[
+  ...previousItems,
+  ...items
+];
+
+
+status.textContent=
+  '🎤 Άκουσα: '+
+  text+
+  ' — Πρόσθεσα '+
+  items.length+
+  ' προϊόντα.';
+
+
+renderVoicePantryPreview(
+  allItems
+);
+
+
+    /*
+      ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ ΓΙΑ iPHONE:
+      ΔΕΝ κάνουμε stop()
+      ΔΕΝ κάνουμε abort()
+
+      Αφήνουμε το Safari να ολοκληρώσει
+      μόνο του τη συνεδρία.
+    */
   };
 
 
   recognition.onerror=(event)=>{
 
     console.log(
-      'Pantry voice error:',
+      'Voice error:',
       event.error
     );
 
@@ -7681,9 +7671,7 @@ function startPantryVoice(initialText=''){
 
       status.textContent=
         '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
-
     }
-
   };
 
 
@@ -7702,9 +7690,14 @@ function startPantryVoice(initialText=''){
       resetPantryVoiceButton();
 
     },300);
-
   };
 
+
+  /*
+    Workaround για το bug του iOS/WebKit:
+    μιλάει για λίγο η εφαρμογή και
+    μόλις τελειώσει ξεκινά η αναγνώριση.
+  */
 
   const startRecognition=()=>{
 
@@ -7725,15 +7718,9 @@ function startPantryVoice(initialText=''){
 
       status.textContent=
         '⚠️ Το μικρόφωνο δεν άνοιξε. Πάτησε ξανά.';
-
     }
-
   };
 
-
-  /*
-    Workaround για iPhone / Safari.
-  */
 
   if(
     'speechSynthesis' in window &&
@@ -7745,7 +7732,7 @@ function startPantryVoice(initialText=''){
 
     const prompt=
       new SpeechSynthesisUtterance(
-        'Πολύ καλά, πες τα προϊόντα.'
+        'Πολή καλά πες τα προϊόντα'
       );
 
 
@@ -7760,7 +7747,6 @@ function startPantryVoice(initialText=''){
         startRecognition,
         150
       );
-
     };
 
 
@@ -7770,7 +7756,6 @@ function startPantryVoice(initialText=''){
         startRecognition,
         150
       );
-
     };
 
 
@@ -7781,9 +7766,7 @@ function startPantryVoice(initialText=''){
   }else{
 
     startRecognition();
-
   }
-
 }
  function addIng(){
    const name=$('ing').value.trim();if(!name)return;
