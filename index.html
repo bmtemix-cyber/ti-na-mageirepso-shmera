@@ -7570,6 +7570,29 @@ function startPantryVoice(initialText=''){
 
 };
 
+ if(initialText){
+
+  /*
+    Δεν ανοίξαμε πραγματικά μικρόφωνο,
+    άρα το ελευθερώνουμε αμέσως.
+  */
+
+  if(
+    activeVoiceRecognition===
+    recognition
+  ){
+    activeVoiceRecognition=null;
+  }
+
+  processPantryText(
+    initialText
+  );
+
+  resetPantryVoiceButton();
+
+  return;
+} 
+
   const SpeechRecognition=
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
@@ -7644,28 +7667,7 @@ function startPantryVoice(initialText=''){
   δεν ανοίγουμε δεύτερο μικρόφωνο.
 */
 
-if(initialText){
 
-  /*
-    Δεν ανοίξαμε πραγματικά μικρόφωνο,
-    άρα το ελευθερώνουμε αμέσως.
-  */
-
-  if(
-    activeVoiceRecognition===
-    recognition
-  ){
-    activeVoiceRecognition=null;
-  }
-
-  processPantryText(
-    initialText
-  );
-
-  resetPantryVoiceButton();
-
-  return;
-}
 
   const startRecognition=()=>{
 
