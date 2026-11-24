@@ -7528,70 +7528,68 @@ function startPantryVoice(initialText=''){
 
   const status=
     $('voicePantryStatus');
+
+
   const processPantryText=(text)=>{
 
-  const items=
-    parseVoicePantry(text);
+    const items=
+      parseVoicePantry(text);
 
 
-  const previousItems=
-    voicePantryItems.map((item,i)=>({
+    const previousItems=
+      voicePantryItems.map((item,i)=>({
 
-      name:
-        $('voiceName'+i)
-          ? $('voiceName'+i).value.trim()
-          : item.name,
+        name:
+          $('voiceName'+i)
+            ? $('voiceName'+i).value.trim()
+            : item.name,
 
-      qty:
-        $('voiceQty'+i)
-          ? $('voiceQty'+i).value.trim()
-          : item.qty
+        qty:
+          $('voiceQty'+i)
+            ? $('voiceQty'+i).value.trim()
+            : item.qty
 
-    }));
-
-
-  const allItems=[
-    ...previousItems,
-    ...items
-  ];
+      }));
 
 
-  status.textContent=
-    '🎤 Άκουσα: '+
-    text+
-    ' — Πρόσθεσα '+
-    items.length+
-    ' προϊόντα.';
+    const allItems=[
+      ...previousItems,
+      ...items
+    ];
 
 
-  renderVoicePantryPreview(
-    allItems
-  );
+    status.textContent=
+      '🎤 Άκουσα: '+
+      text+
+      ' — Πρόσθεσα '+
+      items.length+
+      ' προϊόντα.';
 
-};
 
- if(initialText){
+    renderVoicePantryPreview(
+      allItems
+    );
+
+  };
+
 
   /*
-    Δεν ανοίξαμε πραγματικά μικρόφωνο,
-    άρα το ελευθερώνουμε αμέσως.
+    Αν η φράση έχει ήδη έρθει
+    από τη μαγείρισσα,
+    δεν ανοίγουμε νέο μικρόφωνο.
   */
 
-  if(
-    activeVoiceRecognition===
-    recognition
-  ){
-    activeVoiceRecognition=null;
+  if(initialText){
+
+    processPantryText(
+      initialText
+    );
+
+    resetPantryVoiceButton();
+
+    return;
   }
 
-  processPantryText(
-    initialText
-  );
-
-  resetPantryVoiceButton();
-
-  return;
-} 
 
   const SpeechRecognition=
     window.SpeechRecognition ||
@@ -7607,11 +7605,6 @@ function startPantryVoice(initialText=''){
   }
 
 
-  /*
-    Αν υπάρχει ήδη ενεργή αναγνώριση,
-    δεν ξεκινάμε δεύτερη πάνω της.
-  */
-
   if(activeVoiceRecognition){
 
     status.textContent=
@@ -7623,6 +7616,7 @@ function startPantryVoice(initialText=''){
 
   const recognition=
     new SpeechRecognition();
+
 
   activeVoiceRecognition=
     recognition;
@@ -7646,27 +7640,70 @@ function startPantryVoice(initialText=''){
 
     status.textContent=
       'Πες τα προϊόντα και τις ποσότητες.';
+
   };
 
 
   recognition.onresult=(event)=>{
 
-  const text=
-    event.results[0][0].transcript;
+    const text=
+      event.results[0][0].transcript;
 
-  processPantryText(
-    text
-  );
+    processPantryText(
+      text
+    );
 
-};
+  };
 
 
+  recognition.onerror=(event)=>{
 
-  /*
-  Αν η φράση ήρθε ήδη από τη μαγείρισσα,
-  δεν ανοίγουμε δεύτερο μικρόφωνο.
-*/
+    console.log(
+      'Pantry voice error:',
+      event.error
+    );
 
+
+    if(
+      activeVoiceRecognition===
+      recognition
+    ){
+      activeVoiceRecognition=null;
+    }
+
+
+    resetPantryVoiceButton();
+
+
+    if(
+      event.error!=='aborted'
+    ){
+
+      status.textContent=
+        '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
+
+    }
+
+  };
+
+
+  recognition.onend=()=>{
+
+    if(
+      activeVoiceRecognition===
+      recognition
+    ){
+      activeVoiceRecognition=null;
+    }
+
+
+    setTimeout(()=>{
+
+      resetPantryVoiceButton();
+
+    },300);
+
+  };
 
 
   const startRecognition=()=>{
@@ -7688,9 +7725,15 @@ function startPantryVoice(initialText=''){
 
       status.textContent=
         '⚠️ Το μικρόφωνο δεν άνοιξε. Πάτησε ξανά.';
+
     }
+
   };
 
+
+  /*
+    Workaround για iPhone / Safari.
+  */
 
   if(
     'speechSynthesis' in window &&
@@ -7702,7 +7745,7 @@ function startPantryVoice(initialText=''){
 
     const prompt=
       new SpeechSynthesisUtterance(
-        'Πολή καλά πες τα προϊόντα'
+        'Πολύ καλά, πες τα προϊόντα.'
       );
 
 
@@ -7717,6 +7760,7 @@ function startPantryVoice(initialText=''){
         startRecognition,
         150
       );
+
     };
 
 
@@ -7726,6 +7770,7 @@ function startPantryVoice(initialText=''){
         startRecognition,
         150
       );
+
     };
 
 
@@ -7736,7 +7781,9 @@ function startPantryVoice(initialText=''){
   }else{
 
     startRecognition();
+
   }
+
 }
  function addIng(){
    const name=$('ing').value.trim();if(!name)return;
