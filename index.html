@@ -1423,7 +1423,7 @@ function learnSpeakAndListen(promptText,onText){
     };
 
 
-    recognition.onresult=(event)=>{
+    =(event)=>{
 
       heard=
         event.results[0][0].transcript;
@@ -7638,69 +7638,6 @@ function startPantryVoice(initialText=''){
 };
 
 
-    /*
-      ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ ΓΙΑ iPHONE:
-      ΔΕΝ κάνουμε stop()
-      ΔΕΝ κάνουμε abort()
-
-      Αφήνουμε το Safari να ολοκληρώσει
-      μόνο του τη συνεδρία.
-    */
-  };
-
-
-  recognition.onerror=(event)=>{
-
-    console.log(
-      'Voice error:',
-      event.error
-    );
-
-
-    if(
-      activeVoiceRecognition===
-      recognition
-    ){
-      activeVoiceRecognition=null;
-    }
-
-
-    resetPantryVoiceButton();
-
-
-    if(
-      event.error!=='aborted'
-    ){
-
-      status.textContent=
-        '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
-    }
-  };
-
-
-  recognition.onend=()=>{
-
-    if(
-      activeVoiceRecognition===
-      recognition
-    ){
-      activeVoiceRecognition=null;
-    }
-
-
-    setTimeout(()=>{
-
-      resetPantryVoiceButton();
-
-    },300);
-  };
-
-
-  /*
-    Workaround για το bug του iOS/WebKit:
-    μιλάει για λίγο η εφαρμογή και
-    μόλις τελειώσει ξεκινά η αναγνώριση.
-  */
 
   /*
   Αν η φράση ήρθε ήδη από τη μαγείρισσα,
