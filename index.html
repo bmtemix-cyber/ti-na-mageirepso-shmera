@@ -2401,10 +2401,468 @@ if(track && typeof track.getCapabilities==='function'){
   }
 }
 
- function addPantryFromChef(text){
+ function normalizePantryVoiceAnswer(text){
+
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.,;!?]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+
+}
+
+
+function pantrySpeakAndListen(message,onAnswer){
+
+  const SpeechRecognition=
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+
+  if(!SpeechRecognition){
+
+    chefSpeak(
+      'Η φωνητική αναγνώριση δεν υποστηρίζεται.'
+    );
+
+    return;
+  }
+
+
+  if(activeVoiceRecognition){
+
+    console.log(
+      'Υπάρχει ήδη ενεργό μικρόφωνο.'
+    );
+
+    return;
+  }
+
+
+  const startListening=()=>{
+
+    const recognition=
+      new SpeechRecognition();
+
+    activeVoiceRecognition=
+      recognition;
+
+
+    recognition.lang='el-GR';
+    recognition.interimResults=false;
+    recognition.continuous=false;
+    recognition.maxAlternatives=1;
+
+
+    let heard='';
+
+
+    recognition.onresult=(event)=>{
+
+      heard=
+        event.results[0][0].transcript;
+
+    };
+
+
+    recognition.onerror=(event)=>{
+
+      console.log(
+        'Pantry assistant error:',
+        event.error
+      );
+
+    };
+
+
+    recognition.onend=()=>{
+
+      if(
+        activeVoiceRecognition===
+        recognition
+      ){
+        activeVoiceRecognition=null;
+      }
+
+
+      if(heard){
+
+        setTimeout(()=>{
+
+          onAnswer(
+            heard
+          );
+
+        },250);
+
+      }
+
+    };
+
+
+    try{
+
+      recognition.start();
+
+    }catch(e){
+
+      console.log(
+        'Pantry listen error:',
+        e
+      );
+
+      activeVoiceRecognition=null;
+
+    }
+
+  };
+
+
+  if(
+    'speechSynthesis' in window &&
+    'SpeechSynthesisUtterance' in window
+  ){
+
+    window.speechSynthesis.cancel();
+
+
+    const voice=
+      new SpeechSynthesisUtterance(
+        message
+      );
+
+    voice.lang='el-GR';
+    voice.rate=0.67;
+    voice.pitch=0.66;
+    voice.volume=1;
+
+
+    const voices=
+      window.speechSynthesis.getVoices();
+
+    const melina=
+      voices.find(v=>
+        v.name==='Melina' &&
+        v.lang==='el-GR'
+      );
+
+    if(melina){
+      voice.voice=melina;
+    }
+
+
+    voice.onend=()=>{
+
+      setTimeout(
+        startListening,
+        250
+      );
+
+    };
+
+
+    voice.onerror=()=>{
+
+      setTimeout(
+        startListening,
+        250
+      );
+
+    };
+
+
+    window.speechSynthesis.speak(
+      voice
+    );
+
+  }else{
+
+    startListening();
+
+  }
+
+}
+
+
+function getCurrentPantryVoiceItems(){
+
+  return voicePantryItems.map(
+    (item,i)=>({
+
+      ...item,
+
+      name:
+        $('voiceName'+i)
+          ? $('voiceName'+i).value.trim()
+          : item.name,
+
+      qty:
+        $('voiceQty'+i)
+          ? $('voiceQty'+i).value.trim()
+          : item.qty
+
+    })
+  );
+
+}
+
+ function pantryQtyForSpeech(qty){
+
+  let q=
+    String(qty || '').trim();
+
+  const num=
+    parseFloat(
+      q.replace(',','.')
+    );
+
+
+  if(q.includes('kg')){
+
+    q=
+      q.replace(
+        'kg',
+        num===1
+          ? 'κιλό'
+          : 'κιλά'
+      );
+
+  }
+
+
+  if(q.includes('L')){
+
+    q=
+      q.replace(
+        'L',
+        num===1
+          ? 'λίτρο'
+          : 'λίτρα'
+      );
+
+  }
+
+
+  if(q.includes('g')){
+
+    q=
+      q.replace(
+        'g',
+        'γραμμάρια'
+      );
+
+  }
+
+
+  if(q.includes('τμχ')){
+
+    q=
+      q.replace(
+        /τμχ\.?/,
+        num===1
+          ? 'τεμάχιο'
+          : 'τεμάχια'
+      );
+
+  }
+
+
+  return q;
+}
+
+
+function pantryItemsForSpeech(items){
+
+  return items
+    .map(item=>
+      item.name+
+      ' '+
+      pantryQtyForSpeech(
+        item.qty
+      )
+    )
+    .join(', ');
+
+} 
+
+
+function askPantryChefConfirmation(){
+
+  const currentItems=
+    getCurrentPantryVoiceItems();
+
+
+  const summary=
+    pantryItemsForSpeech(
+      currentItems
+    );
+
+
+  pantrySpeakAndListen(
+
+    summary+
+    '. Είστε εντάξει ή θέλετε να προσθέσουμε και κάτι άλλο;',
+
+    answer=>{
+
+      const t=
+        normalizePantryVoiceAnswer(
+          answer
+        );
+
+
+      /*
+        Ο χρήστης θέλει να προσθέσει
+        κι άλλα προϊόντα.
+      */
+
+      if(
+        t.includes('κατι αλλο') ||
+        t.includes('και αλλο') ||
+        t.includes('προσθεσουμε') ||
+        t.includes('προσθεσω') ||
+        t.includes('προσθεσε') ||
+        t.includes('θελω και')
+      ){
+
+        pantrySpeakAndListen(
+
+          'Πείτε μου τι άλλο θέλετε να προσθέσουμε.',
+
+          extraText=>{
+
+            const newItems=
+              parseVoicePantry(
+                extraText
+              );
+
+
+            const currentItems=
+              getCurrentPantryVoiceItems();
+
+
+            const allItems=[
+              ...currentItems,
+              ...newItems
+            ];
+
+
+            renderVoicePantryPreview(
+              allItems
+            );
+
+
+            setTimeout(
+              askPantryChefConfirmation,
+              400
+            );
+
+          }
+
+        );
+
+        return;
+      }
+
+
+      /*
+        Ο χρήστης είναι εντάξει.
+      */
+
+      if(
+        t.includes('ενταξει') ||
+        t==='ναι' ||
+        t.includes('ειμαι ενταξει') ||
+        t.includes('σωστα') ||
+        t.includes('μια χαρα') ||
+        t.includes('οκ') ||
+        t.includes('τελος')
+      ){
+
+        chefSpeak(
+          'Ωραία. Τα προϊόντα είναι σωστά.'
+        );
+
+        return;
+      }
+
+
+      /*
+        Δεν καταλάβαμε την απάντηση.
+      */
+
+      pantrySpeakAndListen(
+
+        'Δεν κατάλαβα. Είστε εντάξει ή θέλετε να προσθέσουμε κάτι άλλο;',
+
+        secondAnswer=>{
+
+          const t2=
+            normalizePantryVoiceAnswer(
+              secondAnswer
+            );
+
+
+          if(
+            t2.includes('ενταξει') ||
+            t2==='ναι' ||
+            t2.includes('οκ')
+          ){
+
+            chefSpeak(
+              'Ωραία. Τα προϊόντα είναι σωστά.'
+            );
+
+          }else{
+
+            pantrySpeakAndListen(
+
+              'Πείτε μου τι άλλο θέλετε να προσθέσουμε.',
+
+              extraText=>{
+
+                const newItems=
+                  parseVoicePantry(
+                    extraText
+                  );
+
+                const currentItems=
+                  getCurrentPantryVoiceItems();
+
+                renderVoicePantryPreview([
+                  ...currentItems,
+                  ...newItems
+                ]);
+
+                setTimeout(
+                  askPantryChefConfirmation,
+                  400
+                );
+
+              }
+
+            );
+
+          }
+
+        }
+
+      );
+
+    }
+
+  );
+
+}
+
+
+function addPantryFromChef(text){
 
   const status=
     $('voicePantryStatus');
+
 
   let cleanText=
     String(text || '')
@@ -2422,7 +2880,7 @@ if(track && typeof track.getCapabilities==='function'){
   if(!items.length){
 
     chefSpeak(
-      'Δεν κατάλαβα ποιο προϊόν αγοράσατε.'
+      'Δεν κατάλαβα ποια προϊόντα αγοράσατε.'
     );
 
     return;
@@ -2438,7 +2896,13 @@ if(track && typeof track.getCapabilities==='function'){
     items
   );
 
-} 
+
+  setTimeout(
+    askPantryChefConfirmation,
+    500
+  );
+
+}
 
 function closeBarcodeCamera(){
 
