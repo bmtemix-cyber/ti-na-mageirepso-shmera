@@ -2401,6 +2401,45 @@ if(track && typeof track.getCapabilities==='function'){
   }
 }
 
+ function addPantryFromChef(text){
+
+  const status=
+    $('voicePantryStatus');
+
+  let cleanText=
+    String(text || '')
+      .replace(/^.*?\bαγόρασα\b/i,'')
+      .replace(/^.*?\bπήρα\b/i,'')
+      .trim();
+
+
+  const items=
+    parseVoicePantry(
+      cleanText
+    );
+
+
+  if(!items.length){
+
+    chefSpeak(
+      'Δεν κατάλαβα ποιο προϊόν αγοράσατε.'
+    );
+
+    return;
+  }
+
+
+  status.textContent=
+    '🎤 Άκουσα: '+
+    cleanText;
+
+
+  renderVoicePantryPreview(
+    items
+  );
+
+} 
+
 function closeBarcodeCamera(){
 
   const box=document.getElementById('barcodeCameraBox');
@@ -7846,10 +7885,12 @@ function handleChefCommand(text){
 }
 
 
-  if(
+ if(
   t.includes('αποθηκη') ||
   t.includes('υλικ') ||
-  t.includes('προιον')
+  t.includes('προιον') ||
+  t.includes('αγορασα') ||
+  t.includes('πηρα')
 ){
 
   show('pantry');
@@ -7857,15 +7898,11 @@ function handleChefCommand(text){
   setTimeout(()=>{
 
     if(
-      typeof startPantryVoice==='function'
+      typeof addPantryFromChef==='function'
     ){
 
-      startPantryVoice();
-
-    }else{
-
-      chefSpeak(
-        'Δεν μπόρεσα να ανοίξω τη φωνητική προσθήκη υλικών.'
+      addPantryFromChef(
+        text
       );
 
     }
