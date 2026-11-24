@@ -965,8 +965,8 @@ onclick="startLearnVoice()"
     Λίγο πιο αργή και χαμηλή φωνή,
     για πιο ώριμο και γλυκό χαρακτήρα.
   */
-  utterance.rate=0.64;
-  utterance.pitch=0.62;
+  utterance.rate=0.70;
+  utterance.pitch=0.72;
   utterance.volume=1;
 
 
@@ -2687,6 +2687,491 @@ function pantryItemsForSpeech(items){
 
 } 
 
+ function parsePantryExpiryDate(text){
+
+  const t=
+    String(text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/[,]/g,' ')
+      .replace(/\s+/g,' ')
+      .trim();
+
+
+  const today=new Date();
+
+  today.setHours(0,0,0,0);
+
+
+  /*
+    σήμερα / αύριο / μεθαύριο
+  */
+
+  if(t.includes('σημερα')){
+
+    return today
+      .toISOString()
+      .slice(0,10);
+
+  }
+
+
+  if(t.includes('μεθαυριο')){
+
+    const d=new Date(today);
+
+    d.setDate(
+      d.getDate()+2
+    );
+
+    return d
+      .toISOString()
+      .slice(0,10);
+
+  }
+
+
+  if(t.includes('αυριο')){
+
+    const d=new Date(today);
+
+    d.setDate(
+      d.getDate()+1
+    );
+
+    return d
+      .toISOString()
+      .slice(0,10);
+
+  }
+
+
+  /*
+    15/12/2026
+    15-12-2026
+  */
+
+  let match=
+    t.match(
+      /(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/
+    );
+
+
+  if(match){
+
+    const day=
+      Number(match[1]);
+
+    const month=
+      Number(match[2]);
+
+    let year=
+      match[3]
+        ? Number(match[3])
+        : today.getFullYear();
+
+
+    if(year<100){
+      year+=2000;
+    }
+
+
+    let candidate=
+      new Date(
+        year,
+        month-1,
+        day
+      );
+
+
+    if(
+      !match[3] &&
+      candidate<today
+    ){
+
+      year++;
+
+      candidate=
+        new Date(
+          year,
+          month-1,
+          day
+        );
+
+    }
+
+
+    if(
+      candidate.getDate()!==day ||
+      candidate.getMonth()!==month-1
+    ){
+      return '';
+    }
+
+
+    return (
+      year+
+      '-'+
+      String(month).padStart(2,'0')+
+      '-'+
+      String(day).padStart(2,'0')
+    );
+
+  }
+
+
+  /*
+    15 Δεκεμβρίου
+    15 Δεκεμβρίου 2026
+  */
+
+  const months={
+
+    'ιανουαριου':1,
+    'ιανουαρη':1,
+
+    'φεβρουαριου':2,
+    'φεβρουαρη':2,
+
+    'μαρτιου':3,
+    'μαρτη':3,
+
+    'απριλιου':4,
+    'απριλη':4,
+
+    'μαιου':5,
+    'μαη':5,
+
+    'ιουνιου':6,
+    'ιουνη':6,
+
+    'ιουλιου':7,
+    'ιουλη':7,
+
+    'αυγουστου':8,
+
+    'σεπτεμβριου':9,
+    'σεπτεμβρη':9,
+
+    'οκτωβριου':10,
+    'οκτωβρη':10,
+
+    'νοεμβριου':11,
+    'νοεμβρη':11,
+
+    'δεκεμβριου':12,
+    'δεκεμβρη':12
+
+  };
+
+
+  match=
+    t.match(
+      /(\d{1,2})\s+([α-ω]+)(?:\s+(\d{4}))?/
+    );
+
+
+  if(!match){
+    return '';
+  }
+
+
+  const day=
+    Number(match[1]);
+
+  const month=
+    months[match[2]];
+
+
+  if(!month){
+    return '';
+  }
+
+
+  let year=
+    match[3]
+      ? Number(match[3])
+      : today.getFullYear();
+
+
+  let candidate=
+    new Date(
+      year,
+      month-1,
+      day
+    );
+
+
+  /*
+    Αν δεν είπε έτος και η ημερομηνία
+    έχει ήδη περάσει, θεωρούμε
+    το επόμενο έτος.
+  */
+
+  if(
+    !match[3] &&
+    candidate<today
+  ){
+
+    year++;
+
+    candidate=
+      new Date(
+        year,
+        month-1,
+        day
+      );
+
+  }
+
+
+  if(
+    candidate.getDate()!==day ||
+    candidate.getMonth()!==month-1
+  ){
+    return '';
+  }
+
+
+  return (
+    year+
+    '-'+
+    String(month).padStart(2,'0')+
+    '-'+
+    String(day).padStart(2,'0')
+  );
+
+} 
+
+ function askPantryExpiryPermission(){
+
+  pantrySpeakAndListen(
+
+    'Θέλετε να προχωρήσουμε να βάλουμε ημερομηνίες λήξης στα προϊόντα;',
+
+    answer=>{
+
+      const t=
+        normalizePantryVoiceAnswer(
+          answer
+        );
+
+
+      /*
+        Πρώτα ελέγχουμε το ΟΧΙ,
+        γιατί το "δεν θέλω"
+        περιέχει τη λέξη "θέλω".
+      */
+
+      if(
+        t.includes('οχι') ||
+        t.includes('δεν θελω') ||
+        t.includes('χωρις')
+      ){
+
+        saveVoicePantryWithExpiry();
+
+        chefSpeak(
+          'Ωραία. Τα προϊόντα αποθηκεύτηκαν χωρίς ημερομηνίες λήξης.'
+        );
+
+        return;
+      }
+
+
+      if(
+        t.includes('ναι') ||
+        t.includes('θελω') ||
+        t.includes('προχωρ') ||
+        t.includes('βαλε')
+      ){
+
+        askPantryExpiryForItem(
+          0
+        );
+
+        return;
+      }
+
+
+      setTimeout(
+        askPantryExpiryPermission,
+        300
+      );
+
+    }
+
+  );
+
+} 
+
+ function askPantryExpiryForItem(index){
+
+  const items=
+    getCurrentPantryVoiceItems();
+
+
+  /*
+    Τελειώσαμε όλα τα προϊόντα.
+  */
+
+  if(index>=items.length){
+
+    saveVoicePantryWithExpiry();
+
+    chefSpeak(
+      'Ωραία. Καταχώρισα τα προϊόντα στην αποθήκη.'
+    );
+
+    return;
+  }
+
+
+  const item=
+    items[index];
+
+
+  pantrySpeakAndListen(
+
+    'Ποια είναι η ημερομηνία λήξης για '+
+    item.name+
+    ';',
+
+    answer=>{
+
+      const t=
+        normalizePantryVoiceAnswer(
+          answer
+        );
+
+
+      /*
+        Επιτρέπουμε και προϊόν χωρίς λήξη.
+      */
+
+      if(
+        t.includes('δεν εχει') ||
+        t.includes('χωρις ληξη') ||
+        t.includes('δεν ξερω')
+      ){
+
+        if(
+          $('voiceExp'+index)
+        ){
+
+          $('voiceExp'+index).value='';
+
+        }
+
+
+        setTimeout(()=>{
+
+          askPantryExpiryForItem(
+            index+1
+          );
+
+        },300);
+
+        return;
+      }
+
+
+      const date=
+        parsePantryExpiryDate(
+          answer
+        );
+
+
+      if(!date){
+
+        pantrySpeakAndListen(
+
+          'Δεν κατάλαβα την ημερομηνία. Πείτε για παράδειγμα 15 Δεκεμβρίου ή 15 Δεκεμβρίου 2026.',
+
+          secondAnswer=>{
+
+            const secondDate=
+              parsePantryExpiryDate(
+                secondAnswer
+              );
+
+
+            if(!secondDate){
+
+              chefSpeak(
+                'Δεν κατάλαβα την ημερομηνία. Θα σας ξαναρωτήσω.'
+              );
+
+              setTimeout(()=>{
+
+                askPantryExpiryForItem(
+                  index
+                );
+
+              },1000);
+
+              return;
+            }
+
+
+            if(
+              $('voiceExp'+index)
+            ){
+
+              $('voiceExp'+index)
+                .value=
+                secondDate;
+
+            }
+
+
+            setTimeout(()=>{
+
+              askPantryExpiryForItem(
+                index+1
+              );
+
+            },300);
+
+          }
+
+        );
+
+        return;
+      }
+
+
+      /*
+        Βάζουμε την ημερομηνία
+        στο υπάρχον πεδίο της καρτέλας.
+      */
+
+      if(
+        $('voiceExp'+index)
+      ){
+
+        $('voiceExp'+index)
+          .value=
+          date;
+
+      }
+
+
+      setTimeout(()=>{
+
+        askPantryExpiryForItem(
+          index+1
+        );
+
+      },300);
+
+    }
+
+  );
+
+} 
+
 
 function askPantryChefConfirmation(){
 
@@ -2781,11 +3266,9 @@ function askPantryChefConfirmation(){
         t.includes('τελος')
       ){
 
-        chefSpeak(
-          'Ωραία. Τα προϊόντα είναι σωστά.'
-        );
+       askPantryExpiryPermission();
 
-        return;
+return;
       }
 
 
