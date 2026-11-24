@@ -7646,6 +7646,18 @@ function startPantryVoice(initialText=''){
 
 if(initialText){
 
+  /*
+    Δεν ανοίξαμε πραγματικά μικρόφωνο,
+    άρα το ελευθερώνουμε αμέσως.
+  */
+
+  if(
+    activeVoiceRecognition===
+    recognition
+  ){
+    activeVoiceRecognition=null;
+  }
+
   processPantryText(
     initialText
   );
