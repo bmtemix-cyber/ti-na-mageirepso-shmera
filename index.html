@@ -8020,8 +8020,27 @@ if(
   }
 
 
+  /*
+    Δεν ανοίγουμε δεύτερο μικρόφωνο
+    αν το προηγούμενο δεν έχει κλείσει.
+  */
+
+  if(activeVoiceRecognition){
+
+    console.log(
+      'Υπάρχει ήδη ενεργό μικρόφωνο.'
+    );
+
+    return;
+  }
+
+
   const recognition=
     new SpeechRecognition();
+
+  activeVoiceRecognition=
+    recognition;
+
 
   recognition.lang='el-GR';
   recognition.interimResults=false;
@@ -8029,21 +8048,63 @@ if(
   recognition.maxAlternatives=1;
 
 
+  let heard='';
+
+
   recognition.onresult=(event)=>{
 
-    const text=
-      event.results[0][0].transcript;
+    /*
+      Εδώ ΜΟΝΟ κρατάμε το κείμενο.
+      Δεν ξεκινάμε ακόμη άλλη ενέργεια.
+    */
 
-    handleChefCommand(text);
+    heard=
+      event.results[0][0].transcript;
 
   };
 
 
-  recognition.onerror=()=>{
+  recognition.onerror=(event)=>{
 
-    chefSpeak(
-      'Δεν σας κατάλαβα. Δοκιμάστε ξανά.'
+    console.log(
+      'Chef recognition error:',
+      event.error
     );
+
+  };
+
+
+  recognition.onend=()=>{
+
+    /*
+      Πρώτα κλείνει πλήρως
+      το μικρόφωνο.
+    */
+
+    if(
+      activeVoiceRecognition===
+      recognition
+    ){
+      activeVoiceRecognition=null;
+    }
+
+
+    /*
+      ΜΕΤΑ επεξεργαζόμαστε
+      την εντολή του χρήστη.
+    */
+
+    if(heard){
+
+      setTimeout(()=>{
+
+        handleChefCommand(
+          heard
+        );
+
+      },250);
+
+    }
 
   };
 
@@ -8055,13 +8116,15 @@ if(
   }catch(e){
 
     console.log(
-      'Chef voice error:',
+      'Chef voice start error:',
       e
     );
 
+    activeVoiceRecognition=null;
+
   }
 
-} 
+}
   
 async function markAppOpenedToday(){
   const today=new Date().toISOString().slice(0,10);
