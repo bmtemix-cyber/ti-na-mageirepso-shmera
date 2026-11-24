@@ -7876,7 +7876,7 @@ function handleChefCommand(text){
 }
 
 
- if(
+if(
   t.includes('φαγαμε') ||
   t.includes('γευμα') ||
   t.includes('χθες') ||
@@ -7888,23 +7888,86 @@ function handleChefCommand(text){
 
   setTimeout(()=>{
 
+    /*
+      Ελέγχουμε αν ο χρήστης
+      είπε ήδη πραγματικά φαγητά.
+    */
+
+    let hasFoodDetails=false;
+
+    try{
+
+      const parsed=
+        parseLearnVoice(text);
+
+      const cats=
+        learnCatsFromFoods(
+          parsed.foods || []
+        );
+
+      hasFoodDetails=
+        cats.length>0;
+
+    }catch(e){
+
+      console.log(
+        'Chef meal parse:',
+        e
+      );
+
+    }
+
+
+    /*
+      Αν είπε ήδη:
+      "χθες φάγαμε μακαρόνια με κιμά..."
+      χρησιμοποιούμε αμέσως τη φράση.
+    */
+
+    if(
+      hasFoodDetails &&
+      typeof applyLearnVoiceText==='function'
+    ){
+
+      applyLearnVoiceText(
+        text,
+        false
+      );
+
+      if(
+        typeof askLearnVoiceConfirmation==='function'
+      ){
+
+        setTimeout(
+          askLearnVoiceConfirmation,
+          350
+        );
+
+      }
+
+      return;
+    }
+
+
+    /*
+      Αν είπε μόνο:
+      "θέλω να καταγράψω ένα γεύμα"
+      τότε τον ρωτάμε κανονικά
+      τι έφαγε.
+    */
+
     if(
       typeof startLearnVoice==='function'
     ){
 
       startLearnVoice();
 
-    }else{
-
-      chefSpeak(
-        'Δεν μπόρεσα να ανοίξω τη φωνητική καταγραφή γεύματος.'
-      );
-
     }
 
   },400);
 
   return;
+}
 }
 
   if(
