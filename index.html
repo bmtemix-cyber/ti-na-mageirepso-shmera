@@ -3115,15 +3115,33 @@ function pantryItemsForSpeech(items){
             }
 
 
-            if(
-              $('voiceExp'+index)
-            ){
+           if(
+  voicePantryItems[index]
+){
 
-              $('voiceExp'+index)
-                .value=
-                secondDate;
+  voicePantryItems[index].exp=
+    secondDate;
 
-            }
+}
+
+ if(
+  voicePantryItems[index]
+){
+
+  voicePantryItems[index].exp='';
+
+}           
+
+
+if(
+  $('voiceExp'+index)
+){
+
+  $('voiceExp'+index)
+    .value=
+    secondDate;
+
+}
 
 
             setTimeout(()=>{
@@ -3147,15 +3165,25 @@ function pantryItemsForSpeech(items){
         στο υπάρχον πεδίο της καρτέλας.
       */
 
-      if(
-        $('voiceExp'+index)
-      ){
+    if(
+  voicePantryItems[index]
+){
 
-        $('voiceExp'+index)
-          .value=
-          date;
+  voicePantryItems[index].exp=
+    date;
 
-      }
+}
+
+
+if(
+  $('voiceExp'+index)
+){
+
+  $('voiceExp'+index)
+    .value=
+    date;
+
+}
 
 
       setTimeout(()=>{
@@ -8469,14 +8497,30 @@ resetPantryVoiceButton();
 
     
   voicePantryItems=
-    voicePantryItems.map((item,i)=>({
+  voicePantryItems.map((item,i)=>{
+
+    const expInput=
+      $('voiceExp'+i);
+
+    return {
 
       ...item,
 
       exp:
-        $('voiceExp'+i).value || ''
+        expInput
+          ? (
+              expInput.value ||
+              item.exp ||
+              ''
+            )
+          : (
+              item.exp ||
+              ''
+            )
 
-    }));
+    };
+
+  });
 
 
   voicePantryItems.forEach(item=>{
