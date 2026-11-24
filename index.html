@@ -7521,13 +7521,54 @@ resetPantryVoiceButton();
   render();
 }
   
-function startPantryVoice(){
+function startPantryVoice(initialText=''){
 
   const btn=
     $('voicePantryBtn');
 
   const status=
     $('voicePantryStatus');
+  const processPantryText=(text)=>{
+
+  const items=
+    parseVoicePantry(text);
+
+
+  const previousItems=
+    voicePantryItems.map((item,i)=>({
+
+      name:
+        $('voiceName'+i)
+          ? $('voiceName'+i).value.trim()
+          : item.name,
+
+      qty:
+        $('voiceQty'+i)
+          ? $('voiceQty'+i).value.trim()
+          : item.qty
+
+    }));
+
+
+  const allItems=[
+    ...previousItems,
+    ...items
+  ];
+
+
+  status.textContent=
+    '🎤 Άκουσα: '+
+    text+
+    ' — Πρόσθεσα '+
+    items.length+
+    ' προϊόντα.';
+
+
+  renderVoicePantryPreview(
+    allItems
+  );
+
+};
 
   const SpeechRecognition=
     window.SpeechRecognition ||
@@ -7587,52 +7628,14 @@ function startPantryVoice(){
 
   recognition.onresult=(event)=>{
 
-    const text=
-      event.results[0][0].transcript;
+  const text=
+    event.results[0][0].transcript;
 
-   const items=
-  parseVoicePantry(text);
+  processPantryText(
+    text
+  );
 
-
-/*
-  Κρατάμε όσα προϊόντα υπάρχουν ήδη
-  στο πινακάκι, μαζί με τυχόν διορθώσεις
-  που έχει κάνει ο χρήστης.
-*/
-
-const previousItems=
-  voicePantryItems.map((item,i)=>({
-
-    name:
-      $('voiceName'+i)
-        ? $('voiceName'+i).value.trim()
-        : item.name,
-
-    qty:
-      $('voiceQty'+i)
-        ? $('voiceQty'+i).value.trim()
-        : item.qty
-
-  }));
-
-
-const allItems=[
-  ...previousItems,
-  ...items
-];
-
-
-status.textContent=
-  '🎤 Άκουσα: '+
-  text+
-  ' — Πρόσθεσα '+
-  items.length+
-  ' προϊόντα.';
-
-
-renderVoicePantryPreview(
-  allItems
-);
+};
 
 
     /*
@@ -7698,6 +7701,22 @@ renderVoicePantryPreview(
     μιλάει για λίγο η εφαρμογή και
     μόλις τελειώσει ξεκινά η αναγνώριση.
   */
+
+  /*
+  Αν η φράση ήρθε ήδη από τη μαγείρισσα,
+  δεν ανοίγουμε δεύτερο μικρόφωνο.
+*/
+
+if(initialText){
+
+  processPantryText(
+    initialText
+  );
+
+  resetPantryVoiceButton();
+
+  return;
+}
 
   const startRecognition=()=>{
 
@@ -7846,10 +7865,12 @@ function handleChefCommand(text){
 }
 
 
-  if(
+if(
   t.includes('αποθηκη') ||
   t.includes('υλικ') ||
-  t.includes('προιον')
+  t.includes('προιον') ||
+  t.includes('αγορασα') ||
+  t.includes('πηρα')
 ){
 
   show('pantry');
@@ -7860,7 +7881,16 @@ function handleChefCommand(text){
       typeof startPantryVoice==='function'
     ){
 
-      startPantryVoice();
+      startPantryVoice(
+        text
+      );
+
+    }
+
+  },400);
+
+  return;
+}
 
     }else{
 
