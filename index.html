@@ -793,8 +793,20 @@ onclick="startLearnVoice()"
   <div id="receiptResults" style="margin-top:10px"></div>
 </div><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
 <section id="settings" class="view">
+  
   <div class="card">
     <h2>⚙️ Ρυθμίσεις</h2>
+    <div class="field">
+  <label>Βοηθός κουζίνας</label>
+
+  <select
+    id="chefGender"
+    onchange="changeChefGender()"
+  >
+    <option value="female">👩 Γυναίκα μαγείρισσα</option>
+    <option value="male">👨 Άντρας μάγειρας</option>
+  </select>
+</div>
 
     <button
   type="button"
@@ -942,7 +954,66 @@ onclick="startLearnVoice()"
   'Πατάτες με αυγά': 'images/patates-me-avga.jpg'
 };
 
+function changeChefGender(){
 
+  const select=
+    document.getElementById('chefGender');
+
+  const chef=
+    document.getElementById('chefAssistantImg');
+
+  if(!select || !chef){
+    return;
+  }
+
+  const gender=
+    select.value;
+
+  localStorage.setItem(
+    'chefGender',
+    gender
+  );
+
+  if(gender==='male'){
+
+    chef.src=
+      'images/chef-male.png';
+
+  }else{
+
+    chef.src=
+      'images/chef-assistant.png';
+
+  }
+
+}
+
+ function loadChefGender(){
+
+  const gender=
+    localStorage.getItem('chefGender')
+    || 'female';
+
+  const select=
+    document.getElementById('chefGender');
+
+  const chef=
+    document.getElementById('chefAssistantImg');
+
+  if(select){
+    select.value=gender;
+  }
+
+  if(!chef){
+    return;
+  }
+
+  chef.src=
+    gender==='male'
+      ? 'images/chef-male.png'
+      : 'images/chef-assistant.png';
+
+} 
   
 
  function chefSpeak(text){
@@ -1121,6 +1192,7 @@ if(nikos){
 window.addEventListener(
   'load',
   function(){
+   loadChefGender(); 
 
     const chef=
       document.getElementById(
