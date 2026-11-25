@@ -965,8 +965,8 @@ onclick="startLearnVoice()"
     Λίγο πιο αργή και χαμηλή φωνή,
     για πιο ώριμο και γλυκό χαρακτήρα.
   */
-  utterance.rate=0.70;
-  utterance.pitch=0.72;
+  utterance.rate=0.88;
+  utterance.pitch=0.90;
   utterance.volume=1;
 
 
@@ -1063,21 +1063,33 @@ onclick="startLearnVoice()"
     );
 
   utterance.lang='el-GR';
-  utterance.rate=0.67;
-  utterance.pitch=0.66;
-
+  utterance.rate=0.88;
+  utterance.pitch=0.90;
+ 
   const voices=
     window.speechSynthesis.getVoices();
 
-  const melina=
-    voices.find(v=>
-      v.name==='Melina' &&
-      v.lang==='el-GR'
-    );
+ const nikos=
+  voices.find(v=>
+    v.name.toLowerCase().includes('nikos') &&
+    v.lang.toLowerCase().startsWith('el')
+  );
 
-  if(melina){
-    utterance.voice=melina;
-  }
+const melina=
+  voices.find(v=>
+    v.name.toLowerCase().includes('melina') &&
+    v.lang.toLowerCase().startsWith('el')
+  );
+
+if(nikos){
+
+  utterance.voice=nikos;
+
+}else if(melina){
+
+  utterance.voice=melina;
+
+}
 
   utterance.onend=()=>{
 
