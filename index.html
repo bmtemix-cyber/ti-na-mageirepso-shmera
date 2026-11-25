@@ -1036,10 +1036,23 @@ function changeChefGender(){
     Λίγο πιο αργή και χαμηλή φωνή,
     για πιο ώριμο και γλυκό χαρακτήρα.
   */
+ const chefGender=
+  localStorage.getItem('chefGender')
+  || 'female';
+
+if(chefGender==='male'){
+
+  utterance.rate=1.00;
+  utterance.pitch=0.92;
+
+}else{
+
   utterance.rate=0.84;
   utterance.pitch=0.82;
-  utterance.volume=1;
 
+}
+
+utterance.volume=1;
 
   const voices=
     window.speechSynthesis.getVoices();
@@ -1057,39 +1070,59 @@ function changeChefGender(){
     αν υπάρχει στη συσκευή.
   */
   const maleVoice=
-    greekVoices.find(v=>{
+  greekVoices.find(v=>{
 
-      const name=
-        String(v.name || '')
-          .toLowerCase();
+    const name=
+      String(v.name || '')
+        .toLowerCase();
 
-      return (
-        name.includes('male') ||
-        name.includes('nikos') ||
-        name.includes('nikolaos') ||
-        name.includes('alexandros')
-      );
+    return (
+      name.includes('nikos') ||
+      name.includes('nikolaos') ||
+      name.includes('male') ||
+      name.includes('alexandros')
+    );
 
-    });
+  });
 
 
-  if(maleVoice){
+const femaleVoice=
+  greekVoices.find(v=>{
 
-    utterance.voice=
-      maleVoice;
+    const name=
+      String(v.name || '')
+        .toLowerCase();
 
-  }else if(greekVoices.length){
+    return (
+      name.includes('melina') ||
+      name.includes('female')
+    );
 
-    /*
-      Αν δεν βρίσκει συγκεκριμένα
-      αντρική, χρησιμοποιεί την πρώτη
-      ελληνική φωνή της συσκευής.
-    */
+  });
 
-    utterance.voice=
-      greekVoices[0];
 
-  }
+if(
+  chefGender==='male' &&
+  maleVoice
+){
+
+  utterance.voice=
+    maleVoice;
+
+}else if(
+  chefGender==='female' &&
+  femaleVoice
+){
+
+  utterance.voice=
+    femaleVoice;
+
+}else if(greekVoices.length){
+
+  utterance.voice=
+    greekVoices[0];
+
+}
 
 
   window.speechSynthesis.speak(
@@ -1134,8 +1167,22 @@ function changeChefGender(){
     );
 
   utterance.lang='el-GR';
+
+const chefGender=
+  localStorage.getItem('chefGender')
+  || 'female';
+
+if(chefGender==='male'){
+
+  utterance.rate=1.00;
+  utterance.pitch=0.92;
+
+}else{
+
   utterance.rate=0.84;
   utterance.pitch=0.82;
+
+}
  
   const voices=
     window.speechSynthesis.getVoices();
@@ -1152,11 +1199,17 @@ const melina=
     v.lang.toLowerCase().startsWith('el')
   );
 
-if(nikos){
+if(
+  chefGender==='male' &&
+  nikos
+){
 
   utterance.voice=nikos;
 
-}else if(melina){
+}else if(
+  chefGender==='female' &&
+  melina
+){
 
   utterance.voice=melina;
 
