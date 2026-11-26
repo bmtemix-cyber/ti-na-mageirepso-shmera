@@ -1494,6 +1494,8 @@ window.addEventListener(
       };
       voiceFeedback(statusId,prompt || '🎤 Ετοιμάζω το μικρόφωνο...');
       if(prompt && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window){
+        // Διακόπτουμε τυχόν προηγούμενη απλή εκφώνηση πριν τη νέα ερώτηση.
+        window.speechSynthesis.cancel();
         const utterance=configureChefVoice(new SpeechSynthesisUtterance(prompt));
         let settled=false;
         const advance=()=>{
@@ -3914,6 +3916,7 @@ async  function suggestRecipe(){
   }
 
 
+  if(voiceBusy()) cancelVoiceConversation();
   s.history.push({
 
     date:
@@ -6897,6 +6900,7 @@ function repeatFamilyVoiceQuestion(){
     s.family.members=[];
   }
 
+  if(voiceBusy()) cancelVoiceConversation();
   s.family.members.push({
     name:name,
     age:age ? Number(age) : '',
@@ -6917,6 +6921,7 @@ dislikes:$('memberDislikes').value.trim()
 
   if(!m || !box)return;
 
+  if(voiceBusy()) cancelVoiceConversation();
   box.classList.remove('hidden');
 
   box.innerHTML=
@@ -6984,6 +6989,7 @@ dislikes:$('memberDislikes').value.trim()
     return;
   }
 
+  if(voiceBusy()) cancelVoiceConversation();
   s.family.members[index]={
     ...m,
     name:name,
@@ -7368,7 +7374,7 @@ function renderVoicePantryPreview(items){
 
 
 function confirmVoicePantryPreview(){
-
+  if(voiceBusy()) cancelVoiceConversation();
   voicePantryItems=
     voicePantryItems.map((item,i)=>({
 
@@ -7676,6 +7682,7 @@ function startPantryVoice(){
   }
 
   if(voiceBusy()) cancelVoiceConversation();
+  else clearVoiceRetry();
   document.querySelectorAll('.view').forEach(x=>{
     x.classList.remove('active');
   });
@@ -7692,7 +7699,7 @@ if($('reminderTime')){
 } 
 
 function handleChefCommand(text){
-
+  if($('chefBubble')) $('chefBubble').classList.add('hidden');
   const t=
     String(text || '')
       .toLowerCase()
