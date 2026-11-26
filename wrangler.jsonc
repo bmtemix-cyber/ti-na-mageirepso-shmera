@@ -1,3 +1,4 @@
+// Staging only: isolated Worker and KV; scheduled reminders disabled.
 {
   "name": "ti-na-mageirepso-test",
   "main": "worker.js",
