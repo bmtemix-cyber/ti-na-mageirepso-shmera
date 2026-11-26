@@ -1042,66 +1042,16 @@ function chefSpeak(text){
   window.speechSynthesis.speak(utterance);
 }
 
- function chefTap(){
-
-  const chef=
-    document.getElementById(
-      'chefAssistantImg'
-    );
-
-  const bubble=
-    document.getElementById(
-      'chefBubble'
-    );
-
-  if(!chef || !bubble){
+function chefTap(){
+  const bubble=$('chefBubble');
+  if(!bubble || !$('chefAssistantImg')) return;
+  if(voiceBusy()){
+    cancelVoiceConversation();
+    voiceFeedback('chefBubble','Σταμάτησα. Πάτησέ με ξανά για νέα εντολή.');
     return;
   }
-
-  bubble.textContent=
-    'Πώς μπορώ να σας βοηθήσω;';
-
-  bubble.classList.remove(
-    'hidden'
-  );
-
- if(
-  'speechSynthesis' in window &&
-  'SpeechSynthesisUtterance' in window
-){
-
-  window.speechSynthesis.cancel();
-
-  const utterance=
-    new SpeechSynthesisUtterance(
-      'Πώς μπορώ να σας βοηθήσω;'
-    );
-
-  configureChefVoice(utterance);
-
-  utterance.onend=()=>{
-
-    setTimeout(
-      startChefListening,
-      250
-    );
-
-  };
-
-  window.speechSynthesis.speak(
-    utterance
-  );
-
-}
-
-  setTimeout(()=>{
-
-    bubble.classList.add(
-      'hidden'
-    );
-
-  },4000);
-
+  beginVoiceConversation();
+  startChefListening('Πώς μπορώ να σας βοηθήσω;');
 }
 
 
@@ -1364,6 +1314,214 @@ window.addEventListener(
 ); 
 
   let activeVoiceRecognition=null;
+  let voiceGeneration=0;
+  let voicePrompt=null;
+  const voiceTimers=new Set();
+
+  // Όλα τα επόμενα βήματα ανήκουν στην ίδια φωνητική συνεδρία.
+  function voiceLater(fn,delay){
+    const generation=voiceGeneration;
+    const timer=setTimeout(()=>{
+      voiceTimers.delete(timer);
+      if(generation===voiceGeneration) fn();
+    },delay);
+    voiceTimers.add(timer);
+    return timer;
+  }
+
+  function voiceBusy(){
+    return Boolean(activeVoiceRecognition || voicePrompt || voiceTimers.size);
+  }
+
+  function clearVoiceRetry(){
+    document.querySelectorAll('[data-voice-retry]').forEach(x=>x.remove());
+  }
+
+  function beginVoiceConversation(){
+    voiceGeneration++;
+    clearVoiceRetry();
+  }
+
+  function voiceFeedback(id,message,retry){
+    const status=$(id);
+    if(!status) return;
+    status.textContent=message;
+    if(id==='chefBubble'){
+      status.classList.remove('hidden');
+      if(!retry && !voiceBusy()){
+        setTimeout(()=>{
+          if(status.textContent===message && !voiceBusy()) status.classList.add('hidden');
+        },4500);
+      }
+    }
+    if(retry && id!=='chefBubble'){
+      const generation=voiceGeneration;
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='btn secondary';
+      button.setAttribute('data-voice-retry','1');
+      button.textContent='🎤 Επανάληψη ερώτησης';
+      button.onclick=()=>{
+        if(generation!==voiceGeneration || voiceBusy()) return;
+        button.remove();
+        retry();
+      };
+      status.appendChild(button);
+    }
+  }
+
+  function cancelVoiceConversation(){
+    voiceGeneration++;
+    for(const timer of voiceTimers) clearTimeout(timer);
+    voiceTimers.clear();
+    voicePrompt=null;
+    clearVoiceRetry();
+    if('speechSynthesis' in window) window.speechSynthesis.cancel();
+    const recognition=activeVoiceRecognition;
+    if(recognition){
+      // Abort μόνο σε ρητή διακοπή. Δεν ανοίγουμε νέο μικρόφωνο πριν κλείσει.
+      try{recognition.abort();}catch(e){console.warn(e);}
+      setTimeout(()=>{
+        if(activeVoiceRecognition===recognition) activeVoiceRecognition=null;
+      },2000);
+    }
+    resetPantryVoiceButton();
+  }
+
+  function voiceCancelledByUser(text){
+    const t=String(text || '').toLowerCase().normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'').replace(/[.!?;,]/g,'').trim();
+    return /^(σταματα|σταματησε|ακυρο|ακυρωση|διακοπη|σταματα παρακαλω)$/.test(t);
+  }
+
+  // Μία κοινή συνεδρία: ομιλία, αναμονή WebKit, ακρόαση, onend, συνέχεια.
+  function voiceSpeakAndListen(message,onAnswer,options={}){
+    const {statusId='chefBubble',delay=250,retries=1,onStart,onFinish,
+      retryMessage='Δεν σας άκουσα. Πείτε μου ξανά.'}=options;
+    const Recognition=window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!Recognition){
+      voiceFeedback(statusId,'⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.');
+      return;
+    }
+    if(voiceBusy()){
+      voiceFeedback(statusId,'⏳ Περίμενε να ολοκληρωθεί η προηγούμενη φωνητική εντολή.');
+      return;
+    }
+    clearVoiceRetry();
+    const generation=voiceGeneration;
+    const current=()=>generation===voiceGeneration;
+    const manualRetry=()=>voiceSpeakAndListen(message,onAnswer,options);
+    const attempt=(remaining,prompt)=>{
+      if(!current()) return;
+      const fail=msg=>{
+        if(!current()) return;
+        if(onFinish) onFinish();
+        voiceFeedback(statusId,msg,manualRetry);
+      };
+      const listen=()=>{
+        if(!current() || activeVoiceRecognition) return;
+        let recognition;
+        try{recognition=new Recognition();}
+        catch(e){fail('⚠️ Δεν άνοιξε το μικρόφωνο. Δοκίμασε ξανά.');return;}
+        activeVoiceRecognition=recognition;
+        recognition.lang='el-GR';
+        recognition.interimResults=false;
+        recognition.continuous=false;
+        recognition.maxAlternatives=1;
+        let heard='',error='',finished=false,watchdog=null,errorWatchdog=null;
+        const finish=(forced=false)=>{
+          if(finished) return;
+          finished=true;
+          clearTimeout(watchdog);
+          clearTimeout(errorWatchdog);
+          if(activeVoiceRecognition===recognition) activeVoiceRecognition=null;
+          if(!current()) return;
+          if(onFinish) onFinish();
+          if(forced){
+            voiceFeedback(statusId,'⚠️ Το μικρόφωνο δεν αποκρίθηκε. Δοκίμασε ξανά.',manualRetry);
+            return;
+          }
+          if(heard && !error){
+            if(voiceCancelledByUser(heard)){
+              cancelVoiceConversation();
+              voiceFeedback(statusId,'Η φωνητική διαδικασία διακόπηκε.');
+              return;
+            }
+            voiceFeedback(statusId,'✅ Άκουσα: '+heard);
+            voiceLater(()=>onAnswer(heard),delay);
+            return;
+          }
+          if(error==='not-allowed' || error==='service-not-allowed'){
+            voiceFeedback(statusId,'⚠️ Χρειάζεται άδεια μικροφώνου στις ρυθμίσεις του browser.',manualRetry);
+            return;
+          }
+          if(error && error!=='no-speech'){
+            voiceFeedback(statusId,'⚠️ Πρόβλημα μικροφώνου. Δοκίμασε ξανά.',manualRetry);
+            return;
+          }
+          if(remaining>0){
+            voiceLater(()=>attempt(remaining-1,retryMessage+(message?' '+message:'')),delay);
+          }else{
+            voiceFeedback(statusId,'⚠️ Δεν άκουσα απάντηση. Δοκίμασε ξανά.',manualRetry);
+          }
+        };
+        recognition.onstart=()=>{
+          if(!current()) return;
+          voiceFeedback(statusId,'🔴 Σε ακούω...');
+          if(onStart) onStart();
+        };
+        recognition.onresult=event=>{
+          if(current() && !finished) heard=String(event.results[0][0].transcript || '').trim();
+        };
+        recognition.onerror=event=>{
+          error=event.error || 'unknown';
+          // Περιμένουμε onend ακόμη και σε σφάλμα. Αν λείπει, σταματάμε με ασφάλεια.
+          clearTimeout(errorWatchdog);
+          errorWatchdog=setTimeout(()=>finish(true),2000);
+        };
+        recognition.onend=()=>finish();
+        watchdog=setTimeout(()=>{
+          if(finished) return;
+          error='timeout';
+          try{recognition.abort();}catch(e){}
+          if(!finished){
+            clearTimeout(errorWatchdog);
+            errorWatchdog=setTimeout(()=>finish(true),2000);
+          }
+        },30000);
+        try{recognition.start();}
+        catch(e){error='start-failed';finish();}
+      };
+      voiceFeedback(statusId,prompt || '🎤 Ετοιμάζω το μικρόφωνο...');
+      if(prompt && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window){
+        const utterance=configureChefVoice(new SpeechSynthesisUtterance(prompt));
+        let settled=false;
+        const advance=()=>{
+          if(settled || !current() || voicePrompt!==utterance) return;
+          settled=true;
+          voicePrompt=null;
+          clearTimeout(speechTimeout);
+          voiceLater(listen,delay);
+        };
+        voicePrompt=utterance;
+        const speechTimeout=setTimeout(()=>{
+          if(!current() || voicePrompt!==utterance) return;
+          settled=true;
+          voicePrompt=null;
+          window.speechSynthesis.cancel();
+          fail('⚠️ Η φωνή δεν αποκρίθηκε. Δοκίμασε ξανά.');
+        },Math.max(45000,prompt.length*150));
+        utterance.onend=advance;
+        utterance.onerror=advance;
+        try{window.speechSynthesis.speak(utterance);}catch(e){advance();}
+      }else if(prompt){
+        voiceLater(listen,delay);
+      }else{
+        listen();
+      }
+    };
+    attempt(retries,message);
+  }
 
   function normalizeLearnVoiceAnswer(text){
 
@@ -1380,161 +1538,7 @@ window.addEventListener(
 
 
 function learnSpeakAndListen(promptText,onText){
-
-  const status=$('learnVoiceStatus');
-
-  const SpeechRecognition=
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-  if(!SpeechRecognition){
-
-    status.textContent=
-      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.';
-
-    return;
-  }
-
-
-  const startListening=()=>{
-
-    if(activeVoiceRecognition){
-      return;
-    }
-
-    const recognition=
-      new SpeechRecognition();
-
-    activeVoiceRecognition=
-      recognition;
-
-    recognition.lang='el-GR';
-    recognition.interimResults=false;
-    recognition.continuous=false;
-    recognition.maxAlternatives=1;
-
-    let heard='';
-
-
-    recognition.onstart=()=>{
-
-      status.textContent=
-        '🔴 Σε ακούω...';
-
-    };
-
-
-    recognition.onresult=(event)=>{
-
-      heard=
-        event.results[0][0].transcript;
-
-    };
-
-
-    recognition.onerror=(event)=>{
-
-      console.log(
-        'Learn voice error:',
-        event.error
-      );
-
-      if(event.error!=='aborted'){
-
-        status.textContent=
-          '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
-
-      }
-
-    };
-
-
-    recognition.onend=()=>{
-
-      if(
-        activeVoiceRecognition===
-        recognition
-      ){
-        activeVoiceRecognition=null;
-      }
-
-      if(heard){
-
-        status.textContent=
-          '✅ Σε άκουσα.';
-
-        setTimeout(()=>{
-          onText(heard);
-        },200);
-
-      }
-
-    };
-
-
-    try{
-
-      recognition.start();
-
-    }catch(e){
-
-      console.log(
-        'Learn voice start error:',
-        e
-      );
-
-      activeVoiceRecognition=null;
-
-    }
-
-  };
-
-
-  if(
-    'speechSynthesis' in window &&
-    'SpeechSynthesisUtterance' in window
-  ){
-
-    window.speechSynthesis.cancel();
-
-    const prompt=
-      new SpeechSynthesisUtterance(
-        promptText
-      );
-
-    configureChefVoice(prompt);
-
-
-    prompt.onend=()=>{
-
-      setTimeout(
-        startListening,
-        200
-      );
-
-    };
-
-
-    prompt.onerror=()=>{
-
-      setTimeout(
-        startListening,
-        200
-      );
-
-    };
-
-
-    window.speechSynthesis.speak(
-      prompt
-    );
-
-  }else{
-
-    startListening();
-
-  }
-
+  voiceSpeakAndListen(promptText,onText,{statusId:'learnVoiceStatus',delay:200});
 }
 
 
@@ -1737,7 +1741,7 @@ function askLearnVoiceConfirmation(){
               true
             );
 
-            setTimeout(
+            voiceLater(
               askLearnVoiceConfirmation,
               300
             );
@@ -1758,7 +1762,7 @@ function askLearnVoiceConfirmation(){
         .textContent=
         '⚠️ Δεν κατάλαβα την απάντηση.';
 
-      setTimeout(
+      voiceLater(
         askLearnVoiceConfirmation,
         400
       );
@@ -1769,6 +1773,8 @@ function askLearnVoiceConfirmation(){
 }
 
 function startLearnVoice(){
+  if(voiceBusy()) return;
+  beginVoiceConversation();
 
   window.learnVoiceFoods=[];
   window.learnVoiceDate=null;
@@ -1795,7 +1801,7 @@ function startLearnVoice(){
         false
       );
 
-      setTimeout(
+      voiceLater(
         askLearnVoiceConfirmation,
         300
       );
@@ -2058,21 +2064,7 @@ else if(
 }
 
 function closeActiveVoiceRecognition(){
-
-  if(!activeVoiceRecognition){
-    return;
-  }
-
-  const recognition=
-    activeVoiceRecognition;
-
-  activeVoiceRecognition=null;
-
-  try{
-    recognition.abort();
-  }catch(e){
-    console.log(e);
-  }
+  cancelVoiceConversation();
 }
 
 function resetPantryVoiceButton(){
@@ -2084,7 +2076,7 @@ function resetPantryVoiceButton(){
     btn.textContent=
       '🎤 Προσθήκη με φωνή';
   }
-} activePantryRecognition=null; 
+}
 
 
 function normalizeMealImageName(name){
@@ -2415,157 +2407,7 @@ if(track && typeof track.getCapabilities==='function'){
 
 
 function pantrySpeakAndListen(message,onAnswer){
-
-  const SpeechRecognition=
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-
-  if(!SpeechRecognition){
-
-    chefSpeak(
-      'Η φωνητική αναγνώριση δεν υποστηρίζεται.'
-    );
-
-    return;
-  }
-
-
-  if(activeVoiceRecognition){
-
-    console.log(
-      'Υπάρχει ήδη ενεργό μικρόφωνο.'
-    );
-
-    return;
-  }
-
-
-  const startListening=()=>{
-
-    const recognition=
-      new SpeechRecognition();
-
-    activeVoiceRecognition=
-      recognition;
-
-
-    recognition.lang='el-GR';
-    recognition.interimResults=false;
-    recognition.continuous=false;
-    recognition.maxAlternatives=1;
-
-
-    let heard='';
-
-
-    recognition.onresult=(event)=>{
-
-      heard=
-        event.results[0][0].transcript;
-
-    };
-
-
-    recognition.onerror=(event)=>{
-
-      console.log(
-        'Pantry assistant error:',
-        event.error
-      );
-
-    };
-
-
-    recognition.onend=()=>{
-
-      if(
-        activeVoiceRecognition===
-        recognition
-      ){
-        activeVoiceRecognition=null;
-      }
-
-
-      if(heard){
-
-        setTimeout(()=>{
-
-          onAnswer(
-            heard
-          );
-
-        },250);
-
-      }
-
-    };
-
-
-    try{
-
-      recognition.start();
-
-    }catch(e){
-
-      console.log(
-        'Pantry listen error:',
-        e
-      );
-
-      activeVoiceRecognition=null;
-
-    }
-
-  };
-
-
-  if(
-    'speechSynthesis' in window &&
-    'SpeechSynthesisUtterance' in window
-  ){
-
-    window.speechSynthesis.cancel();
-
-
-    const voice=
-      new SpeechSynthesisUtterance(
-        message
-      );
-
-    configureChefVoice(voice);
-
-
-    voice.onend=()=>{
-
-      setTimeout(
-        startListening,
-        250
-      );
-
-    };
-
-
-    voice.onerror=()=>{
-
-      setTimeout(
-        startListening,
-        250
-      );
-
-    };
-
-
-    window.speechSynthesis.speak(
-      voice
-    );
-
-  }else{
-
-    startListening();
-
-  }
-
+  voiceSpeakAndListen(message,onAnswer,{statusId:'voicePantryStatus',delay:250});
 }
 
 
@@ -2697,7 +2539,7 @@ function parsePantryExpiryDate(text){
         t.includes('χωρις')
       ){
         voicePantryItems=getCurrentPantryVoiceItems()
-          .filter(item=>item.name).map(item=>({...item,exp:''}));
+          .map(item=>({...item,exp:''}));
         saveVoicePantryWithExpiry();
 
         chefSpeak(
@@ -2723,7 +2565,7 @@ function parsePantryExpiryDate(text){
       }
 
 
-      setTimeout(
+      voiceLater(
         askPantryExpiryPermission,
         300
       );
@@ -2793,7 +2635,7 @@ function parsePantryExpiryDate(text){
         }
 
 
-        setTimeout(()=>{
+        voiceLater(()=>{
 
           askPantryExpiryForItem(
             index+1
@@ -2827,11 +2669,7 @@ function parsePantryExpiryDate(text){
 
             if(!secondDate){
 
-              chefSpeak(
-                'Δεν κατάλαβα την ημερομηνία. Θα σας ξαναρωτήσω.'
-              );
-
-              setTimeout(()=>{
+              voiceLater(()=>{
 
                 askPantryExpiryForItem(
                   index
@@ -2866,7 +2704,7 @@ if(
 }
 
 
-            setTimeout(()=>{
+            voiceLater(()=>{
 
               askPantryExpiryForItem(
                 index+1
@@ -2908,7 +2746,7 @@ if(
 }
 
 
-      setTimeout(()=>{
+      voiceLater(()=>{
 
         askPantryExpiryForItem(
           index+1
@@ -2989,7 +2827,7 @@ function askPantryChefConfirmation(){
             );
 
 
-            setTimeout(
+            voiceLater(
               askPantryChefConfirmation,
               400
             );
@@ -3016,7 +2854,7 @@ function askPantryChefConfirmation(){
         t.includes('τελος')
       ){
 
-        voicePantryItems=getCurrentPantryVoiceItems().filter(item=>item.name);
+        voicePantryItems=getCurrentPantryVoiceItems();
         askPantryExpiryPermission();
 
 return;
@@ -3045,7 +2883,7 @@ return;
             t2.includes('οκ')
           ){
 
-            voicePantryItems=getCurrentPantryVoiceItems().filter(item=>item.name);
+            voicePantryItems=getCurrentPantryVoiceItems();
             askPantryExpiryPermission();
           }else{
 
@@ -3068,7 +2906,7 @@ return;
                   ...newItems
                 ]);
 
-                setTimeout(
+                voiceLater(
                   askPantryChefConfirmation,
                   400
                 );
@@ -3111,10 +2949,7 @@ function addPantryFromChef(text){
 
   if(!items.length){
 
-    chefSpeak(
-      'Δεν κατάλαβα ποια προϊόντα αγοράσατε.'
-    );
-
+    pantrySpeakAndListen('Πείτε μου τα προϊόντα και τις ποσότητες.',addPantryFromChef);
     return;
   }
 
@@ -3129,7 +2964,7 @@ function addPantryFromChef(text){
   );
 
 
-  setTimeout(
+  voiceLater(
     askPantryChefConfirmation,
     500
   );
@@ -6722,6 +6557,8 @@ const familyVoiceQuestions=[
 
 
 function showAddMember(){
+  if(voiceBusy()) return;
+  beginVoiceConversation();
 
   const box=$('memberEditor');
 
@@ -6768,7 +6605,7 @@ function showAddMember(){
     '</div>';
 
 
-  setTimeout(
+  voiceLater(
     askFamilyVoiceQuestion,
     500
   );
@@ -6919,232 +6756,30 @@ function processFamilyVoiceAnswer(
   return text.trim();
 }
 
-  function askFamilyVoiceQuestion(){
-
-  if(
-    familyVoiceStep>=
-    familyVoiceQuestions.length
-  ){
-
+function askFamilyVoiceQuestion(){
+  if(familyVoiceStep>=familyVoiceQuestions.length){
     renderFamilyVoiceReview();
-
     return;
   }
-
-
-  const question=
-    familyVoiceQuestions[
-      familyVoiceStep
-    ];
-
-
-  const questionBox=
-    $('familyVoiceQuestion');
-
-  const status=
-    $('familyVoiceStatus');
-
-
-  questionBox.textContent=
-    question.text;
-
-
-  status.textContent=
-    '🔊 Άκουσε την ερώτηση...';
-
-
-  /*
-    Χρησιμοποιούμε το ίδιο workaround
-    που δουλεύει ήδη στο iPhone.
-  */
-
-  const startListening=()=>{
-
-    const SpeechRecognition=
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
-
-
-    if(!SpeechRecognition){
-
-      status.textContent=
-        '⚠️ Δεν υποστηρίζεται η φωνητική αναγνώριση.';
-
+  const question=familyVoiceQuestions[familyVoiceStep];
+  const questionBox=$('familyVoiceQuestion');
+  if(!questionBox || !$('familyVoiceStatus')) return;
+  questionBox.textContent=question.text;
+  voiceSpeakAndListen(question.text,text=>{
+    const value=processFamilyVoiceAnswer(question.key,text);
+    if(value==='' || value==null){
+      voiceFeedback('familyVoiceStatus','⚠️ Δεν κατάλαβα την απάντηση.');
+      voiceLater(askFamilyVoiceQuestion,400);
       return;
     }
-
-
-    if(activeVoiceRecognition){
-      return;
-    }
-
-
-    const recognition=
-      new SpeechRecognition();
-
-
-    activeVoiceRecognition=
-      recognition;
-
-
-    recognition.lang='el-GR';
-
-    recognition.interimResults=false;
-
-    recognition.continuous=false;
-
-    recognition.maxAlternatives=1;
-
-
-    recognition.onstart=()=>{
-
-      status.textContent=
-        '🔴 Σε ακούω...';
-    };
-
-
-    recognition.onresult=(event)=>{
-
-      const text=
-        event.results[0][0].transcript;
-
-
-      const value=
-        processFamilyVoiceAnswer(
-          question.key,
-          text
-        );
-
-
-      familyVoiceDraft[
-        question.key
-      ]=value;
-
-
-      status.textContent=
-        '✅ Άκουσα: '+text;
-    };
-
-
-    recognition.onerror=(event)=>{
-
-      console.log(
-        'Family voice error:',
-        event.error
-      );
-
-
-      if(
-        activeVoiceRecognition===
-        recognition
-      ){
-        activeVoiceRecognition=null;
-      }
-
-
-      if(event.error!=='aborted'){
-
-        status.textContent=
-          '⚠️ Δεν κατάλαβα. Πάτησε επανάληψη.';
-      }
-    };
-
-
-    recognition.onend=()=>{
-
-      if(
-        activeVoiceRecognition===
-        recognition
-      ){
-        activeVoiceRecognition=null;
-      }
-
-
-      /*
-        Αν πήραμε απάντηση,
-        περνάμε αυτόματα
-        στην επόμενη ερώτηση.
-      */
-
-      if(
-        familyVoiceDraft[
-          question.key
-        ]!=='' &&
-        familyVoiceDraft[
-          question.key
-        ]!=null
-      ){
-
-        familyVoiceStep++;
-
-
-        setTimeout(
-          askFamilyVoiceQuestion,
-          700
-        );
-      }
-    };
-
-
-    recognition.start();
-  };
-
-
-  /*
-    Πρώτα μιλάει η εφαρμογή.
-  */
-
-  if(
-    'speechSynthesis' in window &&
-    'SpeechSynthesisUtterance' in window
-  ){
-
-    window.speechSynthesis.cancel();
-
-
-    const voice=
-      new SpeechSynthesisUtterance(
-        question.text
-      );
-
-
-    configureChefVoice(voice);
-
-
-    voice.onend=()=>{
-
-      setTimeout(
-        startListening,
-        200
-      );
-    };
-
-
-    voice.onerror=()=>{
-
-      setTimeout(
-        startListening,
-        200
-      );
-    };
-
-
-    window.speechSynthesis.speak(
-      voice
-    );
-
-  }else{
-
-    startListening();
-  }
+    familyVoiceDraft[question.key]=value;
+    familyVoiceStep++;
+    voiceLater(askFamilyVoiceQuestion,700);
+  },{statusId:'familyVoiceStatus',delay:200});
 }
 
-  function repeatFamilyVoiceQuestion(){
-
-  if(activeVoiceRecognition){
-    return;
-  }
-
+function repeatFamilyVoiceQuestion(){
+  if(voiceBusy()) return;
   askFamilyVoiceQuestion();
 }
 
@@ -7837,90 +7472,26 @@ function parseVoiceExpiry(text){
     '</div>';
 }
 
-  function startVoiceExpiry(index){
-  if(activeVoiceRecognition){
-    $('voicePantryStatus').textContent='⏳ Περίμενε να κλείσει το προηγούμενο μικρόφωνο.';
+function startVoiceExpiry(index){
+  if(voiceBusy()){
+    voiceFeedback('voicePantryStatus','⏳ Περίμενε να ολοκληρωθεί η προηγούμενη εντολή.');
     return;
   }
-  const SpeechRecognition=
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-
-  if(!SpeechRecognition){
-
-    $('voicePantryStatus').textContent=
-      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.';
-
-    return;
-  }
-
-
-  const recognition=
-    new SpeechRecognition();
-activeVoiceRecognition=
-  recognition;
-
-  recognition.lang='el-GR';
-
-  recognition.interimResults=false;
-
-  recognition.maxAlternatives=1;
-
-
-  $('voicePantryStatus').textContent=
-    '🔴 Πες τη λήξη για '+
-    voicePantryItems[index].name+
-    '...';
-
-
-  recognition.onresult=(event)=>{
-
-    const text=
-      event.results[0][0].transcript;
-
-
-    const date=
-      parseVoiceExpiry(text);
-
-
+  if(!voicePantryItems[index] || !$('voiceExp'+index)) return;
+  beginVoiceConversation();
+  voiceSpeakAndListen('',text=>{
+    const date=parseVoiceExpiry(text);
+    const input=$('voiceExp'+index);
+    if(!input) return;
     if(date===null){
-
-      $('voicePantryStatus').textContent=
-        '⚠️ Άκουσα «'+text+
-        '», αλλά δεν κατάλαβα την ημερομηνία.';
-
+      voiceFeedback('voicePantryStatus','⚠️ Άκουσα «'+text+'», αλλά δεν κατάλαβα την ημερομηνία.',
+        ()=>startVoiceExpiry(index));
       return;
     }
-
-
-    $('voiceExp'+index).value=
-      date;
-
-
-    $('voicePantryStatus').textContent=
-      date
-        ? '✅ Άκουσα: '+text
-        : '✅ Χωρίς ημερομηνία λήξης.';
-  };
-
-
-  recognition.onerror=()=>{
-
-    $('voicePantryStatus').textContent=
-      '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
-  };
-
-
-  recognition.continuous=false;
-  recognition.onend=()=>{
-    if(activeVoiceRecognition===recognition) activeVoiceRecognition=null;
-  };
-  try{recognition.start();}
-  catch(e){
-    if(activeVoiceRecognition===recognition) activeVoiceRecognition=null;
-    $('voicePantryStatus').textContent='⚠️ Το μικρόφωνο δεν άνοιξε. Δοκίμασε ξανά.';
-  }
+    input.value=date;
+    voicePantryItems[index].exp=date;
+    voiceFeedback('voicePantryStatus',date?'✅ Άκουσα: '+text:'✅ Χωρίς ημερομηνία λήξης.');
+  },{statusId:'voicePantryStatus',delay:250});
 }
 
   function parsePantryQuantity(qty){
@@ -8032,7 +7603,7 @@ resetPantryVoiceButton();
       exp: expInput ? expInput.value : (item.exp || '')
     };
 
-  });
+  }).filter(item=>item.name);
 
 
   voicePantryItems.forEach(item=>{
@@ -8064,249 +7635,23 @@ resetPantryVoiceButton();
 }
   
 function startPantryVoice(){
-
-  const btn=
-    $('voicePantryBtn');
-
-  const status=
-    $('voicePantryStatus');
-
-  const SpeechRecognition=
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-
-  if(!SpeechRecognition){
-
-    status.textContent=
-      '⚠️ Η φωνητική αναγνώριση δεν υποστηρίζεται.';
-
+  const btn=$('voicePantryBtn');
+  if(voiceBusy()){
+    voiceFeedback('voicePantryStatus','⏳ Περίμενε να ολοκληρωθεί η προηγούμενη εντολή.');
     return;
   }
-
-
-  /*
-    Αν υπάρχει ήδη ενεργή αναγνώριση,
-    δεν ξεκινάμε δεύτερη πάνω της.
-  */
-
-  if(activeVoiceRecognition){
-
-    status.textContent=
-      '⏳ Περίμενε να κλείσει το προηγούμενο μικρόφωνο.';
-
-    return;
-  }
-
-
-  const recognition=
-    new SpeechRecognition();
-
-  activeVoiceRecognition=
-    recognition;
-
-
-  recognition.lang='el-GR';
-
-  recognition.interimResults=false;
-
-  recognition.continuous=false;
-
-  recognition.maxAlternatives=1;
-
-
-  recognition.onstart=()=>{
-
-    btn.disabled=true;
-
-    btn.textContent=
-      '🔴 Ακούω...';
-
-    status.textContent=
-      'Πες τα προϊόντα και τις ποσότητες.';
-  };
-
-
-  recognition.onresult=(event)=>{
-
-    const text=
-      event.results[0][0].transcript;
-
-   const items=
-  parseVoicePantry(text);
-
-
-/*
-  Κρατάμε όσα προϊόντα υπάρχουν ήδη
-  στο πινακάκι, μαζί με τυχόν διορθώσεις
-  που έχει κάνει ο χρήστης.
-*/
-
-const previousItems=
-  voicePantryItems.map((item,i)=>({
-
-    name:
-      $('voiceName'+i)
-        ? $('voiceName'+i).value.trim()
-        : item.name,
-
-    qty:
-      $('voiceQty'+i)
-        ? $('voiceQty'+i).value.trim()
-        : item.qty
-
-  }));
-
-
-const allItems=[
-  ...previousItems,
-  ...items
-];
-
-
-status.textContent=
-  '🎤 Άκουσα: '+
-  text+
-  ' — Πρόσθεσα '+
-  items.length+
-  ' προϊόντα.';
-
-
-renderVoicePantryPreview(
-  allItems
-);
-
-
-    /*
-      ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ ΓΙΑ iPHONE:
-      ΔΕΝ κάνουμε stop()
-      ΔΕΝ κάνουμε abort()
-
-      Αφήνουμε το Safari να ολοκληρώσει
-      μόνο του τη συνεδρία.
-    */
-  };
-
-
-  recognition.onerror=(event)=>{
-
-    console.log(
-      'Voice error:',
-      event.error
-    );
-
-
-    if(
-      activeVoiceRecognition===
-      recognition
-    ){
-      activeVoiceRecognition=null;
+  beginVoiceConversation();
+  voiceSpeakAndListen('Πολύ καλά, πες τα προϊόντα.',text=>{
+    const items=parseVoicePantry(text);
+    if(!items.length){
+      voiceFeedback('voicePantryStatus','⚠️ Δεν αναγνώρισα προϊόντα.',startPantryVoice);
+      return;
     }
-
-
-    resetPantryVoiceButton();
-
-
-    if(
-      event.error!=='aborted'
-    ){
-
-      status.textContent=
-        '⚠️ Δεν κατάλαβα. Δοκίμασε ξανά.';
-    }
-  };
-
-
-  recognition.onend=()=>{
-
-    if(
-      activeVoiceRecognition===
-      recognition
-    ){
-      activeVoiceRecognition=null;
-    }
-
-
-    setTimeout(()=>{
-
-      resetPantryVoiceButton();
-
-    },300);
-  };
-
-
-  /*
-    Workaround για το bug του iOS/WebKit:
-    μιλάει για λίγο η εφαρμογή και
-    μόλις τελειώσει ξεκινά η αναγνώριση.
-  */
-
-  const startRecognition=()=>{
-
-    try{
-
-      recognition.start();
-
-    }catch(e){
-
-      console.log(
-        'Speech start error:',
-        e
-      );
-
-      activeVoiceRecognition=null;
-
-      resetPantryVoiceButton();
-
-      status.textContent=
-        '⚠️ Το μικρόφωνο δεν άνοιξε. Πάτησε ξανά.';
-    }
-  };
-
-
-  if(
-    'speechSynthesis' in window &&
-    'SpeechSynthesisUtterance' in window
-  ){
-
-    window.speechSynthesis.cancel();
-
-
-    const prompt=
-      new SpeechSynthesisUtterance(
-        'Πολύ καλά, πες τα προϊόντα.'
-      );
-
-
-    configureChefVoice(prompt);
-
-
-    prompt.onend=()=>{
-
-      setTimeout(
-        startRecognition,
-        150
-      );
-    };
-
-
-    prompt.onerror=()=>{
-
-      setTimeout(
-        startRecognition,
-        150
-      );
-    };
-
-
-    window.speechSynthesis.speak(
-      prompt
-    );
-
-  }else{
-
-    startRecognition();
-  }
+    renderVoicePantryPreview([...getCurrentPantryVoiceItems(),...items]);
+    voiceFeedback('voicePantryStatus','🎤 Άκουσα: '+text+' — Πρόσθεσα '+items.length+' προϊόντα.');
+  },{statusId:'voicePantryStatus',delay:150,
+    onStart:()=>{if(btn){btn.disabled=true;btn.textContent='🔴 Ακούω...';}},
+    onFinish:resetPantryVoiceButton});
 }
  function addIng(){
    const name=$('ing').value.trim();if(!name)return;
@@ -8330,6 +7675,7 @@ renderVoicePantryPreview(
     return;
   }
 
+  if(voiceBusy()) cancelVoiceConversation();
   document.querySelectorAll('.view').forEach(x=>{
     x.classList.remove('active');
   });
@@ -8364,7 +7710,7 @@ function handleChefCommand(text){
 
   show('family');
 
-  setTimeout(()=>{
+  voiceLater(()=>{
 
     if(
       typeof showAddMember==='function'
@@ -8396,7 +7742,7 @@ function handleChefCommand(text){
 
   show('pantry');
 
-  setTimeout(()=>{
+  voiceLater(()=>{
 
     if(
       typeof addPantryFromChef==='function'
@@ -8424,7 +7770,7 @@ if(
 
   show('learn');
 
-  setTimeout(()=>{
+  voiceLater(()=>{
 
     /*
       Ελέγχουμε αν ο χρήστης
@@ -8476,7 +7822,7 @@ if(
         typeof askLearnVoiceConfirmation==='function'
       ){
 
-        setTimeout(
+        voiceLater(
           askLearnVoiceConfirmation,
           350
         );
@@ -8542,126 +7888,8 @@ if(
 
 }
 
- function startChefListening(){
-
-  const SpeechRecognition=
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-  if(!SpeechRecognition){
-
-    chefSpeak(
-      'Η φωνητική αναγνώριση δεν υποστηρίζεται.'
-    );
-
-    return;
-  }
-
-
-  /*
-    Δεν ανοίγουμε δεύτερο μικρόφωνο
-    αν το προηγούμενο δεν έχει κλείσει.
-  */
-
-  if(activeVoiceRecognition){
-
-    console.log(
-      'Υπάρχει ήδη ενεργό μικρόφωνο.'
-    );
-
-    return;
-  }
-
-
-  const recognition=
-    new SpeechRecognition();
-
-  activeVoiceRecognition=
-    recognition;
-
-
-  recognition.lang='el-GR';
-  recognition.interimResults=false;
-  recognition.continuous=false;
-  recognition.maxAlternatives=1;
-
-
-  let heard='';
-
-
-  recognition.onresult=(event)=>{
-
-    /*
-      Εδώ ΜΟΝΟ κρατάμε το κείμενο.
-      Δεν ξεκινάμε ακόμη άλλη ενέργεια.
-    */
-
-    heard=
-      event.results[0][0].transcript;
-
-  };
-
-
-  recognition.onerror=(event)=>{
-
-    console.log(
-      'Chef recognition error:',
-      event.error
-    );
-
-  };
-
-
-  recognition.onend=()=>{
-
-    /*
-      Πρώτα κλείνει πλήρως
-      το μικρόφωνο.
-    */
-
-    if(
-      activeVoiceRecognition===
-      recognition
-    ){
-      activeVoiceRecognition=null;
-    }
-
-
-    /*
-      ΜΕΤΑ επεξεργαζόμαστε
-      την εντολή του χρήστη.
-    */
-
-    if(heard){
-
-      setTimeout(()=>{
-
-        handleChefCommand(
-          heard
-        );
-
-      },250);
-
-    }
-
-  };
-
-
-  try{
-
-    recognition.start();
-
-  }catch(e){
-
-    console.log(
-      'Chef voice start error:',
-      e
-    );
-
-    activeVoiceRecognition=null;
-
-  }
-
+function startChefListening(prompt=''){
+  voiceSpeakAndListen(prompt,handleChefCommand,{statusId:'chefBubble',delay:250});
 }
   
 async function markAppOpenedToday(){
