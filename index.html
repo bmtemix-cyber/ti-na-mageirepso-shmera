@@ -5377,8 +5377,8 @@ function rankDailyMeals(recipes,historyStats,date=new Date(),slot='lunch',fastin
     const veganKnown=m.ingredients && !cats.some(c=>['meat','eggs','dairy','seafood'].includes(c));
     if(fast && !veganKnown)continue;
     const h=known.get(n), pref=familyPreferenceForMeal(m.name);
-    const disliked=StringsafeMealHtml(s.family.dislikes||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
-    const favored=StringsafeMealHtml(s.family.favorites||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
+    const disliked=String(s.family.dislikes||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
+    const favored=String(s.family.favorites||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
     if(disliked || pref.dislikes>0 || (h && h.average<=2))continue;
     const health=cats.reduce((sum,c)=>{
       const ratio=(week[c]||0)/(targets[c]||1);
@@ -5410,9 +5410,10 @@ function showTodaySuggestion(){
   if(!box)return;
   const slot=$('suggestionSlot')?.value||'lunch';
   const fasting=$('suggestionFasting')?.checked||false;
-  const suggestions=rankDailyMeals(pantryFallbackSuggestions().all,preferenceStats(),new Date(),slot,fasting);
-
   box.classList.remove('hidden');
+  let suggestions;
+  try{suggestions=rankDailyMeals(pantryFallbackSuggestions().all,preferenceStats(),new Date(),slot,fasting);}
+  catch(error){console.error('Daily suggestions:',error);box.textContent='Δεν ήταν δυνατή η δημιουργία προτάσεων. Δοκίμασε ξανά.';return;}
 
 
   box.innerHTML=
