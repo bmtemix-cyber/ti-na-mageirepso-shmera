@@ -1684,13 +1684,13 @@ function applyLearnVoiceText(
 
     preview.innerHTML+=
       '<br><b>➕ Πρόσθεσα:</b><br>'+
-      text;
+      safeMealHtml(text);
 
   }else{
 
     preview.innerHTML=
       '<b>🎤 Άκουσα:</b><br>'+
-      text;
+      safeMealHtml(text);
 
   }
 
@@ -3094,11 +3094,11 @@ try{
 
     status.innerHTML=
       '<div class="soft">'+
-        '<b>✅ '+name+'</b><br>'+
+        '<b>✅ '+safeMealHtml(name)+'</b><br>'+
         (quantity
-          ? '<div class="small">Ποσότητα: '+quantity+'</div>'
+          ? '<div class="small">Ποσότητα: '+safeMealHtml(quantity)+'</div>'
           : '')+
-        '<div class="small">Barcode: '+barcode+'</div>'+
+        '<div class="small">Barcode: '+safeMealHtml(barcode)+'</div>'+
 
         '<label class="small" style="display:block;margin-top:10px">'+
           'Ημερομηνία λήξης'+
@@ -3380,8 +3380,7 @@ const VAPID_PUBLIC_KEY =
               'class="receipt-name" '+
               'data-index="'+i+'" '+
               'value="'+
-                String(item.name||'')
-                  .replace(/"/g,'&quot;')+
+                safeMealHtml(item.name)+
               '"'+
             '>'+
 
@@ -3391,8 +3390,7 @@ const VAPID_PUBLIC_KEY =
               'class="receipt-qty" '+
               'data-index="'+i+'" '+
               'value="'+
-                String(item.quantity||'')
-                  .replace(/"/g,'&quot;')+
+                safeMealHtml(item.quantity)+
               '"'+
             '>'+
 
@@ -3408,7 +3406,7 @@ const VAPID_PUBLIC_KEY =
               ?
               '<div class="small" style="margin-top:8px">'+
                 'Απόδειξη: '+
-                item.raw+
+                safeMealHtml(item.raw)+
               '</div>'
               :
               ''
@@ -3430,36 +3428,6 @@ const VAPID_PUBLIC_KEY =
     '</button>'+
 
   '</div>';
-        data.items.map(item=>
-
-          '<div class="item" style="margin-top:8px">'+
-
-            '<b>'+
-              (item.name||'Άγνωστο προϊόν')+
-            '</b>'+
-
-            '<div class="small">'+
-              (item.quantity||'')+
-            '</div>'+
-
-            (
-              item.raw
-              ?
-              '<div class="small">'+
-                'Απόδειξη: '+
-                item.raw+
-              '</div>'
-              :
-              ''
-            )+
-
-          '</div>'
-
-        ).join('')+
-
-      '</div>';
-
-
   }catch(e){
 
     console.error(e);
@@ -3472,7 +3440,7 @@ const VAPID_PUBLIC_KEY =
     if(results){
       results.innerHTML=
         '<div class="notice">'+
-          (e.message||e)+
+          safeMealHtml(e.message||e)+
         '</div>';
     }
   }
@@ -3814,14 +3782,14 @@ async  function suggestRecipe(){
     return;
   }
 
-  box.innerHTML='<b>🔎 Ψάχνω ελληνική συνταγή για «'+meal+'»...</b>';
+  box.innerHTML='<b>🔎 Ψάχνω ελληνική συνταγή για «'+safeMealHtml(meal)+'»...</b>';
 
   try{
     const search=await fetch('/api/search-recipe?q='+encodeURIComponent(meal));
     const found=await search.json();
 
     if(!found.ok || !found.recipe || !found.recipe.url){
-      box.innerHTML='<b>Δεν βρήκα ελληνική συνταγή για «'+meal+'».</b>';
+      box.innerHTML='<b>Δεν βρήκα ελληνική συνταγή για «'+safeMealHtml(meal)+'».</b>';
       return;
     }
 
@@ -3833,11 +3801,11 @@ async  function suggestRecipe(){
 
     if(!data.ok || !data.recipe){
       box.innerHTML=
-        '<b>Βρήκα τη συνταγή «'+found.recipe.name+'»</b>'+
+        '<b>Βρήκα τη συνταγή «' +safeMealHtml(found.recipe.name)+'»</b>'+
         '<div class="small" style="margin-top:8px">'+
-        'Πηγή: '+found.recipe.source+
+        'Πηγή: ' +safeMealHtml(found.recipe.source)+
         '</div>'+
-        '<a class="btn secondary" href="'+found.recipe.url+
+        '<a class="btn secondary" href="'+safeExternalURL(found.recipe.url)+
         '" target="_blank" rel="noopener">Άνοιξε τη συνταγή</a>';
       return;
     }
@@ -3846,15 +3814,15 @@ async  function suggestRecipe(){
 
     box.innerHTML=
       (m.image
-        ? '<img src="'+m.image+'" style="width:100%;border-radius:14px;margin-bottom:10px">'
+        ? '<img src="'+safeExternalURL(m.image)+'" style="width:100%;border-radius:14px;margin-bottom:10px">'
         : '')+
-      '<b>🍽️ '+m.name+'</b>'+
-      '<div class="small" style="margin-top:6px">Πηγή: '+found.recipe.source+'</div>'+
+      '<b>🍽️ '+safeMealHtml(m.name)+'</b>'+
+      '<div class="small" style="margin-top:6px">Πηγή: ' +safeMealHtml(found.recipe.source)+'</div>'+
       '<div class="small" style="margin-top:10px"><b>Υλικά:</b><br>'+
-      (m.ingredients||[]).join('<br>')+
+      (m.ingredients||[]).map(safeMealHtml).join('<br>')+
       '</div>'+
       '<button class="btn secondary" onclick="useRecipe()">✅ Χρησιμοποίησε αυτή τη συνταγή</button>'+
-      '<a class="btn ghost" href="'+found.recipe.url+
+      '<a class="btn ghost" href="'+safeExternalURL(found.recipe.url)+
       '" target="_blank" rel="noopener">🔗 Δες την αρχική συνταγή</a>';
 
     window.foundRecipe={
@@ -4124,13 +4092,13 @@ function preferenceStats(){
   let dislikes=0;
 
   members.forEach(m=>{
-    const liked=(m.likes||'')
+    const liked=safeMealHtml(m.likes||'')
       .toLowerCase()
       .split(',')
       .map(x=>x.trim())
       .filter(Boolean);
 
-    const disliked=(m.dislikes||'')
+    const disliked=safeMealHtml(m.dislikes||'')
       .toLowerCase()
       .split(',')
       .map(x=>x.trim())
@@ -5383,6 +5351,7 @@ scored.sort((a,b)=>{
   all:scored
 };
 } 
+ function safeExternalURL(value){try{const u=new URL(String(value));return u.protocol==='https:'?safeMealHtml(u.href):'';}catch{return '';}}
  function safeMealHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
  function recipeCard(meal, index, title, note){
    const name=meal.name;
@@ -5420,8 +5389,8 @@ function rankDailyMeals(recipes,historyStats,date=new Date(),slot='lunch',fastin
     const veganKnown=m.ingredients && !cats.some(c=>['meat','eggs','dairy','seafood'].includes(c));
     if(fast && !veganKnown)continue;
     const h=known.get(n), pref=familyPreferenceForMeal(m.name);
-    const disliked=String(s.family.dislikes||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
-    const favored=String(s.family.favorites||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
+    const disliked=StringsafeMealHtml(s.family.dislikes||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
+    const favored=StringsafeMealHtml(s.family.favorites||'').split(/[,;]+/).map(norm).filter(Boolean).some(x=>n.includes(x));
     if(disliked || pref.dislikes>0 || (h && h.average<=2))continue;
     const health=cats.reduce((sum,c)=>{
       const ratio=(week[c]||0)/(targets[c]||1);
@@ -6131,7 +6100,7 @@ function renderMealStats(){
 
             <div style="flex:1">
 
-              <b>${item.name}</b>
+              <b>${safeMealHtml(item.name)}</b>
 
               <div
                 class="small"
@@ -6286,7 +6255,7 @@ function toggleMealStats(){
         <div class="item">
 
           <b>
-            ${icon} ${mealType} · ${h.name}
+            ${icon} ${mealType} · ${safeMealHtml(h.name)}
           </b>
 
           <div
@@ -6296,7 +6265,7 @@ function toggleMealStats(){
             ${'★'.repeat(h.rating||3)}
             ${
               categoryText
-              ? ' · '+categoryText
+              ? ' · '+safeMealHtml(categoryText)
               : ''
             }
           </div>
@@ -6319,21 +6288,21 @@ function toggleMealStats(){
 
   $('familyInfo').innerHTML=
     '<div class="soft">'+
-      '<b>'+s.family.adults+' ενήλικες · '+(s.family.children||0)+' παιδιά</b>'+
+      '<b>' +safeMealHtml(s.family.adults)+' ενήλικες · ' +safeMealHtml(s.family.children||0)+' παιδιά</b>'+
       '<div class="small">'+
-        (s.family.ages?'Ηλικίες: '+s.family.ages+' · ':'')+
-        'Μαγειρεύετε για '+s.family.cookFor+' άτομα.'+
+        (s.family.ages?'Ηλικίες: '+safeMealHtml(s.family.ages)+' · ':'')+
+        'Μαγειρεύετε για ' +safeMealHtml(s.family.cookFor)+' άτομα.'+
       '</div>'+
     '</div>'+
 
     '<div class="soft" style="margin-top:8px">'+
       '<b>Αγαπημένα</b>'+
-      '<div class="small">'+(s.family.favorites||'—')+'</div>'+
+      '<div class="small">'+safeMealHtml(s.family.favorites||'—')+'</div>'+
     '</div>'+
 
     '<div class="soft" style="margin-top:8px">'+
       '<b>Δεν προτιμάτε</b>'+
-      '<div class="small">'+(s.family.dislikes||'—')+'</div>'+
+      '<div class="small">'+safeMealHtml(s.family.dislikes||'—')+'</div>'+
     '</div>'+
 
     '<div class="soft" style="margin-top:8px">'+
@@ -6346,21 +6315,21 @@ function toggleMealStats(){
         members.length
 ? members.map((m,i)=>
     '<div class="item" style="margin-top:7px">'+
-      '<b>'+(m.name||('Μέλος '+(i+1)))+'</b>'+
+      '<b>'+safeMealHtml(m.name||('Μέλος '+(i+1)))+'</b>'+
 
       '<div class="small">'+
-        (m.age?'Ηλικία: '+m.age+' · ':'')+
-        (m.sex?'Φύλο: '+m.sex+' · ':'')+
-        (m.height?'Ύψος: '+m.height+' cm · ':'')+
-        (m.weight?'Βάρος: '+m.weight+' kg':'')+
+        (m.age?'Ηλικία: '+safeMealHtml(m.age)+' · ':'')+
+        (m.sex?'Φύλο: '+safeMealHtml(m.sex)+' · ':'')+
+        (m.height?'Ύψος: '+safeMealHtml(m.height)+' cm · ':'')+
+        (m.weight?'Βάρος: '+safeMealHtml(m.weight)+' kg':'')+
       '</div>'+
 
       '<div class="small" style="margin-top:6px">'+
-        '❤️ Αγαπημένα: '+(m.likes||'Δεν έχουν δηλωθεί')+
+        '❤️ Αγαπημένα: '+safeMealHtml(m.likes||'Δεν έχουν δηλωθεί')+
       '</div>'+
 
       '<div class="small" style="margin-top:4px">'+
-        '🚫 Δεν προτιμά: '+(m.dislikes||'Δεν έχουν δηλωθεί')+
+        '🚫 Δεν προτιμά: '+safeMealHtml(m.dislikes||'Δεν έχουν δηλωθεί')+
       '</div>'+
 
       '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'+
@@ -6394,27 +6363,27 @@ function toggleMealStats(){
 
       '<div class="field">'+
         '<label>Ενήλικες</label>'+
-        '<input id="editAdults" type="number" min="0" value="'+s.family.adults+'">'+
+        '<input id="editAdults" type="number" min="0" value="' +safeMealHtml(s.family.adults)+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Παιδιά</label>'+
-        '<input id="editChildren" type="number" min="0" value="'+(s.family.children||0)+'">'+
+        '<input id="editChildren" type="number" min="0" value="' +safeMealHtml(s.family.children||0)+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Μαγειρεύετε για πόσα άτομα;</label>'+
-        '<input id="editCookFor" type="number" min="1" value="'+s.family.cookFor+'">'+
+        '<input id="editCookFor" type="number" min="1" value="' +safeMealHtml(s.family.cookFor)+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Αγαπημένα φαγητά</label>'+
-        '<input id="editFavorites" value="'+(s.family.favorites||'')+'">'+
+        '<input id="editFavorites" value="'+safeMealHtml(s.family.favorites||'')+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Δεν προτιμάτε</label>'+
-        '<input id="editDislikes" value="'+(s.family.dislikes||'')+'">'+
+        '<input id="editDislikes" value="'+safeMealHtml(s.family.dislikes||'')+'">'+
       '</div>'+
 
       '<button class="btn primary" onclick="saveFamilySettings()">'+
@@ -6766,14 +6735,14 @@ function repeatFamilyVoiceQuestion(){
     '<div class="field">'+
       '<label>Όνομα</label>'+
       '<input id="memberName" value="'+
-        (familyVoiceDraft.name||'')+
+        safeMealHtml(familyVoiceDraft.name||'')+
       '">'+
     '</div>'+
 
     '<div class="field">'+
       '<label>Ηλικία</label>'+
       '<input id="memberAge" type="number" value="'+
-        (familyVoiceDraft.age||'')+
+        safeMealHtml(familyVoiceDraft.age??'')+
       '">'+
     '</div>'+
 
@@ -6807,28 +6776,28 @@ function repeatFamilyVoiceQuestion(){
     '<div class="field">'+
       '<label>Ύψος (cm)</label>'+
       '<input id="memberHeight" type="number" value="'+
-        (familyVoiceDraft.height||'')+
+        safeMealHtml(familyVoiceDraft.height||'')+
       '">'+
     '</div>'+
 
     '<div class="field">'+
       '<label>Βάρος (kg)</label>'+
       '<input id="memberWeight" type="number" step="0.1" value="'+
-        (familyVoiceDraft.weight||'')+
+        safeMealHtml(familyVoiceDraft.weight||'')+
       '">'+
     '</div>'+
 
     '<div class="field">'+
       '<label>❤️ Αγαπημένα φαγητά</label>'+
       '<textarea id="memberLikes">'+
-        (familyVoiceDraft.likes||'')+
+        safeMealHtml(familyVoiceDraft.likes||'')+
       '</textarea>'+
     '</div>'+
 
     '<div class="field">'+
       '<label>🚫 Φαγητά που δεν προτιμά</label>'+
       '<textarea id="memberDislikes">'+
-        (familyVoiceDraft.dislikes||'')+
+        safeMealHtml(familyVoiceDraft.dislikes||'')+
       '</textarea>'+
     '</div>'+
 
@@ -6885,12 +6854,12 @@ dislikes:$('memberDislikes').value.trim()
 
       '<div class="field">'+
         '<label>Όνομα</label>'+
-        '<input id="memberName" value="'+(m.name||'')+'">'+
+        '<input id="memberName" value="'+safeMealHtml(m.name||'')+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Ηλικία</label>'+
-        '<input id="memberAge" type="number" min="0" max="120" value="'+(m.age??'')+'">'+
+        '<input id="memberAge" type="number" min="0" max="120" value="'+safeMealHtml(m.age??'')+'">'+
       '</div>'+
 
       '<div class="field">'+
@@ -6905,25 +6874,25 @@ dislikes:$('memberDislikes').value.trim()
 
       '<div class="field">'+
         '<label>Ύψος (cm)</label>'+
-        '<input id="memberHeight" type="number" min="20" max="250" value="'+(m.height??'')+'">'+
+        '<input id="memberHeight" type="number" min="20" max="250" value="'+safeMealHtml(m.height??'')+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Βάρος (kg)</label>'+
-        '<input id="memberWeight" type="number" min="0.2" max="500" step="0.1" value="'+(m.weight??'')+'">'+
+        '<input id="memberWeight" type="number" min="0.2" max="500" step="0.1" value="'+safeMealHtml(m.weight??'')+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>❤️ Αγαπημένα φαγητά</label>'+
         '<textarea id="memberLikes" placeholder="π.χ. Παστίτσιο, κοτόπουλο">'+
-          (m.likes||'')+
+          safeMealHtml(m.likes||'')+
         '</textarea>'+
       '</div>'+
 
       '<div class="field">'+
         '<label>🚫 Φαγητά που δεν προτιμά</label>'+
         '<textarea id="memberDislikes" placeholder="π.χ. Μανιτάρια, φακές">'+
-          (m.dislikes||'')+
+          safeMealHtml(m.dislikes||'')+
         '</textarea>'+
       '</div>'+
 
@@ -6964,7 +6933,7 @@ dislikes:$('memberDislikes').value.trim()
   const m=s.family.members[index];
   if(!m)return;
 
-  if(!confirm('Να διαγραφεί το μέλος «'+(m.name||'')+'»;')){
+  if(!confirm('Να διαγραφεί το μέλος «'+safeMealHtml(m.name||'')+'»;')){
     return;
   }
 
@@ -7430,7 +7399,7 @@ function startPantryVoice(){
    $('unitHint').textContent='Η μονάδα επιλέγεται αυτόματα από το υλικό.';
    save();render();
  }
- function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row ${expiryClass(p.exp)}"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
+ function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row ${expiryClass(p.exp)}"><div><b>${safeMealHtml(p.name)}</b><div class=small>${safeMealHtml(p.qty)}${p.exp?' · '+safeMealHtml(p.exp):''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
  function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=localDateValue(new Date());save();render()}
  function show(id){
   const target=$(id);
@@ -7978,11 +7947,11 @@ alert('Η φωτογραφία έφτασε στην εφαρμογή');
 
             status.innerHTML=
               '<div class="soft">'+
-                '<b>✅ '+name+'</b><br>'+
+                '<b>✅ '+safeMealHtml(name)+'</b><br>'+
                 (quantity
-                  ? '<div class="small">Ποσότητα: '+quantity+'</div>'
+                  ? '<div class="small">Ποσότητα: '+safeMealHtml(quantity)+'</div>'
                   : '')+
-                '<div class="small">Barcode: '+barcode+'</div>'+
+                '<div class="small">Barcode: '+safeMealHtml(barcode)+'</div>'+
 
                 '<label class="small" style="display:block;margin-top:10px">'+
                   'Ημερομηνία λήξης'+
