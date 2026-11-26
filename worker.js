@@ -1,4 +1,65 @@
 import webpush from "web-push";
+const AI_LIMITS={"/api/generate-recipe":12,"/api/read-receipt":6};
+const localLimits=new Map();
+function allowLocalAI(ip,path,now=Date.now()){
+  const limit=AI_LIMITS[path];
+  if(!limit)return true;
+  const window=Math.floor(now/60000), key=ip+"|"+path;
+  if(localLimits.size>=2000){
+    for(const [k,v] of localLimits)if(v.window!==window)localLimits.delete(k);
+    if(localLimits.size>=2000&&!localLimits.has(key))return false;
+  }
+  const previous=localLimits.get(key);
+  const count=previous?.window===window?previous.count:0;
+  if(count>=limit)return false;
+  localLimits.set(key,{window,count:count+1});
+  return true;
+}
+async function readLimitedJSON(request,max){
+  if(Number(request.headers.get("content-length"))>max)throw Object.assign(Error("Υπερβολικά μεγάλο αίτημα."),{status:413});
+  const reader=request.body?.getReader();
+  if(!reader)throw Object.assign(Error("Λείπουν δεδομένα."),{status:400});
+  let size=0,chunks=[];
+  while(true){
+    const {done,value}=await reader.read();
+    if(done)break;
+    size+=value.byteLength;
+    if(size>max){await reader.cancel();throw Object.assign(Error("Υπερβολικά μεγάλο αίτημα."),{status:413});}
+    chunks.push(value);
+  }
+  const bytes=new Uint8Array(size);let offset=0;
+  for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  let data;
+  try{data=JSON.parse(new TextDecoder().decode(bytes));}catch{throw Object.assign(Error("Μη έγκυρο JSON."),{status:400});}
+  if(!data||typeof data!=="object"||Array.isArray(data))throw Object.assign(Error("Μη έγκυρα δεδομένα."),{status:400});
+  return data;
+}
+function applyReminderSetting(saved,body){
+  if(body.enabled!==undefined && typeof body.enabled!=="boolean")throw Error("Μη έγκυρη ενεργοποίηση.");
+  if(body.time!==undefined && (typeof body.time!=="string"||!/^(?:[01]\d|2[0-3]):(?:00|30)$/.test(body.time)))throw Error("Μη έγκυρη ώρα.");
+  if(typeof body.enabled==="boolean")saved.enabled=body.enabled;
+  if(body.time!==undefined)saved.reminderTime=body.time;
+  return saved;
+}
+function allowedRecipeURL(value){
+  try{
+    const u=new URL(value);
+    return u.protocol==="https:"&&!u.username&&!u.password&&!u.port&&["argiro.gr","www.argiro.gr","akispetretzikis.com","www.akispetretzikis.com"].includes(u.hostname);
+  }catch{return false;}
+}
+async function fetchRecipePage(value){
+  let url=new URL(value);
+  for(let i=0;i<5;i++){
+    if(!allowedRecipeURL(url.href))throw Error("Μη επιτρεπτή διεύθυνση.");
+    const r=await fetch(url.href,{redirect:"manual",headers:{"User-Agent":"Mozilla/5.0"}});
+    if(![301,302,303,307,308].includes(r.status))return r;
+    const next=r.headers.get("location");
+    if(!next)throw Error("Μη έγκυρη ανακατεύθυνση.");
+    url=new URL(next,url);
+  }
+  throw Error("Πολλές ανακατευθύνσεις.");
+}
+
 function looksLikeFood(sourceText) {
 
   const t=(sourceText || '').toUpperCase();
@@ -110,6 +171,10 @@ function instructionText(x) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if(Object.hasOwn(AI_LIMITS,url.pathname) && request.method==="POST"){
+      const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+      if(!allowLocalAI(ip,url.pathname))return Response.json({ok:false,error:"Πολλά αιτήματα. Δοκίμασε σε ένα λεπτό."},{status:429,headers:{"Retry-After":"60"}});
+    }
     if (url.pathname === "/api/meal-image-test") {
   try {
     const assetUrl = new URL(
@@ -169,7 +234,7 @@ if (url.pathname === "/api/meal-image") {
 
     if (url.pathname === "/api/generate-recipe" && request.method === "POST") {
       try {
-        const body = await request.json();
+        const body = await readLimitedJSON(request,65536);
         const meal = String(body.meal || "").trim().slice(0,120);
         if (!meal) return Response.json({ok:false,error:"Λείπει το φαγητό."},{status:400});
         if (!env.AI) return Response.json({ok:false,error:"Δεν είναι συνδεδεμένο το AI."},{status:503});
@@ -199,7 +264,7 @@ if (url.pathname === "/api/meal-image") {
           ingredients:recipe.ingredients.slice(0,25).map(x=>({name:String(x?.name||'').slice(0,120),quantity:String(x?.quantity||'').slice(0,60)})).filter(x=>x.name),
           steps:recipe.steps.slice(0,15).map(x=>String(x).slice(0,600)),tip:String(recipe.tip||'').slice(0,500)};
         return Response.json({ok:true,recipe:clean});
-      } catch(e) {console.error('GENERATE RECIPE',e);return Response.json({ok:false,error:'Δεν μπόρεσα να δημιουργήσω συνταγή. Δοκίμασε ξανά.'},{status:502});}
+      } catch(e) {if(e.status)return Response.json({ok:false,error:e.message},{status:e.status});console.error('GENERATE RECIPE',e);return Response.json({ok:false,error:'Δεν μπόρεσα να δημιουργήσω συνταγή. Δοκίμασε ξανά.'},{status:502});}
     }
     if (url.pathname === "/api/reminder-setting" && request.method === "POST") {
   try {
@@ -223,13 +288,7 @@ if (url.pathname === "/api/meal-image") {
     }
 
     const saved = JSON.parse(raw);
-if(typeof body.enabled === "boolean"){
-}
-
-if(body.time){
-  saved.reminderTime = body.time;
-}
-    saved.enabled = body.enabled;
+try{applyReminderSetting(saved,body);}catch(e){return Response.json({ok:false,error:e.message},{status:400});}
 
     await env.REMINDERS.put(
       key,
@@ -369,14 +428,12 @@ if (url.pathname === "/api/save-subscription" && request.method === "POST") {
       );
     }
 
-    await env.REMINDERS.put(
-      "subscription:" + body.id,
-      JSON.stringify({
-        subscription: body.subscription,
-        lastOpenedDate: body.lastOpenedDate || "",
-        enabled: true
-      })
-    );
+    const key="subscription:"+body.id;
+    const previous=await env.REMINDERS.get(key);
+    const old=previous?JSON.parse(previous):{};
+    const settings={...old,subscription:body.subscription,lastOpenedDate:body.lastOpenedDate||old.lastOpenedDate||"",enabled:old.enabled??true};
+    if(body.time!==undefined){try{applyReminderSetting(settings,{time:body.time});}catch(e){return Response.json({ok:false,error:e.message},{status:400});}}
+    await env.REMINDERS.put(key,JSON.stringify(settings));
 
     return Response.json({ ok: true });
 
@@ -405,11 +462,7 @@ if (url.pathname === "/api/search-recipe") {
     const searchUrl =
       "https://www.argiro.gr/?s=" + encodeURIComponent(q);
 
-    const r = await fetch(searchUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0"
-      }
-    });
+    const r = await fetchRecipePage(searchUrl);
 
     if (!r.ok) throw new Error("HTTP " + r.status);
 
@@ -421,7 +474,7 @@ if (url.pathname === "/api/search-recipe") {
       .map(m => m[1])
       .map(x => x.startsWith("http") ? x : new URL(x, "https://www.argiro.gr").href);
 
-    const unique = [...new Set(links)];
+    const unique = [...new Set(links)].filter(allowedRecipeURL);
 
     if (!unique.length) {
       return Response.json({
@@ -432,11 +485,8 @@ if (url.pathname === "/api/search-recipe") {
 
     const recipeUrl = unique[0];
 
-    const page = await fetch(recipeUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0"
-      }
-    });
+    const page = await fetchRecipePage(recipeUrl);
+    if(!page.ok)throw Error("HTTP "+page.status);
 
     const recipeHtml = await page.text();
     const recipe = findRecipeJsonLd(recipeHtml);
@@ -522,7 +572,7 @@ const bestImage =
         "www.akispetretzikis.com"
       ];
 
-      if (!allowed.includes(target.hostname)) {
+      if (!allowedRecipeURL(target.href)) {
         return Response.json(
           { ok: false, error: "Η πηγή δεν υποστηρίζεται ακόμη." },
           { status: 400 }
@@ -530,11 +580,7 @@ const bestImage =
       }
 
       try {
-        const r = await fetch(target.toString(), {
-          headers: {
-            "User-Agent": "Mozilla/5.0"
-          }
-        });
+        const r = await fetchRecipePage(target.href);
 
         if (!r.ok) {
           throw new Error("HTTP " + r.status);
@@ -581,9 +627,9 @@ const bestImage =
     
 if (url.pathname === "/api/read-receipt" && request.method === "POST") {
   try {
-    const body = await request.json();
+    const body = await readLimitedJSON(request,8*1024*1024);
 
-    if (!body.image) {
+    if (typeof body.image!=="string" || !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(body.image)) {
       return Response.json(
         {
           ok:false,
@@ -816,6 +862,7 @@ products = dedupeProducts(products);
 
   } catch(e) {
 
+    if(e.status)return Response.json({ok:false,error:e.message},{status:e.status});
     console.error("RECEIPT ERROR",e);
 
     return Response.json(
@@ -844,7 +891,7 @@ products = dedupeProducts(products);
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hourCycle: "h23"
     }).formatToParts(now);
 
     const get = type =>
@@ -885,7 +932,7 @@ products = dedupeProducts(products);
 const currentTime=hour+':'+minute;
 const reminderTime=saved.reminderTime || '20:30';
 
-if(currentTime !== reminderTime) continue;
+if(currentTime !== reminderTime || saved.lastReminderDate===today) continue;
           if (!saved.enabled) continue;
           if (!saved.subscription) continue;
 
@@ -900,6 +947,8 @@ if(currentTime !== reminderTime) continue;
               tag: 'evening-reminder'
             })
           );
+          saved.lastReminderDate=today;
+          await env.REMINDERS.put(key.name,JSON.stringify(saved));
 
         } catch(e) {
           console.error(
