@@ -815,6 +815,7 @@ onclick="startLearnVoice()"
 >
   🎙️ Δείξε ελληνικές φωνές
 </button>
+<div class="field"><label>Φωνή του επιλεγμένου μάγειρα</label><select id="chefVoiceChoice" onchange="saveChefVoiceChoice()"></select><div id="chefVoiceInfo" class="small"></div><button type="button" class="btn secondary" onclick="previewChefVoice()">🔊 Δοκιμή φωνής</button></div>
 
     <div class="field">
       <label>Περίοδος εκμάθησης</label>
@@ -981,6 +982,9 @@ function changeChefGender(){
     'chefGender',
     gender
   );
+  if(voiceBusy())cancelVoiceConversation();
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  refreshChefVoicePicker();
 
   if(gender==='male'){
 
@@ -1025,21 +1029,64 @@ function changeChefGender(){
   
 
 // Κοινές ρυθμίσεις φωνής για όλες τις καρτέλες.
+function greekChefVoices(){
+  return window.speechSynthesis?.getVoices().filter(v=>/^el(?:[-_]|$)/i.test(v.lang||''))||[];
+}
+function chefVoiceKey(gender){
+  return 'chefVoiceURI-'+gender;
+}
+function selectChefVoice(voices,gender,uri){
+  const exact=voices.find(v=>v.voiceURI===uri);
+  if(exact)return exact;
+  const label=v=>String(v.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const female=v=>/melina|μελινα|female|woman|γυναικ/.test(label(v));
+  const male=v=>!female(v)&&/nikos|nikolaos|alexandros|νικος|νικολαος|αλεξανδρος|\bmale\b/.test(label(v));
+  return voices.find(gender==='male'?male:female)||null;
+}
+function refreshChefVoicePicker(){
+  const picker=document.getElementById('chefVoiceChoice');
+  if(!picker)return;
+  const gender=localStorage.getItem('chefGender')||'female';
+  const voices=greekChefVoices();
+  const chosen=selectChefVoice(voices,gender,localStorage.getItem(chefVoiceKey(gender)));
+  picker.replaceChildren(new Option('Αυτόματη επιλογή',''));
+  voices.forEach(v=>picker.add(new Option(v.name+' ('+v.lang+')',v.voiceURI)));
+  picker.value=chosen?.voiceURI||'';
+  const status=document.getElementById('chefVoiceInfo');
+  if(status)status.textContent=chosen?'Επιλεγμένη φωνή: '+chosen.name:voices.length?'Δεν βρέθηκε βέβαιη αντιστοίχιση. Διάλεξε και δοκίμασε μια διαθέσιμη φωνή.':'Το Safari δεν έχει εμφανίσει ακόμη ελληνικές φωνές.';
+}
+function saveChefVoiceChoice(){
+  const gender=localStorage.getItem('chefGender')||'female';
+  const value=document.getElementById('chefVoiceChoice').value;
+  if(value)localStorage.setItem(chefVoiceKey(gender),value);
+  else localStorage.removeItem(chefVoiceKey(gender));
+  refreshChefVoicePicker();
+}
+function showGreekVoices(){
+  refreshChefVoicePicker();
+  const info=document.getElementById('chefVoiceInfo');
+  const voices=greekChefVoices();
+  if(info)info.textContent=voices.length?'Διαθέσιμες ελληνικές φωνές: '+voices.map(v=>v.name).join(', '):'Δεν εμφανίζονται ελληνικές φωνές από το Safari.';
+}
+function previewChefVoice(){
+  if(voiceBusy())cancelVoiceConversation();
+  chefSpeak('Καλημέρα! Είμαι ο βοηθός σου στην κουζίνα. Τι θα μαγειρέψουμε σήμερα;');
+}
 function configureChefVoice(utterance){
-  const male=(localStorage.getItem('chefGender') || 'female')==='male';
+  const gender=localStorage.getItem('chefGender')||'female';
   utterance.lang='el-GR';
-  utterance.rate=male?1.12:0.84;
-  utterance.pitch=male?0.96:0.82;
+  utterance.rate=1.05;
+  utterance.pitch=1;
   utterance.volume=1;
-  const voices=window.speechSynthesis.getVoices().filter(v=>
-    String(v.lang || '').toLowerCase().startsWith('el'));
-  const name=v=>String(v.name || '').toLowerCase();
-  const female=voices.find(v=>/melina|female|μελίνα/i.test(name(v)));
-  const man=voices.find(v=>!/female|melina|μελίνα/i.test(name(v)) &&
-    /nikos|nikolaos|alexandros|νίκος|νικος|\bmale\b/i.test(name(v)));
-  const preferred=(male?man:female)||voices.find(v=>v.default)||voices[0];
-  if(preferred) utterance.voice=preferred;
+  const voices=greekChefVoices();
+  const preferred=selectChefVoice(voices,gender,localStorage.getItem(chefVoiceKey(gender)));
+  if(preferred){utterance.voice=preferred;utterance.lang=preferred.lang;}
+  else if(voices.length===1){utterance.voice=voices[0];utterance.lang=voices[0].lang;}
   return utterance;
+}
+if(window.speechSynthesis){
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.addEventListener('voiceschanged',refreshChefVoicePicker);
 }
 
 function chefSpeak(text){
@@ -1067,7 +1114,8 @@ function chefTap(){
 window.addEventListener(
   'load',
   function(){
-   loadChefGender(); 
+   loadChefGender();
+   refreshChefVoicePicker();
 
     const chef=
       document.getElementById(
