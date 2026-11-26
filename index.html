@@ -858,6 +858,14 @@ onclick="startLearnVoice()"
       </div>
     </div>
 
+    <div class="soft" style="margin-top:12px">
+      <b>💾 Αντίγραφα ασφαλείας</b>
+      <p class="small">Αποθήκευσε τα γεύματα, τα υλικά και την οικογένεια σε αρχείο JSON. Περιέχει προσωπικά στοιχεία· φύλαξέ το ιδιωτικά.</p>
+      <button class="btn secondary" onclick="exportCookBackup()">⬇️ Εξαγωγή αντιγράφου</button>
+      <button class="btn ghost" onclick="document.getElementById('cookBackupFile').click()">📂 Επαναφορά αντιγράφου</button>
+      <input id="cookBackupFile" type="file" accept=".json,application/json" class="hidden" onchange="importCookBackup(event)">
+      <div id="cookBackupStatus" class="small" role="status"></div>
+    </div>
     <div class="notice" style="margin-top:12px">
       Η online «δημοφιλής συνταγή στην περιοχή» είναι έτοιμη ως UI.
       Για πραγματική αναζήτηση θα χρειαστεί backend/API.
@@ -7674,6 +7682,58 @@ async function markAppOpenedToday(){
     console.warn('Δεν ενημερώθηκε το lastOpenedDate στον server.',e);
   }
 }
+function validateCookBackup(raw){
+  if(!raw || raw.format!=='cookv2-backup' || raw.version!==1) throw Error('Μη υποστηριζόμενο αντίγραφο.');
+  const d=raw.data;
+  const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+  const str=x=>typeof x==='string';
+  const date=x=>str(x)&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&Number.isFinite(Date.parse(x))&&new Date(x).toISOString().slice(0,10)===x;
+  const optstr=x=>x==null||str(x);
+  const cats=new Set(Object.keys(targets));
+  if(!obj(d)||!date(d.created)||!Number.isInteger(d.learningDays)||d.learningDays<0||d.learningDays>365||!Array.isArray(d.history)||!Array.isArray(d.pantry)||!obj(d.family)) throw Error('Λείπουν βασικά στοιχεία.');
+  for(const h of d.history){
+    if(!obj(h)||!date(h.date)||!str(h.name)||!h.name.trim()||!['breakfast','lunch','dinner'].includes(h.type)||!optstr(h.recipe)||!Number.isFinite(Number(h.rating))||Number(h.rating)<1||Number(h.rating)>5)throw Error('Μη έγκυρη καταχώριση γεύματος.');
+    if(h.cats!=null&&(!Array.isArray(h.cats)||h.cats.some(c=>!cats.has(c))))throw Error('Μη έγκυρη κατηγορία.');
+    if(h.cat!=null&&!cats.has(h.cat))throw Error('Μη έγκυρη κατηγορία.');
+    if(h.foods!=null&&(!Array.isArray(h.foods)||h.foods.some(x=>!str(x))))throw Error('Μη έγκυρα φαγητά.');
+  }
+  for(const p of d.pantry){
+    if(!obj(p)||!str(p.name)||!p.name.trim()||!optstr(p.qty)||(p.exp&& !date(p.exp)))throw Error('Μη έγκυρο προϊόν.');
+  }
+  const family=d.family;
+  if(!Array.isArray(family.members)||['adults','children','cookFor'].some(k=>!Number.isInteger(family[k])||family[k]<0||family[k]>100)||family.cookFor<1||['ages','favorites','dislikes'].some(k=>!optstr(family[k])))throw Error('Μη έγκυρα στοιχεία οικογένειας.');
+  for(const m of family.members){
+    if(!obj(m)||!str(m.name)||!m.name.trim()||['sex','likes','dislikes'].some(k=>!optstr(m[k]))||['age','height','weight'].some(k=>!validFamilyNumber(k,m[k])))throw Error('Μη έγκυρο μέλος οικογένειας.');
+  }
+  return JSON.parse(JSON.stringify(d));
+}
+function exportCookBackup(){
+  const data=JSON.stringify({format:'cookv2-backup',version:1,exportedAt:new Date().toISOString(),data:s},null,2);
+  const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+  const a=document.createElement('a');
+  a.href=url;a.download='cook-backup-'+localDateValue(new Date())+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+  $('cookBackupStatus').textContent='Το αρχείο αντιγράφου δημιουργήθηκε. Έλεγξε τις λήψεις σου.';
+}
+async function importCookBackup(event){
+  const input=event.target, file=input.files?.[0], status=$('cookBackupStatus');
+  if(!file)return;
+  try{
+    if(file.size>10*1024*1024)throw Error('Το αρχείο υπερβαίνει τα 10 MB.');
+    const restored=validateCookBackup(JSON.parse(await file.text()));
+    if(!confirm('Το αντίγραφο περιέχει '+restored.history.length+' γεύματα, '+restored.pantry.length+' προϊόντα και '+restored.family.members.length+' μέλη. Θα αντικατασταθούν τα σημερινά δεδομένα. Συνέχεια;'))return;
+    const previous=JSON.stringify(s);
+    localStorage.setItem('cookv2-before-restore',previous);
+    localStorage.setItem('cookv2',JSON.stringify(restored));
+    s=restored;
+    if(voiceBusy())cancelVoiceConversation();
+    render();
+    status.textContent='✅ Το αντίγραφο επανήλθε. Διατηρήθηκε και το προηγούμενο τοπικό αντίγραφο.';
+  }catch(e){status.textContent='⚠️ '+(e.message||'Αποτυχία επαναφοράς.');}
+  finally{input.value='';}
+}
+
 function render(){
 
   $('date').textContent=
