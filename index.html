@@ -1016,119 +1016,30 @@ function changeChefGender(){
 } 
   
 
- function chefSpeak(text){
-
-  if(
-    !('speechSynthesis' in window) ||
-    !('SpeechSynthesisUtterance' in window)
-  ){
-    return;
-  }
-
-  window.speechSynthesis.cancel();
-
-  const utterance=
-    new SpeechSynthesisUtterance(text);
-
+// Κοινές ρυθμίσεις φωνής για όλες τις καρτέλες.
+function configureChefVoice(utterance){
+  const male=(localStorage.getItem('chefGender') || 'female')==='male';
   utterance.lang='el-GR';
-
-  /*
-    Λίγο πιο αργή και χαμηλή φωνή,
-    για πιο ώριμο και γλυκό χαρακτήρα.
-  */
- const chefGender=
-  localStorage.getItem('chefGender')
-  || 'female';
-
-if(chefGender==='male'){
-
-  utterance.rate=1.12;
-  utterance.pitch=0.96;
-
-}else{
-
-  utterance.rate=0.84;
-  utterance.pitch=0.82;
-
+  utterance.rate=male?1.12:0.84;
+  utterance.pitch=male?0.96:0.82;
+  utterance.volume=1;
+  const voices=window.speechSynthesis.getVoices().filter(v=>
+    String(v.lang || '').toLowerCase().startsWith('el'));
+  const name=v=>String(v.name || '').toLowerCase();
+  const female=voices.find(v=>/melina|female|μελίνα/i.test(name(v)));
+  const man=voices.find(v=>!/female|melina|μελίνα/i.test(name(v)) &&
+    /nikos|nikolaos|alexandros|νίκος|νικος|\bmale\b/i.test(name(v)));
+  const preferred=(male?man:female)||voices.find(v=>v.default)||voices[0];
+  if(preferred) utterance.voice=preferred;
+  return utterance;
 }
 
-utterance.volume=1;
-
-  const voices=
-    window.speechSynthesis.getVoices();
-
-  const greekVoices=
-    voices.filter(v=>
-      String(v.lang || '')
-        .toLowerCase()
-        .startsWith('el')
-    );
-
-
-  /*
-    Προτιμάμε αντρική ελληνική φωνή,
-    αν υπάρχει στη συσκευή.
-  */
-  const maleVoice=
-  greekVoices.find(v=>{
-
-    const name=
-      String(v.name || '')
-        .toLowerCase();
-
-    return (
-      name.includes('nikos') ||
-      name.includes('nikolaos') ||
-      name.includes('male') ||
-      name.includes('alexandros')
-    );
-
-  });
-
-
-const femaleVoice=
-  greekVoices.find(v=>{
-
-    const name=
-      String(v.name || '')
-        .toLowerCase();
-
-    return (
-      name.includes('melina') ||
-      name.includes('female')
-    );
-
-  });
-
-
-if(
-  chefGender==='male' &&
-  maleVoice
-){
-
-  utterance.voice=
-    maleVoice;
-
-}else if(
-  chefGender==='female' &&
-  femaleVoice
-){
-
-  utterance.voice=
-    femaleVoice;
-
-}else if(greekVoices.length){
-
-  utterance.voice=
-    greekVoices[0];
-
-}
-
-
-  window.speechSynthesis.speak(
-    utterance
-  );
-
+function chefSpeak(text){
+  if(!('speechSynthesis' in window) ||
+    !('SpeechSynthesisUtterance' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance=configureChefVoice(new SpeechSynthesisUtterance(text));
+  window.speechSynthesis.speak(utterance);
 }
 
  function chefTap(){
@@ -1166,54 +1077,7 @@ if(
       'Πώς μπορώ να σας βοηθήσω;'
     );
 
-  utterance.lang='el-GR';
-
-const chefGender=
-  localStorage.getItem('chefGender')
-  || 'female';
-
-if(chefGender==='male'){
-
-  utterance.rate=1.12;
-  utterance.pitch=0.96;
-
-}else{
-
-  utterance.rate=0.84;
-  utterance.pitch=0.82;
-
-}
- 
-  const voices=
-    window.speechSynthesis.getVoices();
-
- const nikos=
-  voices.find(v=>
-    v.name.toLowerCase().includes('nikos') &&
-    v.lang.toLowerCase().startsWith('el')
-  );
-
-const melina=
-  voices.find(v=>
-    v.name.toLowerCase().includes('melina') &&
-    v.lang.toLowerCase().startsWith('el')
-  );
-
-if(
-  chefGender==='male' &&
-  nikos
-){
-
-  utterance.voice=nikos;
-
-}else if(
-  chefGender==='female' &&
-  melina
-){
-
-  utterance.voice=melina;
-
-}
+  configureChefVoice(utterance);
 
   utterance.onend=()=>{
 
@@ -1638,8 +1502,7 @@ function learnSpeakAndListen(promptText,onText){
         promptText
       );
 
-    prompt.lang='el-GR';
-    prompt.rate=0.72;
+    configureChefVoice(prompt);
 
 
     prompt.onend=()=>{
@@ -2670,24 +2533,7 @@ function pantrySpeakAndListen(message,onAnswer){
         message
       );
 
-    voice.lang='el-GR';
-    voice.rate=0.67;
-    voice.pitch=0.66;
-    voice.volume=1;
-
-
-    const voices=
-      window.speechSynthesis.getVoices();
-
-    const melina=
-      voices.find(v=>
-        v.name==='Melina' &&
-        v.lang==='el-GR'
-      );
-
-    if(melina){
-      voice.voice=melina;
-    }
+    configureChefVoice(voice);
 
 
     voice.onend=()=>{
@@ -2747,66 +2593,16 @@ function getCurrentPantryVoiceItems(){
 
  function pantryQtyForSpeech(qty){
 
-  let q=
-    String(qty || '').trim();
-
-  const num=
-    parseFloat(
-      q.replace(',','.')
-    );
-
-
-  if(q.includes('kg')){
-
-    q=
-      q.replace(
-        'kg',
-        num===1
-          ? 'κιλό'
-          : 'κιλά'
-      );
-
-  }
-
-
-  if(q.includes('L')){
-
-    q=
-      q.replace(
-        'L',
-        num===1
-          ? 'λίτρο'
-          : 'λίτρα'
-      );
-
-  }
-
-
-  if(q.includes('g')){
-
-    q=
-      q.replace(
-        'g',
-        'γραμμάρια'
-      );
-
-  }
-
-
-  if(q.includes('τμχ')){
-
-    q=
-      q.replace(
-        /τμχ\.?/,
-        num===1
-          ? 'τεμάχιο'
-          : 'τεμάχια'
-      );
-
-  }
-
-
-  return q;
+  const q=String(qty || '').trim();
+  const m=q.match(/^(\d+(?:[.,]\d+)?)\s*(kg|g|l|ml|τεμ\.?|τμχ\.?|συσκ\.?|πακ\.?)$/i);
+  if(!m) return q;
+  const n=Number(m[1].replace(',','.'));
+  const u=m[2].toLowerCase().replace(/\.$/,'');
+  const labels={kg:['κιλό','κιλά'],g:['γραμμάριο','γραμμάρια'],
+    l:['λίτρο','λίτρα'],ml:['μιλιλίτρο','μιλιλίτρα'],
+    τεμ:['τεμάχιο','τεμάχια'],τμχ:['τεμάχιο','τεμάχια'],
+    συσκ:['συσκευασία','συσκευασίες'],πακ:['πακέτο','πακέτα']};
+  return m[1].replace('.',',')+' '+labels[u][n===1?0:1];
 }
 
 
@@ -2824,262 +2620,56 @@ function pantryItemsForSpeech(items){
 
 } 
 
- function parsePantryExpiryDate(text){
-
-  const t=
-    String(text || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g,'')
-      .replace(/[,]/g,' ')
-      .replace(/\s+/g,' ')
-      .trim();
-
-
+function parsePantryExpiryDate(text){
+  let t=String(text || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+  t=replaceGreekNumbers(t).replace(/ς/g,'σ');
   const today=new Date();
-
   today.setHours(0,0,0,0);
-
-
-  /*
-    σήμερα / αύριο / μεθαύριο
-  */
-
-  if(t.includes('σημερα')){
-
-    return today
-      .toISOString()
-      .slice(0,10);
-
-  }
-
-
-  if(t.includes('μεθαυριο')){
-
+  const relative=t.match(/(?:^|\s)(σημερα|μεθαυριο|αυριο)(?=$|[\s,.!?])/);
+  if(relative){
     const d=new Date(today);
-
-    d.setDate(
-      d.getDate()+2
-    );
-
-    return d
-      .toISOString()
-      .slice(0,10);
-
+    d.setDate(d.getDate()+({σημερα:0,αυριο:1,μεθαυριο:2}[relative[1]]));
+    return localDateValue(d);
   }
-
-
-  if(t.includes('αυριο')){
-
-    const d=new Date(today);
-
-    d.setDate(
-      d.getDate()+1
-    );
-
-    return d
-      .toISOString()
-      .slice(0,10);
-
+  const interval=t.match(/σε\s+(\d+)\s+(μερα|μερεσ|ημερα|ημερεσ|εβδομαδα|εβδομαδεσ|μηνα|μηνεσ)(?=$|[\s,.!?])/);
+  if(interval){
+    const d=new Date(today), n=Number(interval[1]), unit=interval[2];
+    if(unit.startsWith('μην')){
+      const day=d.getDate();
+      d.setDate(1); d.setMonth(d.getMonth()+n);
+      d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
+    }else d.setDate(d.getDate()+n*(unit.startsWith('εβδομαδ')?7:1));
+    return localDateValue(d);
   }
-
-
-  /*
-    15/12/2026
-    15-12-2026
-  */
-
-  let match=
-    t.match(
-      /(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/
-    );
-
-
-  if(match){
-
-    const day=
-      Number(match[1]);
-
-    const month=
-      Number(match[2]);
-
-    let year=
-      match[3]
-        ? Number(match[3])
-        : today.getFullYear();
-
-
-    if(year<100){
-      year+=2000;
-    }
-
-
-    let candidate=
-      new Date(
-        year,
-        month-1,
-        day
-      );
-
-
-    if(
-      !match[3] &&
-      candidate<today
-    ){
-
-      year++;
-
-      candidate=
-        new Date(
-          year,
-          month-1,
-          day
-        );
-
-    }
-
-
-    if(
-      candidate.getDate()!==day ||
-      candidate.getMonth()!==month-1
-    ){
-      return '';
-    }
-
-
-    return (
-      year+
-      '-'+
-      String(month).padStart(2,'0')+
-      '-'+
-      String(day).padStart(2,'0')
-    );
-
+  const months={ιανουαριου:1,ιανουαρη:1,φεβρουαριου:2,φεβρουαρη:2,
+    μαρτιου:3,μαρτη:3,απριλιου:4,απριλη:4,μαιου:5,μαη:5,
+    ιουνιου:6,ιουνη:6,ιουλιου:7,ιουλη:7,αυγουστου:8,
+    σεπτεμβριου:9,σεπτεμβρη:9,οκτωβριου:10,οκτωβρη:10,
+    νοεμβριου:11,νοεμβρη:11,δεκεμβριου:12,δεκεμβρη:12};
+  let m=t.match(/(?:^|[^\d])(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{4}|\d{2}))?(?![\d\/.-])/);
+  let day,month,yearText;
+  if(m){day=Number(m[1]);month=Number(m[2]);yearText=m[3];}
+  else{
+    m=t.match(/(?:^|\s)(\d{1,2})\s+([α-ω]+)(?:\s+(?:του\s+)?(\d{4}))?(?=$|[\s,.!?])/);
+    if(!m) return '';
+    day=Number(m[1]);month=months[m[2]];yearText=m[3];
+    if(!yearText && /\b\d{4}\b/.test(t)) return '';
   }
-
-
-  /*
-    15 Δεκεμβρίου
-    15 Δεκεμβρίου 2026
-  */
-
-  const months={
-
-    'ιανουαριου':1,
-    'ιανουαρη':1,
-
-    'φεβρουαριου':2,
-    'φεβρουαρη':2,
-
-    'μαρτιου':3,
-    'μαρτη':3,
-
-    'απριλιου':4,
-    'απριλη':4,
-
-    'μαιου':5,
-    'μαη':5,
-
-    'ιουνιου':6,
-    'ιουνη':6,
-
-    'ιουλιου':7,
-    'ιουλη':7,
-
-    'αυγουστου':8,
-
-    'σεπτεμβριου':9,
-    'σεπτεμβρη':9,
-
-    'οκτωβριου':10,
-    'οκτωβρη':10,
-
-    'νοεμβριου':11,
-    'νοεμβρη':11,
-
-    'δεκεμβριου':12,
-    'δεκεμβρη':12
-
+  if(!month || month>12 || day<1 || day>31) return '';
+  let year=yearText?Number(yearText):today.getFullYear();
+  if(yearText && yearText.length===2) year+=2000;
+  if(year<100 || year>9999) return '';
+  const valid=y=>{
+    const d=new Date(y,month-1,day);
+    return d.getFullYear()===y && d.getMonth()===month-1 &&
+      d.getDate()===day ? d : null;
   };
-
-
-  match=
-    t.match(
-      /(\d{1,2})\s+([α-ω]+)(?:\s+(\d{4}))?/
-    );
-
-
-  if(!match){
-    return '';
-  }
-
-
-  const day=
-    Number(match[1]);
-
-  const month=
-    months[match[2]];
-
-
-  if(!month){
-    return '';
-  }
-
-
-  let year=
-    match[3]
-      ? Number(match[3])
-      : today.getFullYear();
-
-
-  let candidate=
-    new Date(
-      year,
-      month-1,
-      day
-    );
-
-
-  /*
-    Αν δεν είπε έτος και η ημερομηνία
-    έχει ήδη περάσει, θεωρούμε
-    το επόμενο έτος.
-  */
-
-  if(
-    !match[3] &&
-    candidate<today
-  ){
-
-    year++;
-
-    candidate=
-      new Date(
-        year,
-        month-1,
-        day
-      );
-
-  }
-
-
-  if(
-    candidate.getDate()!==day ||
-    candidate.getMonth()!==month-1
-  ){
-    return '';
-  }
-
-
-  return (
-    year+
-    '-'+
-    String(month).padStart(2,'0')+
-    '-'+
-    String(day).padStart(2,'0')
-  );
-
-} 
+  let d=valid(year);
+  if(!d) return '';
+  if(!yearText && d<today) d=valid(year+1);
+  return d?localDateValue(d):'';
+}
 
  function askPantryExpiryPermission(){
 
@@ -3106,7 +2696,8 @@ function pantryItemsForSpeech(items){
         t.includes('δεν θελω') ||
         t.includes('χωρις')
       ){
-
+        voicePantryItems=getCurrentPantryVoiceItems()
+          .filter(item=>item.name).map(item=>({...item,exp:''}));
         saveVoicePantryWithExpiry();
 
         chefSpeak(
@@ -3192,7 +2783,7 @@ function pantryItemsForSpeech(items){
         t.includes('χωρις ληξη') ||
         t.includes('δεν ξερω')
       ){
-
+        if(voicePantryItems[index]) voicePantryItems[index].exp='';
         if(
           $('voiceExp'+index)
         ){
@@ -3261,13 +2852,7 @@ function pantryItemsForSpeech(items){
 
 }
 
- if(
-  voicePantryItems[index]
-){
 
-  voicePantryItems[index].exp='';
-
-}           
 
 
 if(
@@ -3431,7 +3016,8 @@ function askPantryChefConfirmation(){
         t.includes('τελος')
       ){
 
-       askPantryExpiryPermission();
+        voicePantryItems=getCurrentPantryVoiceItems().filter(item=>item.name);
+        askPantryExpiryPermission();
 
 return;
       }
@@ -3459,10 +3045,8 @@ return;
             t2.includes('οκ')
           ){
 
-            chefSpeak(
-              'Ωραία. Τα προϊόντα είναι σωστά.'
-            );
-
+            voicePantryItems=getCurrentPantryVoiceItems().filter(item=>item.name);
+            askPantryExpiryPermission();
           }else{
 
             pantrySpeakAndListen(
@@ -7524,13 +7108,7 @@ function processFamilyVoiceAnswer(
       );
 
 
-    voice.lang='el-GR';
-
-    /*
-      Πιο αργή και καθαρή φωνή.
-    */
-
-    voice.rate=0.72;
+    configureChefVoice(voice);
 
 
     voice.onend=()=>{
@@ -7929,7 +7507,7 @@ function parseVoicePantry(text){
 
   let clean=String(text || '')
     .toLowerCase()
-    .replace(/[.!?]/g,' ')
+    .replace(/(^|[^\d])\.|\.(?!\d)|[!?]/g,'$1 ')
     .replace(/\s+/g,' ')
     .trim();
 
@@ -8199,211 +7777,9 @@ function confirmVoicePantryPreview(){
 
 
 function parseVoiceExpiry(text){
-
-  let t=String(text || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .trim();
-
-
-  t=replaceGreekNumbers(t);
-
-
-  if(
-    t.includes('χωρις ληξη') ||
-    t.includes('δεν ξερω') ||
-    t.includes('δεν εχει ληξη')
-  ){
-    return '';
-  }
-
-
-  const today=new Date();
-
-  today.setHours(12,0,0,0);
-
-
-  /*
-    π.χ. "σε 10 μέρες"
-  */
-
-  let match=t.match(
-    /σε\s+(\d+)\s+(?:μερα|μερες|ημερα|ημερες)/
-  );
-
-  if(match){
-
-    const date=new Date(today);
-
-    date.setDate(
-      date.getDate()+Number(match[1])
-    );
-
-    return localDateValue(date);
-  }
-
-
-  /*
-    π.χ. "σε 2 εβδομάδες"
-  */
-
-  match=t.match(
-    /σε\s+(\d+)\s+(?:εβδομαδα|εβδομαδες)/
-  );
-
-  if(match){
-
-    const date=new Date(today);
-
-    date.setDate(
-      date.getDate()+
-      Number(match[1])*7
-    );
-
-    return localDateValue(date);
-  }
-
-
-  /*
-    π.χ. "σε 2 μήνες"
-  */
-
-  match=t.match(
-    /σε\s+(\d+)\s+(?:μηνα|μηνες)/
-  );
-
-  if(match){
-
-    const date=new Date(today);
-
-    date.setMonth(
-      date.getMonth()+Number(match[1])
-    );
-
-    return localDateValue(date);
-  }
-
-
-  /*
-    π.χ. 20/11
-    ή 20/11/2026
-  */
-
-  match=t.match(
-    /(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/
-  );
-
-  if(match){
-
-    const day=Number(match[1]);
-    const month=Number(match[2])-1;
-
-    let year=
-      match[3]
-        ? Number(match[3])
-        : today.getFullYear();
-
-
-    if(year<100){
-      year+=2000;
-    }
-
-
-    let date=
-      new Date(
-        year,
-        month,
-        day,
-        12
-      );
-
-
-    if(
-      !match[3] &&
-      date<today
-    ){
-
-      date=
-        new Date(
-          year+1,
-          month,
-          day,
-          12
-        );
-    }
-
-
-    return localDateValue(date);
-  }
-
-
-  /*
-    π.χ. "20 Νοεμβρίου"
-  */
-
-  const months={
-
-    'ιανουαριου':0,
-    'φεβρουαριου':1,
-    'μαρτιου':2,
-    'απριλιου':3,
-    'μαιου':4,
-    'ιουνιου':5,
-    'ιουλιου':6,
-    'αυγουστου':7,
-    'σεπτεμβριου':8,
-    'οκτωβριου':9,
-    'νοεμβριου':10,
-    'δεκεμβριου':11
-  };
-
-
-  match=t.match(
-    /(\d{1,2})\s+(ιανουαριου|φεβρουαριου|μαρτιου|απριλιου|μαιου|ιουνιου|ιουλιου|αυγουστου|σεπτεμβριου|οκτωβριου|νοεμβριου|δεκεμβριου)(?:\s+(\d{4}))?/
-  );
-
-
-  if(match){
-
-    const day=Number(match[1]);
-    const month=months[match[2]];
-
-    let year=
-      match[3]
-        ? Number(match[3])
-        : today.getFullYear();
-
-
-    let date=
-      new Date(
-        year,
-        month,
-        day,
-        12
-      );
-
-
-    if(
-      !match[3] &&
-      date<today
-    ){
-
-      date=
-        new Date(
-          year+1,
-          month,
-          day,
-          12
-        );
-    }
-
-
-    return localDateValue(date);
-  }
-
-
-  return null;
+  const t=normalizePantryVoiceAnswer(text);
+  if(t.includes('χωρις ληξη') || t.includes('δεν ξερω') || t.includes('δεν εχει ληξη')) return '';
+  return parsePantryExpiryDate(text) || null;
 }
 
   function renderVoiceExpiryStep(){
@@ -8462,7 +7838,10 @@ function parseVoiceExpiry(text){
 }
 
   function startVoiceExpiry(index){
-closeActiveVoiceRecognition();
+  if(activeVoiceRecognition){
+    $('voicePantryStatus').textContent='⏳ Περίμενε να κλείσει το προηγούμενο μικρόφωνο.';
+    return;
+  }
   const SpeechRecognition=
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
@@ -8533,7 +7912,15 @@ activeVoiceRecognition=
   };
 
 
-  recognition.start();
+  recognition.continuous=false;
+  recognition.onend=()=>{
+    if(activeVoiceRecognition===recognition) activeVoiceRecognition=null;
+  };
+  try{recognition.start();}
+  catch(e){
+    if(activeVoiceRecognition===recognition) activeVoiceRecognition=null;
+    $('voicePantryStatus').textContent='⚠️ Το μικρόφωνο δεν άνοιξε. Δοκίμασε ξανά.';
+  }
 }
 
   function parsePantryQuantity(qty){
@@ -8633,8 +8020,7 @@ function addOrMergePantryItem(item){
 resetPantryVoiceButton();
 
     
-  voicePantryItems=
-  voicePantryItems.map((item,i)=>{
+  voicePantryItems=getCurrentPantryVoiceItems().map((item,i)=>{
 
     const expInput=
       $('voiceExp'+i);
@@ -8643,18 +8029,7 @@ resetPantryVoiceButton();
 
       ...item,
 
-      exp:
-        expInput
-          ? (
-              expInput.value ||
-              item.exp ||
-              ''
-            )
-          : (
-              item.exp ||
-              ''
-            )
-
+      exp: expInput ? expInput.value : (item.exp || '')
     };
 
   });
@@ -8899,13 +8274,11 @@ renderVoicePantryPreview(
 
     const prompt=
       new SpeechSynthesisUtterance(
-        'Πολή καλά πες τα προϊόντα'
+        'Πολύ καλά, πες τα προϊόντα.'
       );
 
 
-    prompt.lang='el-GR';
-
-    prompt.rate=0.75;
+    configureChefVoice(prompt);
 
 
     prompt.onend=()=>{
