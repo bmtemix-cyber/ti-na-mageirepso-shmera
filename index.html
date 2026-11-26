@@ -5452,6 +5452,8 @@ function showTodaySuggestion(){
       )
   );
 
+  return suggestions;
+
 }
 
 async function loadTodayMealImage(name,id){
@@ -7281,6 +7283,15 @@ if($('reminderTime')){
   $('reminderTime').value=reminderTime;
 } 
 
+function chefSuggestionSlot(t){
+  // Explicit recording commands take priority over a suggestion.
+  if(/καταγραψ|καταχωρ|φαγαμε|εφαγα|ηπιαμε|χθες|προχθες/.test(t))return null;
+  if(!/προτειν|προτεινε|προτασ|τι να (?:φαμε|φαω|μαγειρεψ|φτιαξ)|τι θα (?:φαμε|μαγειρεψ)|ιδε[αε] για (?:φαγητο|γευμα)|μαγειρεψουμε σημερα/.test(t))return null;
+  if(/βραδ|δειπν/.test(t))return 'dinner';
+  if(/μεσημερ/.test(t))return 'lunch';
+  return 'current';
+}
+
 function handleChefCommand(text){
   if($('chefBubble')) $('chefBubble').classList.add('hidden');
   const t=
@@ -7291,6 +7302,22 @@ function handleChefCommand(text){
       .replace(/[.,;!?]/g,' ')
       .replace(/\s+/g,' ')
       .trim();
+
+  const suggestionSlot=chefSuggestionSlot(t);
+  if(suggestionSlot){
+    show('home');
+    const selector=$('suggestionSlot');
+    if(selector && suggestionSlot!=='current')selector.value=suggestionSlot;
+    const suggestions=showTodaySuggestion();
+    const box=$('todaySuggestion');
+    if(box)box.scrollIntoView({behavior:'smooth',block:'start'});
+    if(Array.isArray(suggestions)&&suggestions.length){
+      chefSpeak('Για '+(selector?.value==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή εναλλακτικά '+suggestions[1].name:'')+'. Δες τις προτάσεις και τις συνταγές στην οθόνη.');
+    }else{
+      chefSpeak('Άνοιξα τις προτάσεις. Δες το μήνυμα στην οθόνη.');
+    }
+    return;
+  }
 
 
  if(
@@ -7441,22 +7468,6 @@ if(
   return;
    
 }
-
-  if(
-    t.includes('μαγειρεψ') ||
-    t.includes('τι να φαμε') ||
-    t.includes('προταση')
-  ){
-
-    show('home');
-
-    chefSpeak(
-      'Πάμε να δούμε τι θα μαγειρέψουμε σήμερα.'
-    );
-
-    return;
-  }
-
 
   if(
     t.includes('ρυθμισ')
