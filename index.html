@@ -7093,231 +7093,50 @@ function replaceGreekNumbers(text){
 
 
 function normalizeVoiceUnit(unit){
-  const u=
-    String(unit || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g,'')
-      .trim();
-
-  if(
-    u==='κιλα' ||
-    u==='κιλο' ||
-    u==='kg'
-  ){
-    return 'kg';
-  }
-
-  if(
-    u.startsWith('γραμμα') ||
-    u==='γρ' ||
-    u==='g'
-  ){
-    return 'g';
-  }
-
-  if(
-    u==='λιτρα' ||
-    u==='λιτρο' ||
-    u==='l'
-  ){
-    return 'L';
-  }
-
-  if(u==='ml'){
-    return 'ml';
-  }
-
-  if(
-    u.startsWith('τεμαχ') ||
-    u==='τεμ' ||
-    u==='τεμ.'
-  ){
-    return 'τεμ.';
-  }
-
-  if(u.startsWith('πακετ')){
-    return 'πακ.';
-  }
-
-  return unit;
+  const u=String(unit || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').replace(/\.$/,'').trim();
+  if(/^(κιλ[αο]|kg)$/.test(u)) return 'kg';
+  if(/^(γραμμαρι[αο]|γρ|g)$/.test(u)) return 'g';
+  if(/^(λιτρ[αο]|l)$/.test(u)) return 'L';
+  if(/^(ml|μιλιλιτρ[αο]|χιλιοστολιτρ[αο])$/.test(u)) return 'ml';
+  if(/^(τεμαχι[αο]|τεμ|τμχ)$/.test(u)) return 'τεμ.';
+  if(/^(πακετ[αο]|συσκευασι[αε]ς?|πακ|συσκ)$/.test(u)) return 'συσκ.';
+  return '';
 }
 
-
 function parseVoicePantry(text){
-
-  let clean=String(text || '')
-    .toLowerCase()
-    .replace(/(^|[^\d])\.|\.(?!\d)|[!?]/g,'$1 ')
-    .replace(/\s+/g,' ')
-    .trim();
-
-  clean=replaceGreekNumbers(clean);
-
-  clean=clean.replace(
-    /^(ναι\s+)?(θέλω\s+να\s+βάλω|θελω\s+να\s+βαλω|βάλε|βαλε|βάλω|βαλω|έχω|εχω|αγόρασα|αγορασα)\s+/i,
-    ''
-  );
-
-
-  const unitPattern=
-    '(?:κιλά|κιλα|κιλό|κιλο|kg|'+
-    'γραμμάρια|γραμμαρια|γραμμάριο|γραμμαριο|γρ|g|'+
-    'λίτρα|λιτρα|λίτρο|λιτρο|l|ml|'+
-    'τεμάχια|τεμαχια|τεμάχιο|τεμαχιο|τεμ\\.?)';
-
-
-  /*
-    Βρίσκουμε ΟΛΕΣ τις ποσότητες.
-
-    Παραδείγματα:
-    5 kg
-    2
-    0.5 kg
-    6
-    3 kg
-    1
-  */
-
-  const quantityRegex=
-    new RegExp(
-      '(\\d+(?:[.,]\\d+)?)\\s*('+unitPattern+')?',
-      'gi'
-    );
-
-
-  const markers=[];
-
-  let match;
-
-  while(
-    (match=quantityRegex.exec(clean))!==null
-  ){
-
-    markers.push({
-
-      start:match.index,
-
-      end:quantityRegex.lastIndex,
-
-      amount:
-        match[1].replace(',','.'),
-
-      unit:
-        match[2] || ''
-
-    });
-  }
-
-
-  if(!markers.length){
-    return [];
-  }
-
-
+  let clean=String(text || '').toLowerCase().trim();
+  if(/(?:^|[\s,;])-\s*\d/.test(clean)) return [];
+  clean=clean.replace(/(^|[^\d])\.|\.(?!\d)|[!?]/g,'$1 ')
+    .replace(/\s+/g,' ').trim()
+    .replace(/^(?:ναι\s+)?(?:θέλω\s+να\s+βάλω|θελω\s+να\s+βαλω|βάλε|βαλε|βάλω|βαλω|έχω|εχω|αγόρασα|αγορασα|πήρα|πηρα)\s+/i,'');
+  clean=clean.replace(/(?:ενάμισ[ιη]|εναμισ[ιη]|ενάμιση|δυόμισι|δυομισι|δυόμισι)/g,w=>w.startsWith('δ')?'2.5':'1.5');
+  clean=replaceGreekNumbers(clean)
+    .replace(/(\d+)\s+και\s+0\.5(?=\s|$)/g,(_,n)=>String(Number(n)+0.5))
+    .replace(/(\d+)\s+(?:κόμμα|κομμα)\s+(\d+)/g,'$1.$2');
+  const unitPattern='κιλά|κιλα|κιλό|κιλο|kg|γραμμάρια|γραμμαρια|γραμμάριο|γραμμαριο|γρ|g|λίτρα|λιτρα|λίτρο|λιτρο|ml|l|μιλιλίτρα|μιλιλιτρα|μιλιλίτρο|μιλιλιτρο|χιλιοστόλιτρα|χιλιοστολιτρα|τεμάχια|τεμαχια|τεμάχιο|τεμαχιο|τεμ|τμχ|πακέτα|πακετα|πακέτο|πακετο|συσκευασίες|συσκευασιες|συσκευασία|συσκευασια|πακ|συσκ';
+  const re=new RegExp('(?<![\\p{L}\\d.,])(?<amount>\\d+(?:[.,]\\d+)?)(?![\\d.,])\\s*(?:(?<unit>'+unitPattern+')(?![\\p{L}\\d]))?','giu');
+  const tidy=x=>x.trim().replace(/^[,;\s]+|[,;\s]+$/g,'').replace(/^και\s+|\s+και$/g,'').trim();
   const items=[];
-
-
-  /*
-    ΠΕΡΙΠΤΩΣΗ 1:
-    ποσότητα πριν από το προϊόν
-
-    2 kg μήλα
-    5 αυγά
-    0.5 kg καρότα
-  */
-
-  for(let i=0;i<markers.length;i++){
-
-    const current=markers[i];
-
-    const nextStart=
-      i<markers.length-1
-        ? markers[i+1].start
-        : clean.length;
-
-
-    let name=
-      clean
-        .slice(
-          current.end,
-          nextStart
-        )
-        .trim();
-
-
-    name=name
-      .replace(/^[,;\s]+/g,'')
-      .replace(/[\s,;]+$/g,'')
-      .replace(/\s+και$/i,'')
-      .replace(/^και\s+/i,'')
-      .trim();
-
-
-    /*
-      Αν υπάρχει προϊόν μετά την ποσότητα,
-      το κρατάμε.
-    */
-
-    if(name){
-
-      let unit;
-
-      if(current.unit){
-
-        unit=
-          normalizeVoiceUnit(
-            current.unit
-          );
-
-      }else{
-
-        /*
-          Αν δεν ειπώθηκε μονάδα:
-          "5 αυγά"
-          "2 πατάτες"
-          "1 κοτόπουλο"
-        */
-
-        unit='τεμ.';
-      }
-
-
-      items.push({
-
-        name:name,
-
-        qty:
-          current.amount+
-          ' '+
-          unit
-
-      });
+  const parts=clean.split(/;|,(?!\d)|\s+και\s+/).map(tidy).filter(Boolean);
+  for(const part of parts){
+    const markers=[...part.matchAll(re)];
+    if(!markers.length) return [];
+    const prefix=tidy(part.slice(0,markers[0].index));
+    if(prefix && markers.length!==1) return [];
+    for(let i=0;i<markers.length;i++){
+      const m=markers[i];
+      const after=tidy(part.slice(m.index+m[0].length,markers[i+1]?.index ?? part.length));
+      if(prefix && after) return [];
+      const name=prefix || after;
+      const amount=Number(m.groups.amount.replace(',','.'));
+      const unit=normalizeVoiceUnit(m.groups.unit)||'τεμ.';
+      if(!name || !/\p{L}/u.test(name) || !Number.isFinite(amount) || amount<=0) return [];
+      if((unit==='τεμ.' || unit==='συσκ.') && !Number.isInteger(amount)) return [];
+      items.push({name,qty:amount+' '+unit});
     }
   }
-
-
-  /*
-    Αν βρήκαμε προϊόντα,
-    καθαρίζουμε τυχόν περιπτώσεις όπου
-    ένα "και" έμεινε μέσα στο όνομα.
-  */
-
-  const cleanedItems=
-    items.map(item=>({
-
-      name:
-        item.name
-          .replace(/\s+και\s*$/i,'')
-          .trim(),
-
-      qty:item.qty
-
-    }))
-    .filter(item=>item.name);
-
-
-  return cleanedItems;
+  return items;
 }
 
 
@@ -7501,25 +7320,13 @@ function startVoiceExpiry(index){
 }
 
   function parsePantryQuantity(qty){
-
-  const text=String(qty || '')
-    .trim()
-    .replace(',','.');
-
-  const match=text.match(
-    /^(\d+(?:\.\d+)?)\s*(kg|g|L|ml|τεμ\.?)$/i
-  );
-
-  if(!match){
-    return null;
-  }
-
-  return {
-    amount:Number(match[1]),
-    unit:match[2]
-      .replace('τεμ.','τεμ')
-      .toLowerCase()
-  };
+  const m=String(qty || '').trim().match(/^(\d+(?:[.,]\d+)?)\s*(.+)$/);
+  if(!m) return null;
+  const amount=Number(m[1].replace(',','.'));
+  const unit=normalizeVoiceUnit(m[2]);
+  if(!unit || !Number.isFinite(amount) || amount<=0) return null;
+  if((unit==='τεμ.' || unit==='συσκ.') && !Number.isInteger(amount)) return null;
+  return {amount,unit};
 }
 
 
@@ -7572,10 +7379,7 @@ function addOrMergePantryItem(item){
     const cleanTotal=
       Number(total.toFixed(3));
 
-    const unit=
-      newQty.unit==='τεμ'
-        ? 'τεμ.'
-        : newQty.unit;
+    const unit=newQty.unit;
 
     existing.qty=
       cleanTotal+' '+unit;
