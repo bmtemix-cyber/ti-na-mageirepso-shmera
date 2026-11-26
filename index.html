@@ -3728,7 +3728,7 @@ async function changeEveningReminder(){
     alert('Σφάλμα: '+(e.message||e));
   }
 }
-const defaults={created:new Date().toISOString().slice(0,10),learningDays:21,history:[],pantry:[],family:{
+const defaults={created:localDateValue(new Date()),learningDays:21,history:[],pantry:[],family:{
   adults:2,
   children:0,
   ages:'',
@@ -3784,7 +3784,7 @@ function detect(text){
 
   if($('mealDate')){
     $('mealDate').value=
-      new Date().toISOString().slice(0,10);
+      localDateValue(new Date());
   }
 
   show('learn');
@@ -3887,12 +3887,6 @@ async  function suggestRecipe(){
     );
 
 
-  const autoCats=
-    learnCatsFromFoods(
-      foods
-    );
-
-
   const manualCats=
     [...document.querySelectorAll(
       '#cat input[type="checkbox"]:checked'
@@ -3900,11 +3894,7 @@ async  function suggestRecipe(){
     .map(x=>x.value);
 
 
-  const cats=
-    [...new Set([
-      ...autoCats,
-      ...manualCats
-    ])];
+  const cats=[...new Set(manualCats)];
 
 
   if(!cats.length){
@@ -3916,12 +3906,15 @@ async  function suggestRecipe(){
   }
 
 
+  const mealDate=$('mealDate').value || localDateValue(new Date());
+  if(mealDate>localDateValue(new Date())){
+    $('saveStatus').textContent='⚠️ Η ημερομηνία γεύματος δεν μπορεί να είναι μελλοντική.';
+    return;
+  }
   if(voiceBusy()) cancelVoiceConversation();
   s.history.push({
 
-    date:
-      $('mealDate').value ||
-      new Date().toISOString().slice(0,10),
+    date:mealDate,
 
     type:
       $('type').value,
@@ -3988,7 +3981,7 @@ async  function suggestRecipe(){
 }
 function preferenceStats(){
 
-  const meals={};
+  const meals=Object.create(null);
 
   s.history.forEach(h=>{
 
@@ -5739,7 +5732,7 @@ async function loadTodayMealImage(name,id){
     '</div>';
 }
   let historySelectedDate =
-  new Date().toISOString().slice(0,10);
+  localDateValue(new Date());
 
 let historyCalendarMonth = new Date();
 historyCalendarMonth.setDate(1);
@@ -6631,7 +6624,7 @@ function familyGreekNumber(text){
 
 
   const digit=
-    t.match(/\d+(?:[.,]\d+)?/);
+    t.match(/-?\d+(?:[.,]\d+)?/);
 
   if(digit){
     return Number(
@@ -6709,6 +6702,31 @@ function familyGreekNumber(text){
 }
 
 
+function validFamilyNumber(key,value){
+  if(value==='' || value==null) return true;
+  const n=Number(value);
+  const ranges={age:[0,120],height:[20,250],weight:[0.2,500]};
+  const range=ranges[key];
+  return !!range && Number.isFinite(n) && n>=range[0] && n<=range[1] &&
+    (key!=='age' || Number.isInteger(n));
+}
+
+function readFamilyMemberNumbers(){
+  const result={};
+  const fields={age:'memberAge',height:'memberHeight',weight:'memberWeight'};
+  const labels={age:'ηλικία',height:'ύψος σε εκατοστά',weight:'βάρος σε κιλά'};
+  for(const key of Object.keys(fields)){
+    const field=$(fields[key]);
+    const raw=field.value.trim();
+    if(field.validity?.badInput || !validFamilyNumber(key,raw)){
+      alert('Έλεγξε το πεδίο: '+labels[key]+'.');
+      return null;
+    }
+    result[key]=raw===''?'':Number(raw);
+  }
+  return result;
+}
+
 function processFamilyVoiceAnswer(
   key,
   text
@@ -6720,7 +6738,13 @@ function processFamilyVoiceAnswer(
     key==='weight'
   ){
 
-    return familyGreekNumber(text);
+    const t=normalizeFamilyVoiceText(text);
+    if(/^(δεν ξερω|παραλειψη|δεν θελω|αγνωστο)$/.test(t)) return '';
+    let value=familyGreekNumber(text);
+    if(key==='height' && typeof value==='number' && value>=0.2 && value<=2.5 && /μετρ/.test(t) && !/εκατοστ/.test(t)){
+      value=Math.round(value*100);
+    }
+    return value!=='' && validFamilyNumber(key,value)?value:null;
   }
 
 
@@ -6739,6 +6763,7 @@ function processFamilyVoiceAnswer(
 
 
     if(
+      t.includes('αντρα') ||
       t.includes('ανδρα') ||
       t.includes('ανδρ') ||
       t.includes('αγορ')
@@ -6752,7 +6777,7 @@ function processFamilyVoiceAnswer(
     }
 
 
-    return text.trim();
+    return null;
   }
 
 
@@ -6770,7 +6795,7 @@ function askFamilyVoiceQuestion(){
   questionBox.textContent=question.text;
   voiceSpeakAndListen(question.text,text=>{
     const value=processFamilyVoiceAnswer(question.key,text);
-    if(value==='' || value==null){
+    if(value==null || (value==='' && !['age','height','weight'].includes(question.key))){
       voiceFeedback('familyVoiceStatus','⚠️ Δεν κατάλαβα την απάντηση.');
       voiceLater(askFamilyVoiceQuestion,400);
       return;
@@ -6886,10 +6911,9 @@ function repeatFamilyVoiceQuestion(){
   
   function saveFamilyMember(){
   const name=$('memberName').value.trim();
-  const age=$('memberAge').value;
+  const numbers=readFamilyMemberNumbers();
+  if(!numbers)return;
   const sex=$('memberSex').value;
-  const height=$('memberHeight').value;
-  const weight=$('memberWeight').value;
 
   if(!name){
     alert('Γράψε πρώτα το όνομα του μέλους.');
@@ -6903,10 +6927,8 @@ function repeatFamilyVoiceQuestion(){
   if(voiceBusy()) cancelVoiceConversation();
   s.family.members.push({
     name:name,
-    age:age ? Number(age) : '',
+    ...numbers,
     sex:sex,
-    height:height ? Number(height) : '',
-    weight:weight ? Number(weight) : '',
 likes:$('memberLikes').value.trim(),
 dislikes:$('memberDislikes').value.trim()
   });
@@ -6950,12 +6972,12 @@ dislikes:$('memberDislikes').value.trim()
 
       '<div class="field">'+
         '<label>Ύψος (cm)</label>'+
-        '<input id="memberHeight" type="number" min="50" max="250" value="'+(m.height??'')+'">'+
+        '<input id="memberHeight" type="number" min="20" max="250" value="'+(m.height??'')+'">'+
       '</div>'+
 
       '<div class="field">'+
         '<label>Βάρος (kg)</label>'+
-        '<input id="memberWeight" type="number" min="10" max="300" step="0.1" value="'+(m.weight??'')+'">'+
+        '<input id="memberWeight" type="number" min="0.2" max="500" step="0.1" value="'+(m.weight??'')+'">'+
       '</div>'+
 
       '<div class="field">'+
@@ -6989,14 +7011,14 @@ dislikes:$('memberDislikes').value.trim()
     return;
   }
 
+  const numbers=readFamilyMemberNumbers();
+  if(!numbers)return;
   if(voiceBusy()) cancelVoiceConversation();
   s.family.members[index]={
     ...m,
     name:name,
-    age:$('memberAge').value ? Number($('memberAge').value) : '',
+    ...numbers,
     sex:$('memberSex').value,
-    height:$('memberHeight').value ? Number($('memberHeight').value) : '',
-    weight:$('memberWeight').value ? Number($('memberWeight').value) : '',
     likes:$('memberLikes').value.trim(),
     dislikes:$('memberDislikes').value.trim()
   };
@@ -7476,7 +7498,7 @@ function startPantryVoice(){
    save();render();
  }
  function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row ${expiryClass(p.exp)}"><div><b>${p.name}</b><div class=small>${p.qty||''}${p.exp?' · '+p.exp:''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
- function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=new Date().toISOString().slice(0,10);save();render()}
+ function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=localDateValue(new Date());save();render()}
  function show(id){
   const target=$(id);
 
@@ -7704,7 +7726,7 @@ function startChefListening(prompt=''){
 }
   
 async function markAppOpenedToday(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=localDateValue(new Date());
 
   localStorage.setItem('lastOpenedDate',today);
 
