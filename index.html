@@ -1654,7 +1654,7 @@ function applyLearnVoiceText(
   if(append){
 
     window.learnVoiceFoods=[
-      ...(window.learnVoiceFoods || []),
+      ...splitLearnFoods($('mealName').value),
       ...incomingFoods
     ];
 
@@ -1758,12 +1758,23 @@ function learnAnswerDecision(text){
 }
 function learnAdditionalFood(text){
   let rest=String(text||'').trim();
-  // Remove conversational prefixes, keeping the original spelling of foods.
-  const prefix=/^(?:όχι|οχι|δεν\s+(?:είμαι|ειμαι|είμαστε|ειμαστε)(?:\s+(?:εντάξει|ενταξει))?|(?:έφαγα|εφαγα|φάγαμε|φαγαμε|ήπια|ηπια|ήπιαμε|ηπιαμε)|και|επίσης|επισης|ακόμα|ακομα|ακόμη|ακομη)\s*(?:[,;.!?]\s*|\s+|$)/iu;
-  let previous;
-  do{previous=rest;rest=rest.replace(prefix,'').trim();}while(rest!==previous);
+  // Match accent-insensitively but keep the original food spelling.
+  const prefix=/^(?:οχι|ναι|οτι|πως|δεν\s+(?:ειμαι|ειμαστε)(?:\s+ενταξει)?|(?:εφαγα|φαγαμε|ηπια|ηπιαμε|εχουμε φαει)|και|επισης|ακομα|ακομη|αλλα|ξεχασα|να προσθεσω)(?=$|[\s,;.!?·:])[\s,;.!?·:]*/u;
+  while(rest){
+    const normalized=rest.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const match=normalized.match(prefix);
+    if(!match)break;
+    // Map the normalized prefix length back to the original string.
+    let consumed=0,index=0;
+    for(const char of rest){
+      if(consumed>=match[0].length && !/[\u0300-\u036f]/u.test(char))break;
+      consumed+=char.normalize('NFD').replace(/[\u0300-\u036f]/g,'').length;
+      index+=char.length;
+    }
+    rest=rest.slice(index).trim();
+  }
   const n=normalizeLearnVoiceAnswer(rest);
-  if(!n || /^(?:δεν|ειμαι|ειμαστε|ενταξει|κατι αλλο|οχι|ναι)(?:\s|$)/.test(n))return '';
+  if(!n || /^(?:δεν|ειμαι|ειμαστε|ενταξει|κατι αλλο|οχι|ναι|τιποτα|αυτα)(?:\s|$)/.test(n))return '';
   return rest;
 }
 function learnRatingValue(text){
@@ -1777,16 +1788,15 @@ function learnRatingValue(text){
   return null;
 }
 function askLearnVoiceConfirmation(){
-  learnSpeakAndListen('Είστε εντάξει με αυτά; Πείτε ναι ή όχι, ή πείτε τι άλλο φάγατε.',answer=>{
+  const currentFoods=$('mealName').value.trim();
+  learnSpeakAndListen('Έχω καταγράψει: '+currentFoods.replace(/\s*\+\s*/g,', ')+'. Είστε εντάξει με αυτά; Πείτε ναι ή τι άλλο φάγατε.',answer=>{
     const decision=learnAnswerDecision(answer);
-    if(decision==='no'){
-      const extra=learnAdditionalFood(answer);
-      if(extra){
-        applyLearnVoiceText(extra,true);
-        voiceLater(askLearnVoiceConfirmation,300);
-      }else{
-        voiceLater(askLearnMoreFood,300);
-      }
+    const extra=learnAdditionalFood(answer);
+    if(extra && decision!=='yes'){
+      applyLearnVoiceText(extra,true);
+      voiceLater(askLearnVoiceConfirmation,300);
+    }else if(decision==='no'){
+      voiceLater(askLearnMoreFood,300);
     }else if(decision==='yes'){
       voiceLater(askLearnRating,300);
     }else{
