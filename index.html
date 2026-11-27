@@ -791,7 +791,7 @@ onclick="startLearnVoice()"
 
   <div id="receiptStatus" class="small" style="margin-top:10px"></div>
   <div id="receiptResults" style="margin-top:10px"></div>
-</div><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
+</div><div class="soft" style="margin-top:12px"><b>🍳 Κατανάλωση υλικών</b><div id="emptyStock" class="small" style="color:#a33;margin-top:6px"></div><div class="field"><label>Ποσότητες που χρησιμοποιήθηκαν</label><textarea id="consumeText" rows="3" placeholder="π.χ. 2 λεμόνια και 200 γραμμάρια ρύζι" oninput="clearConsumption()"></textarea></div><button type="button" class="btn secondary" onclick="prepareConsumption(document.getElementById('consumeText').value)">Έλεγχος κατανάλωσης</button><button type="button" class="btn secondary" onclick="startConsumptionVoice()">🎤 Κατανάλωση με φωνή</button><div id="consumePreview" class="small" style="margin:8px 0"></div><button type="button" id="consumeConfirm" class="btn primary" disabled onclick="commitConsumption()">Επιβεβαίωση αφαίρεσης</button><div id="consumeStatus" class="small" style="margin-top:8px"></div></div><div id="pantryList" class="list" style="margin-top:10px"></div></div></section>
 <section id="settings" class="view">
   
   <div class="card">
@@ -7282,7 +7282,110 @@ function startPantryVoice(){
    $('unitHint').textContent='Η μονάδα επιλέγεται αυτόματα από το υλικό.';
    save();render();
  }
- function renderPantry(){$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row ${expiryClass(p.exp)}"><div><b>${safeMealHtml(p.name)}</b><div class=small>${safeMealHtml(p.qty)}${p.exp?' · '+safeMealHtml(p.exp):''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
+
+function consumptionName(name){
+  const n=String(name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');
+  const aliases={'λεμονια':'λεμονι','λεμονι':'λεμονι','πατατες':'πατατα','πατατα':'πατατα','αυγα':'αυγο','αυγο':'αυγο','κρεμμυδια':'κρεμμυδι','καροτα':'καροτο','ντοματες':'ντοματα','μπανανες':'μπανανα','φασολι':'φασολια','λαδι':'ελαιολαδο'};
+  return Object.prototype.hasOwnProperty.call(aliases,n)?aliases[n]:n;
+}
+function consumptionQuantity(qty){
+  const m=String(qty||'').trim().match(/^(\d+(?:[.,]\d+)?)\s*(.+)$/);
+  if(!m)return null;
+  const unit=normalizeVoiceUnit(m[2]),amount=Number(m[1].replace(',','.'));
+  const defs={kg:['mass',1000],g:['mass',1],L:['volume',1000],ml:['volume',1],'τεμ.':['piece',1],'συσκ.':['pack',1]};
+  const def=defs[unit];
+  if(!def||!Number.isFinite(amount)||amount<0||((def[0]==='piece'||def[0]==='pack')&&!Number.isInteger(amount)))return null;
+  return {amount,unit,kind:def[0],factor:def[1],base:amount*def[1]};
+}
+function planConsumption(pantry,items,today){
+  if(!items.length)return {error:'Δεν αναγνωρίστηκαν ποσότητες.'};
+  const next=pantry.map(p=>({...p})),used=[],names=new Map();
+  for(const item of items){
+    const name=consumptionName(item.name),q=consumptionQuantity(item.qty);
+    if(!name||!q||q.base<=0)return {error:'Μη έγκυρη ποσότητα: '+item.name};
+    const matching=next.filter(p=>consumptionName(p.name)===name);
+    const lots=matching.map(p=>({p,q:consumptionQuantity(p.qty)}))
+      .filter(x=>x.q&&x.q.kind===q.kind&&(!x.p.exp||(/^\d{4}-\d{2}-\d{2}$/.test(x.p.exp)&&x.p.exp>=today)))
+      .sort((a,b)=>(a.p.exp||'9999-12-31').localeCompare(b.p.exp||'9999-12-31'));
+    let remaining=q.base;
+    if(lots.reduce((sum,x)=>sum+x.q.base,0)+1e-7<remaining)return {error:'Δεν επαρκεί το διαθέσιμο απόθεμα ή δεν ταιριάζουν οι μονάδες: '+item.name+'. Ελέγξτε την αποθήκη.'};
+    for(const lot of lots){
+      if(remaining<=1e-7)break;
+      const take=Math.min(remaining,lot.q.base);
+      const left=Math.max(0,lot.q.base-take);
+      lot.p.qty=Number((left/lot.q.factor).toFixed(9))+' '+lot.q.unit;
+      remaining-=take;
+    }
+    used.push(item.name+' − '+item.qty);
+    names.set(name,item.name);
+  }
+  const empty=[...names].filter(([name])=>!next.some(p=>consumptionName(p.name)===name&&(!p.exp||p.exp>=today)&&(!consumptionQuantity(p.qty)||consumptionQuantity(p.qty).base>1e-7))).map(([,label])=>label);
+  return {next,used,empty};
+}
+let pendingConsumption=null;
+function clearConsumption(){
+  pendingConsumption=null;
+  $('consumePreview').textContent='';
+  $('consumeConfirm').disabled=true;
+}
+function prepareConsumption(text){
+  clearConsumption();
+  const clean=String(text||'').trim().replace(/^(?:χρησιμοποίησα|χρησιμοποιησα|χρησιμοποιήσαμε|χρησιμοποιησαμε|κατανάλωσα|καταναλωσα|αφαίρεσε|αφαιρεσε|έβαλα|εβαλα)\s+/i,'');
+  const items=parseVoicePantry(clean);
+  const result=planConsumption(s.pantry,items,localDateValue(new Date()));
+  if(result.error){$('consumeStatus').textContent=result.error;return false;}
+  pendingConsumption={items,snapshot:JSON.stringify(s.pantry)};
+  $('consumePreview').textContent=result.used.join(' · ')+(result.empty.length?' — Θα εξαντληθούν: '+result.empty.join(', '):'');
+  $('consumeConfirm').disabled=false;
+  $('consumeStatus').textContent='Ελέγξτε τις ποσότητες και επιβεβαιώστε.';
+  return true;
+}
+function commitConsumption(){
+  if(!pendingConsumption)return false;
+  if(JSON.stringify(s.pantry)!==pendingConsumption.snapshot){clearConsumption();$('consumeStatus').textContent='Η αποθήκη άλλαξε. Ελέγξτε ξανά τις ποσότητες.';return false;}
+  const result=planConsumption(s.pantry,pendingConsumption.items,localDateValue(new Date()));
+  if(result.error){clearConsumption();$('consumeStatus').textContent=result.error;return false;}
+  const previous=s.pantry;
+  s.pantry=result.next;
+  try{save();}catch(e){s.pantry=previous;$('consumeStatus').textContent='Δεν αποθηκεύτηκαν οι αλλαγές.';return false;}
+  clearConsumption();
+  $('consumeText').value='';
+  render();
+  const message='Η αποθήκη ενημερώθηκε.'+(result.empty.length?' Εξαντλήθηκαν: '+result.empty.join(', ')+'.':'');
+  $('consumeStatus').textContent=message;
+  chefSpeak(message);
+  return true;
+}
+function startConsumptionVoice(text=''){
+  show('pantry');
+  beginVoiceConversation();
+  const preview=answer=>{
+    $('consumeText').value=answer;
+    if(!prepareConsumption(answer)){chefSpeak($('consumeStatus').textContent);return;}
+    voiceLater(()=>voiceSpeakAndListen('Να αφαιρέσω '+$('consumePreview').textContent+'; Πείτε ναι ή όχι.',answer=>{
+      const decision=learnAnswerDecision(answer);
+      if(decision==='yes')commitConsumption();
+      else if(decision==='no'){clearConsumption();$('consumeStatus').textContent='Δεν αφαιρέθηκαν υλικά.';chefSpeak('Δεν αφαιρέθηκαν υλικά.');}
+      else $('consumeStatus').textContent='Δεν κατάλαβα. Επιβεβαιώστε από την οθόνη.';
+    },{statusId:'consumeStatus'}),300);
+  };
+  if(text)preview(text);
+  else voiceSpeakAndListen('Πείτε μου ποια υλικά χρησιμοποιήσατε και σε ποιες ποσότητες.',preview,{statusId:'consumeStatus'});
+}
+function renderEmptyStock(){
+  const groups=new Map();
+  for(const p of s.pantry){
+    const key=consumptionName(p.name),q=consumptionQuantity(p.qty);
+    const group=groups.get(key)||{name:p.name,zero:false,available:false};
+    if(q&&q.base===0)group.zero=true;
+    if((!p.exp||p.exp>=localDateValue(new Date()))&&(!q||q.base>0))group.available=true;
+    groups.set(key,group);
+  }
+  const empty=[...groups.values()].filter(g=>g.zero&&!g.available).map(g=>g.name);
+  $('emptyStock').textContent=empty.length?'⚠️ Εξαντλήθηκαν: '+empty.join(', '):'';
+}
+
+ function renderPantry(){renderEmptyStock();$('pantryList').innerHTML=s.pantry.length?s.pantry.map((p,i)=>`<div class="item row ${expiryClass(p.exp)}"><div><b>${safeMealHtml(p.name)}</b><div class=small>${safeMealHtml(p.qty)}${p.exp?' · '+safeMealHtml(p.exp):''}</div></div><button onclick="s.pantry.splice(${i},1);save();render()">✕</button></div>`).join(''):'<div class=small>Δεν υπάρχουν υλικά.</div>'}
  function changeLearn(){s.learningDays=Number($('learnDays').value);if(s.learningDays>0)s.created=localDateValue(new Date());save();render()}
  function show(id){
   const target=$(id);
@@ -7333,6 +7436,10 @@ function handleChefCommand(text){
       .replace(/\s+/g,' ')
       .trim();
 
+  if(/^(?:(?:θελω να|μπορεις να)\s+)?(?:χρησιμοποιησα|χρησιμοποιησαμε|καταναλωσα|αφαιρεσε|αφαιρεσω|εβαλα)(?:\s|$)/.test(t)){
+    startConsumptionVoice(text.replace(/^(?:θέλω να|θελω να|μπορείς να|μπορεις να)\s+/i,''));
+    return;
+  }
   const suggestionSlot=chefSuggestionSlot(t);
   if(suggestionSlot){
     show('home');
