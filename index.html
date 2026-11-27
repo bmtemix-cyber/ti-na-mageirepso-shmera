@@ -5562,6 +5562,20 @@ function recipeConsumptionRows(recipe,pantry,today){
     return {name,raw,exact,valid,available};
   });
 }
+let recipeConsumptionSequence=0;
+function recipeSpokenQuantity(answer,name){
+  let text=String(answer||'').trim().replace(/^(?:ναι|οχι|όχι)[,\s]+/iu,'').replace(/^(?:εβαλα|έβαλα|χρησιμοποίησα|χρησιμοποιησα)\s+/iu,'');
+  const hundreds={'εκατο':100,'διακοσια':200,'τριακοσια':300,'τετρακοσια':400,'πεντακοσια':500,'εξακοσια':600,'επτακοσια':700,'οκτακοσια':800,'εννιακοσια':900,'χιλια':1000};
+  text=text.replace(/^\p{L}+(?=\s|$)/u,w=>String(hundreds[w.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')]||w));
+  const direct=consumptionQuantity(text);
+  if(direct&&direct.base>0)return text;
+  const items=parseVoicePantry(text);
+  if(items.length===1&&consumptionName(items[0].name)===consumptionName(name))return items[0].qty;
+  const withName=parseVoicePantry(text+' '+name);
+  if(withName.length===1&&consumptionName(withName[0].name)===consumptionName(name))return withName[0].qty;
+  return '';
+}
+
 function appendRecipeConsumption(div,recipe){
   const section=document.createElement('div');section.className='soft';section.style.marginTop='12px';
   const title=document.createElement('h4');title.textContent='🍳 Μαγείρεψα — ενημέρωση αποθήκης';section.append(title);
@@ -5577,22 +5591,62 @@ function appendRecipeConsumption(div,recipe){
     controls.push({check,input,name:row.name});
   });
   const status=document.createElement('div');status.className='small';
+  const statusId='recipeConsumptionStatus'+(++recipeConsumptionSequence);status.id=statusId;
   const button=document.createElement('button');button.type='button';button.className='btn primary';button.textContent='Έλεγχος και ενημέρωση αποθήκης';
-  button.onclick=()=>{
-    if(button.disabled)return;
-    const items=controls.filter(x=>x.check.checked).map(x=>({name:x.name,qty:x.input.value.trim()}));
-    const result=planConsumption(s.pantry,items,localDateValue(new Date()));
-    if(result.error){status.textContent=result.error;return;}
+  const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='btn secondary';voiceButton.textContent='🎤 Ενημέρωση αποθήκης με φωνή';
+  const selected=()=>controls.filter(x=>x.check.checked).map(x=>({name:x.name,qty:x.input.value.trim()}));
+  const readItems=items=>items.map(x=>x.qty+' '+x.name).join(', ');
+  const markCommitted=()=>{button.disabled=true;voiceButton.disabled=true;button.textContent='✓ Η κατανάλωση καταγράφηκε';status.textContent='Η αποθήκη ενημερώθηκε.';};
+  const prepare=()=>{
+    if(button.disabled)return false;
+    const items=selected(),result=planConsumption(s.pantry,items,localDateValue(new Date()));
+    if(result.error){status.textContent=result.error;return false;}
     if(voiceBusy())cancelVoiceConversation();
     show('pantry');
-    $('consumeText').value=items.map(x=>x.qty+' '+x.name).join(', ');
-    if(prepareConsumptionItems(items)){
-      $('consumeConfirm').scrollIntoView({behavior:'smooth',block:'center'});
-      // Prevent accidental duplicate submission from the same recipe card after confirmation.
-      pendingConsumption.onCommitted=()=>{button.disabled=true;button.textContent='✓ Η κατανάλωση καταγράφηκε';status.textContent='Η αποθήκη ενημερώθηκε.';};
-    }
+    $('consumeText').value=readItems(items);
+    if(!prepareConsumptionItems(items))return false;
+    $('consumeConfirm').scrollIntoView({behavior:'smooth',block:'center'});
+    pendingConsumption.onCommitted=markCommitted;
+    return true;
   };
-  section.append(button,status);div.append(section);
+  button.onclick=prepare;
+  function askFinal(){
+    const items=selected(),result=planConsumption(s.pantry,items,localDateValue(new Date()));
+    if(result.error){status.textContent=result.error;chefSpeak(result.error+' Μπορείτε να διορθώσετε τις ποσότητες στην οθόνη.');return;}
+    const snapshot=JSON.stringify(s.pantry);
+    voiceSpeakAndListen('Να αφαιρέσω '+readItems(items)+' από την αποθήκη; Πείτε ναι ή όχι.',answer=>{
+      const decision=learnAnswerDecision(answer);
+      if(decision==='yes'){
+        if(snapshot!==JSON.stringify(s.pantry)||JSON.stringify(items)!==JSON.stringify(selected())){status.textContent='Τα στοιχεία άλλαξαν. Ελέγξτε ξανά τις ποσότητες.';chefSpeak(status.textContent);return;}
+        if(prepare())commitConsumption();
+      }else if(decision==='no'){status.textContent='Δεν αφαιρέθηκαν υλικά.';chefSpeak(status.textContent);}
+      else voiceLater(askFinal,300);
+    },{statusId});
+  }
+  function askQuantity(index){
+    if(index>=controls.length){voiceLater(askFinal,300);return;}
+    const row=controls[index];
+    voiceSpeakAndListen('Για '+row.name+', '+(row.check.checked&&row.input.value?'έχω '+row.input.value+'. Πείτε ναι αν είναι σωστό, όχι αν δεν το χρησιμοποιήσατε, ή την πραγματική ποσότητα.':'πείτε την πραγματική ποσότητα ή όχι αν δεν θέλετε να αφαιρεθεί.'),answer=>{
+      const decision=learnAnswerDecision(answer),qty=recipeSpokenQuantity(answer,row.name);
+      if(qty){row.check.checked=true;row.input.value=qty;}
+      else if(decision==='no'){row.check.checked=false;}
+      else if(decision==='yes'&&row.check.checked&&consumptionQuantity(row.input.value)?.base>0){}
+      else{voiceLater(()=>askQuantity(index),300);return;}
+      voiceLater(()=>askQuantity(index+1),300);
+    },{statusId});
+  }
+  voiceButton.onclick=()=>{
+    if(voiceBusy()||button.disabled)return;
+    beginVoiceConversation();
+    const items=selected();
+    voiceSpeakAndListen('Χρησιμοποιήσατε '+(items.length?readItems(items):'κάποια υλικά')+'; Πείτε ναι αν οι ποσότητες είναι σωστές ή όχι για να τις ελέγξουμε μία μία.',answer=>{
+      const decision=learnAnswerDecision(answer);
+      if(decision==='yes'&&items.length)voiceLater(askFinal,300);
+      else if(decision==='no'||decision==='yes')voiceLater(()=>askQuantity(0),300);
+      else{status.textContent='Πατήστε ξανά για φωνητικό έλεγχο.';chefSpeak(status.textContent);}
+    },{statusId});
+  };
+  section.append(button,voiceButton,status);div.append(section);
 }
 
  function counts(){
