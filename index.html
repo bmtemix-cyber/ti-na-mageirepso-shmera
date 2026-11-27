@@ -1750,84 +1750,90 @@ function applyLearnVoiceText(
 
 
 
+function learnAnswerDecision(text){
+  const a=normalizeLearnVoiceAnswer(text);
+  if(/^(οχι|δεν)(?:\s|$)|δεν (?:ειμαι|ειμαστε) ενταξει|κατι αλλο/.test(a))return 'no';
+  if(/^(ναι|ενταξει|σωστα|βεβαιως|φυσικα)(?:\s|$)|^(ειμαι|ειμαστε) ενταξει$/.test(a))return 'yes';
+  return null;
+}
+function learnAdditionalFood(text){
+  let rest=String(text||'').trim();
+  // Remove conversational prefixes, keeping the original spelling of foods.
+  const prefix=/^(?:όχι|οχι|δεν\s+(?:είμαι|ειμαι|είμαστε|ειμαστε)(?:\s+(?:εντάξει|ενταξει))?|(?:έφαγα|εφαγα|φάγαμε|φαγαμε|ήπια|ηπια|ήπιαμε|ηπιαμε)|και|επίσης|επισης|ακόμα|ακομα|ακόμη|ακομη)\s*(?:[,;.!?]\s*|\s+|$)/iu;
+  let previous;
+  do{previous=rest;rest=rest.replace(prefix,'').trim();}while(rest!==previous);
+  const n=normalizeLearnVoiceAnswer(rest);
+  if(!n || /^(?:δεν|ειμαι|ειμαστε|ενταξει|κατι αλλο|οχι|ναι)(?:\s|$)/.test(n))return '';
+  return rest;
+}
+function learnRatingValue(text){
+  const a=normalizeLearnVoiceAnswer(text);
+  if(/^(?:[1-5])$/.test(a))return Number(a);
+  if(/(?:^|\s)(?:καθολου)(?:\s|$)/.test(a))return 1;
+  if(/(?:^|\s)(?:οχι πολυ|οχι και πολυ|λιγο|δυο|δυο στα πεντε)(?:\s|$)/.test(a))return 2;
+  if(/(?:^|\s)(?:μετρια|ετσι κι ετσι|τρια)(?:\s|$)/.test(a))return 3;
+  if(/(?:^|\s)(?:αρκετα|τεσσερα|μια χαρα)(?:\s|$)/.test(a))return 4;
+  if(/(?:^|\s)(?:πολυ|παρα πολυ|τελεια|εξαιρετικα|πεντε)(?:\s|$)/.test(a))return 5;
+  return null;
+}
 function askLearnVoiceConfirmation(){
-
-  learnSpeakAndListen(
-    'Είστε εντάξει με αυτά; Πείτε ναι ή όχι.',
-    answer=>{
-
-      const a=
-        normalizeLearnVoiceAnswer(
-          answer
-        );
-
-
-      /*
-        ΝΑΙ
-      */
-
-      if(
-        a.startsWith('ναι') ||
-        a==='ενταξει' ||
-        a.includes('ειμαι ενταξει')
-      ){
-
-        $('learnVoiceStatus')
-          .textContent=
-          '✅ Εντάξει. Η καταχώριση είναι έτοιμη.';
-
-        return;
-
+  learnSpeakAndListen('Είστε εντάξει με αυτά; Πείτε ναι ή όχι, ή πείτε τι άλλο φάγατε.',answer=>{
+    const decision=learnAnswerDecision(answer);
+    if(decision==='no'){
+      const extra=learnAdditionalFood(answer);
+      if(extra){
+        applyLearnVoiceText(extra,true);
+        voiceLater(askLearnVoiceConfirmation,300);
+      }else{
+        voiceLater(askLearnMoreFood,300);
       }
-
-
-      /*
-        ΟΧΙ
-      */
-
-      if(
-        a.startsWith('οχι') ||
-        a.includes('κατι αλλο')
-      ){
-
-        learnSpeakAndListen(
-          'Πες μου τι άλλο φάγατε.',
-          moreText=>{
-
-            applyLearnVoiceText(
-              moreText,
-              true
-            );
-
-            voiceLater(
-              askLearnVoiceConfirmation,
-              300
-            );
-
-          }
-        );
-
-        return;
-
-      }
-
-
-      /*
-        Δεν κατάλαβε ναι / όχι
-      */
-
-      $('learnVoiceStatus')
-        .textContent=
-        '⚠️ Δεν κατάλαβα την απάντηση.';
-
-      voiceLater(
-        askLearnVoiceConfirmation,
-        400
-      );
-
+    }else if(decision==='yes'){
+      voiceLater(askLearnRating,300);
+    }else{
+      $('learnVoiceStatus').textContent='Δεν κατάλαβα. Πείτε ναι ή όχι.';
+      voiceLater(askLearnVoiceConfirmation,400);
     }
-  );
-
+  });
+}
+function askLearnMoreFood(){
+  learnSpeakAndListen('Πείτε μου τι άλλο φάγατε.',answer=>{
+    const extra=learnAdditionalFood(answer);
+    if(!extra){voiceLater(askLearnVoiceConfirmation,300);return;}
+    applyLearnVoiceText(extra,true);
+    voiceLater(askLearnVoiceConfirmation,300);
+  });
+}
+function askLearnRating(){
+  learnSpeakAndListen('Πόσο σας άρεσε το φαγητό; Πολύ, αρκετά, μέτρια, λίγο ή καθόλου;',answer=>{
+    const rating=learnRatingValue(answer);
+    if(rating===null){
+      $('learnVoiceStatus').textContent='Δεν κατάλαβα τη βαθμολογία.';
+      voiceLater(askLearnRating,400);
+      return;
+    }
+    $('rating').value=String(rating);
+    $('learnVoiceStatus').textContent='Βαθμολογία: '+rating+' / 5';
+    voiceLater(askLearnSaveConfirmation,300);
+  });
+}
+function askLearnSaveConfirmation(){
+  learnSpeakAndListen('Να καταγράψω αυτό το γεύμα στο ιστορικό σας;',answer=>{
+    const decision=learnAnswerDecision(answer);
+    if(decision==='yes'){
+      if(saveMeal()===true){
+        $('learnVoiceStatus').textContent='✅ Το γεύμα καταγράφηκε.';
+        chefSpeak('Το γεύμα καταγράφηκε επιτυχώς.');
+      }else{
+        $('learnVoiceStatus').textContent='Ελέγξτε τα στοιχεία του γεύματος πριν την αποθήκευση.';
+        chefSpeak('Δεν μπόρεσα να καταγράψω το γεύμα. Ελέγξτε τα στοιχεία στην οθόνη.');
+      }
+    }else if(decision==='no'){
+      $('learnVoiceStatus').textContent='Δεν αποθηκεύτηκε. Μπορείτε να διορθώσετε τα στοιχεία.';
+      chefSpeak('Εντάξει. Δεν αποθήκευσα το γεύμα.');
+    }else{
+      voiceLater(askLearnSaveConfirmation,400);
+    }
+  });
 }
 
 function startLearnVoice(){
@@ -3942,6 +3948,7 @@ async  function suggestRecipe(){
   render();
 
   show('learn');
+  return true;
 }
 function preferenceStats(){
 
