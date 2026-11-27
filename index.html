@@ -5371,7 +5371,7 @@ scored.sort((a,b)=>{
      '<button class="btn secondary" data-meal="'+encodeURIComponent(name)+'" data-target="'+id+'" onclick="findRecipeForMeal(decodeURIComponent(this.dataset.meal),this.dataset.target)">📖 Δείξε μου συνταγή</button>'+
      '<div id="'+id+'" style="margin-top:10px"></div></div>';
  }
-function rankDailyMeals(recipes,historyStats,date=new Date(),slot='lunch',fasting=false){
+function rankDailyMeals(recipes,historyStats,date=new Date(),slot='lunch',fasting=false,excluded=new Set()){
   const week=counts();
   const norm=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   const days=date.getDay();
@@ -5389,6 +5389,7 @@ function rankDailyMeals(recipes,historyStats,date=new Date(),slot='lunch',fastin
   const ranked=[];
   for(const m of pool.values()){
     const n=norm(m.name), cats=m.cats||[];
+    if(excluded.has(mealHistoryKey(m.name)))continue;
     if(!cats.length || cats.every(c=>['drinks','sweets','fruit'].includes(c)))continue;
     if(daysSinceSameMeal(m.name)<=3)continue;
     const veganKnown=m.ingredients && !cats.some(c=>['meat','eggs','dairy','seafood'].includes(c));
@@ -5422,17 +5423,24 @@ function rankDailyMeals(recipes,historyStats,date=new Date(),slot='lunch',fastin
   return [main,second].filter(Boolean).map(m=>({...m,note:(m.extra===null?'Με βάση τα προηγούμενα γεύματα. Τα απαραίτητα υλικά δεν έχουν ελεγχθεί.':m.extra.length?'Υλικά που δεν βρέθηκαν στην αποθήκη: '+m.extra.join(', ')+'.':'Βρέθηκαν τα βασικά υλικά στην αποθήκη (δεν ελέγχθηκαν ποσότητες).')}));
 }
 
-function showTodaySuggestion(){
+const suggestionRotation=new Map();
+function showTodaySuggestion(more=false){
   const box=$('todaySuggestion');
   if(!box)return;
   const slot=$('suggestionSlot')?.value||'lunch';
   const fasting=$('suggestionFasting')?.checked||false;
   box.classList.remove('hidden');
+  const date=new Date();
+  const key=localDateValue(date)+'|'+slot+'|'+(fasting?'1':'0');
+  if(!more)suggestionRotation.delete(key);
+  const excluded=suggestionRotation.get(key)||new Set();
   let suggestions;
-  try{suggestions=rankDailyMeals(pantryFallbackSuggestions().all,preferenceStats(),new Date(),slot,fasting);}
+  try{suggestions=rankDailyMeals(pantryFallbackSuggestions().all,preferenceStats(),date,slot,fasting,excluded);}
   catch(error){console.error('Daily suggestions:',error);box.textContent='Δεν ήταν δυνατή η δημιουργία προτάσεων. Δοκίμασε ξανά.';return;}
 
 
+  suggestions.forEach(m=>excluded.add(mealHistoryKey(m.name)));
+  suggestionRotation.set(key,excluded);
   box.innerHTML=
     '<b>⭐ Προτάσεις για σήμερα</b>'+
 
@@ -5457,8 +5465,9 @@ function showTodaySuggestion(){
             )
             .join('')
 
-        : '<p>Πρόσθεσε υλικά ή καταχώρισε γεύματα για να εμφανιστούν προτάσεις.</p>'
-    );
+        : (more?'<p>Δεν υπάρχουν άλλες διαφορετικές προτάσεις που να πληρούν τα κριτήρια. Μπορείς να ξεκινήσεις ξανά.</p>':'<p>Δεν βρέθηκαν κατάλληλες προτάσεις με τα σημερινά κριτήρια.</p>')
+    )+
+    (suggestions.length?'<button type="button" class="btn secondary" onclick="showTodaySuggestion(true)">🔄 Δείξε μου άλλες προτάσεις</button>':'<button type="button" class="btn secondary" onclick="showTodaySuggestion()">↻ Από την αρχή</button>');
 
 
   suggestions.forEach(
@@ -7300,10 +7309,14 @@ if($('reminderTime')){
   $('reminderTime').value=reminderTime;
 } 
 
+function chefWantsOtherSuggestions(t){
+  return /(?:κατι|φαγητ[αο]|γευμα(?:τα)?|προτασ(?:η|εις))\s+αλλ(?:ο|α|η|ες)|αλλ(?:ο|α|η|ες)\s+(?:φαγητ[αο]|γευμα(?:τα)?|προτασ(?:η|εις))|διαφορετικ(?:α|ο|ες|η)\s+(?:φαγητ[αο]|γευμα(?:τα)?|προτασ(?:η|εις))|δεν (?:μου|μας) αρεσ|δεν (?:μου|μας) καν(?:ει|ουν)|(?:αλλο|αλλα|αλλες)\s*(?:παρακαλω)?$/.test(t);
+}
+
 function chefSuggestionSlot(t){
   // Explicit recording commands take priority over a suggestion.
   if(/καταγραψ|καταχωρ|φαγαμε|εφαγα|ηπιαμε|χθες|προχθες/.test(t))return null;
-  if(!/προτειν|προτεινε|προτασ|τι να (?:φαμε|φαω|μαγειρεψ|φτιαξ)|τι θα (?:φαμε|μαγειρεψ)|ιδε[αε] για (?:φαγητο|γευμα)|μαγειρεψουμε σημερα/.test(t))return null;
+  if(!chefWantsOtherSuggestions(t) && !/προτειν|προτεινε|προτασ|τι να (?:φαμε|φαω|μαγειρεψ|φτιαξ)|τι θα (?:φαμε|μαγειρεψ)|ιδε[αε] για (?:φαγητο|γευμα)|μαγειρεψουμε σημερα/.test(t))return null;
   if(/βραδ|δειπν/.test(t))return 'dinner';
   if(/μεσημερ/.test(t))return 'lunch';
   return 'current';
@@ -7325,13 +7338,14 @@ function handleChefCommand(text){
     show('home');
     const selector=$('suggestionSlot');
     if(selector && suggestionSlot!=='current')selector.value=suggestionSlot;
-    const suggestions=showTodaySuggestion();
+    const more=chefWantsOtherSuggestions(t);
+    const suggestions=showTodaySuggestion(more);
     const box=$('todaySuggestion');
     if(box)box.scrollIntoView({behavior:'smooth',block:'start'});
     if(Array.isArray(suggestions)&&suggestions.length){
       chefSpeak('Για '+(selector?.value==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή εναλλακτικά '+suggestions[1].name:'')+'. Δες τις προτάσεις και τις συνταγές στην οθόνη.');
     }else{
-      chefSpeak('Άνοιξα τις προτάσεις. Δες το μήνυμα στην οθόνη.');
+      chefSpeak(Array.isArray(suggestions)&&more?'Δεν έχω άλλες διαφορετικές προτάσεις με τα σημερινά κριτήρια. Μπορείς να ξεκινήσεις ξανά.':'Άνοιξα τις προτάσεις. Δες το μήνυμα στην οθόνη.');
     }
     return;
   }
