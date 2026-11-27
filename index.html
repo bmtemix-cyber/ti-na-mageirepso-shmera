@@ -2775,172 +2775,33 @@ if(
 } 
 
 
-function askPantryChefConfirmation(){
-
-  const currentItems=
-    getCurrentPantryVoiceItems();
-
-
-  const summary=
-    pantryItemsForSpeech(
-      currentItems
-    );
-
-
-  pantrySpeakAndListen(
-
-    summary+
-    '. Είστε εντάξει ή θέλετε να προσθέσουμε και κάτι άλλο;',
-
-    answer=>{
-
-      const t=
-        normalizePantryVoiceAnswer(
-          answer
-        );
-
-
-      /*
-        Ο χρήστης θέλει να προσθέσει
-        κι άλλα προϊόντα.
-      */
-
-      if(
-        t.includes('κατι αλλο') ||
-        t.includes('και αλλο') ||
-        t.includes('προσθεσουμε') ||
-        t.includes('προσθεσω') ||
-        t.includes('προσθεσε') ||
-        t.includes('θελω και')
-      ){
-
-        pantrySpeakAndListen(
-
-          'Πείτε μου τι άλλο θέλετε να προσθέσουμε.',
-
-          extraText=>{
-
-            const newItems=
-              parseVoicePantry(
-                extraText
-              );
-
-
-            const currentItems=
-              getCurrentPantryVoiceItems();
-
-
-            const allItems=[
-              ...currentItems,
-              ...newItems
-            ];
-
-
-            renderVoicePantryPreview(
-              allItems
-            );
-
-
-            voiceLater(
-              askPantryChefConfirmation,
-              400
-            );
-
-          }
-
-        );
-
-        return;
-      }
-
-
-      /*
-        Ο χρήστης είναι εντάξει.
-      */
-
-      if(
-        t.includes('ενταξει') ||
-        t==='ναι' ||
-        t.includes('ειμαι ενταξει') ||
-        t.includes('σωστα') ||
-        t.includes('μια χαρα') ||
-        t.includes('οκ') ||
-        t.includes('τελος')
-      ){
-
-        voicePantryItems=getCurrentPantryVoiceItems();
-        askPantryExpiryPermission();
-
-return;
-      }
-
-
-      /*
-        Δεν καταλάβαμε την απάντηση.
-      */
-
-      pantrySpeakAndListen(
-
-        'Δεν κατάλαβα. Είστε εντάξει ή θέλετε να προσθέσουμε κάτι άλλο;',
-
-        secondAnswer=>{
-
-          const t2=
-            normalizePantryVoiceAnswer(
-              secondAnswer
-            );
-
-
-          if(
-            t2.includes('ενταξει') ||
-            t2==='ναι' ||
-            t2.includes('οκ')
-          ){
-
-            voicePantryItems=getCurrentPantryVoiceItems();
-            askPantryExpiryPermission();
-          }else{
-
-            pantrySpeakAndListen(
-
-              'Πείτε μου τι άλλο θέλετε να προσθέσουμε.',
-
-              extraText=>{
-
-                const newItems=
-                  parseVoicePantry(
-                    extraText
-                  );
-
-                const currentItems=
-                  getCurrentPantryVoiceItems();
-
-                renderVoicePantryPreview([
-                  ...currentItems,
-                  ...newItems
-                ]);
-
-                voiceLater(
-                  askPantryChefConfirmation,
-                  400
-                );
-
-              }
-
-            );
-
-          }
-
-        }
-
-      );
-
-    }
-
-  );
-
+function pantryExtraItems(answer){
+  const clean=String(answer||'').trim().replace(/^(?:(?:όχι|οχι|και|επίσης|επισης|θέλω να προσθέσω|θελω να προσθεσω|πρόσθεσε|προσθεσε|βάλε|βαλε)[\s,;.!?]+)+/iu,'');
+  return parseVoicePantry(clean);
 }
-
+function askPantryChefConfirmation(){
+  const summary=pantryItemsForSpeech(getCurrentPantryVoiceItems());
+  const append=items=>{
+    renderVoicePantryPreview([...getCurrentPantryVoiceItems(),...items]);
+    voiceLater(askPantryChefConfirmation,400);
+  };
+  const askExtra=()=>pantrySpeakAndListen('Πείτε μου τι άλλο θέλετε να προσθέσουμε.',answer=>{
+    const items=pantryExtraItems(answer);
+    if(items.length)append(items);
+    else voiceLater(askPantryChefConfirmation,400);
+  });
+  pantrySpeakAndListen(summary+'. Είστε εντάξει ή θέλετε να προσθέσουμε κάτι άλλο;',answer=>{
+    const items=pantryExtraItems(answer);
+    if(items.length){append(items);return;}
+    const t=normalizePantryVoiceAnswer(answer);
+    if(/^(οχι|δεν)(?:\s|$)|κατι αλλο|και αλλο|προσθε|θελω και/.test(t)){voiceLater(askExtra,300);return;}
+    if(/ενταξει|^ναι$|σωστα|μια χαρα|^οκ$|τελος/.test(t)){
+      voicePantryItems=getCurrentPantryVoiceItems();
+      voiceLater(askPantryExpiryPermission,300);return;
+    }
+    voiceLater(askPantryChefConfirmation,400);
+  });
+}
 
 function addPantryFromChef(text){
 
@@ -5531,7 +5392,9 @@ async function loadTodayMealImage(name,id){
      const r=await fetch('/api/generate-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({meal:name,pantry:s.pantry||[],family:s.family||{}})});
      const data=await r.json();
      if(!r.ok||!data.ok||!data.recipe)throw Error(data.error||'Δεν ήταν δυνατή η δημιουργία συνταγής.');
+     if($(targetId)!==box)return null;
      renderAiRecipe(box,data.recipe);
+     return data.recipe;
    }catch(e){box.replaceChildren();const msg=document.createElement('p');msg.textContent='⚠️ '+(e.message||'Δεν ήταν δυνατή η δημιουργία συνταγής.');box.append(msg);const retry=document.createElement('button');retry.className='btn secondary';retry.textContent='🔄 Δοκίμασε ξανά';retry.onclick=()=>findRecipeForMeal(name,targetId);box.append(retry);}
  }
  function renderAiRecipe(box,recipe){
@@ -5593,7 +5456,7 @@ function appendRecipeConsumption(div,recipe){
   const status=document.createElement('div');status.className='small';
   const statusId='recipeConsumptionStatus'+(++recipeConsumptionSequence);status.id=statusId;
   const button=document.createElement('button');button.type='button';button.className='btn primary';button.textContent='Έλεγχος και ενημέρωση αποθήκης';
-  const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='btn secondary';voiceButton.textContent='🎤 Ενημέρωση αποθήκης με φωνή';
+  const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='btn secondary';voiceButton.textContent='🎤 Ενημέρωση αποθήκης με φωνή';voiceButton.setAttribute('data-recipe-voice-consumption','1');
   const selected=()=>controls.filter(x=>x.check.checked).map(x=>({name:x.name,qty:x.input.value.trim()}));
   const readItems=items=>items.map(x=>x.qty+' '+x.name).join(', ');
   const markCommitted=()=>{button.disabled=true;voiceButton.disabled=true;button.textContent='✓ Η κατανάλωση καταγράφηκε';status.textContent='Η αποθήκη ενημερώθηκε.';};
@@ -7525,10 +7388,48 @@ function chefWantsOtherSuggestions(t){
 function chefSuggestionSlot(t){
   // Explicit recording commands take priority over a suggestion.
   if(/καταγραψ|καταχωρ|φαγαμε|εφαγα|ηπιαμε|χθες|προχθες/.test(t))return null;
-  if(!chefWantsOtherSuggestions(t) && !/προτειν|προτεινε|προτασ|τι να (?:φαμε|φαω|μαγειρεψ|φτιαξ)|τι θα (?:φαμε|μαγειρεψ)|ιδε[αε] για (?:φαγητο|γευμα)|μαγειρεψουμε σημερα/.test(t))return null;
+  if(!chefWantsOtherSuggestions(t) && !/προτειν|προτιν|προτει|προτασ|τι να (?:φαμε|φαω|μαγειρεψ|φτιαξ)|τι θα (?:φαμε|μαγειρεψ)|ιδε[αε] για (?:φαγητο|γευμα)|μαγειρεψουμε σημερα|(?:φαγητ|γευμα).*(?:σημερα|μεσημερ|βραδ)|(?:μεσημερ|βραδ).*(?:φαγητ|γευμα)/.test(t))return null;
   if(/βραδ|δειπν/.test(t))return 'dinner';
   if(/μεσημερ/.test(t))return 'lunch';
   return 'current';
+}
+
+function chefRecipeChoice(answer,suggestions){
+  const t=normalizeLearnVoiceAnswer(answer);
+  if(/^(οχι|δεν)(?:\s|$)/.test(t)&&!chefWantsOtherSuggestions(t))return 'stop';
+  if(chefWantsOtherSuggestions(t))return 'more';
+  if(suggestions[1]&&/δευτερ|εναλλακτικ/.test(t))return 1;
+  if(/πρωτ|κυρι[αο]|^ναι$/.test(t))return 0;
+  const index=suggestions.findIndex(x=>t.includes(normalizeLearnVoiceAnswer(x.name)));
+  return index>=0?index:null;
+}
+function askChefRecipeChoice(suggestions,slot){
+  const prompt='Για '+(slot==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή '+suggestions[1].name:'')+'. Ποιο θέλετε να μαγειρέψετε; Πείτε το πρώτο, '+(suggestions[1]?'το δεύτερο, ':'')+'κάτι άλλο ή όχι.';
+  voiceSpeakAndListen(prompt,answer=>{
+    const choice=chefRecipeChoice(answer,suggestions);
+    if(choice==='stop'){chefSpeak('Εντάξει. Οι προτάσεις παραμένουν στην οθόνη.');return;}
+    if(choice==='more'){handleChefCommand('κάτι άλλο');return;}
+    if(choice===null){voiceLater(()=>askChefRecipeChoice(suggestions,slot),300);return;}
+    voiceLater(()=>openChefRecipe(suggestions[choice].name,'todayRecipe'+choice),300);
+  },{statusId:'chefBubble'});
+}
+async function openChefRecipe(name,id){
+  const generation=voiceGeneration;
+  const recipe=await findRecipeForMeal(name,id);
+  if(generation!==voiceGeneration||!recipe||!$('home').classList.contains('active'))return;
+  const box=$(id);
+  if(!box)return;
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+  const ingredients=recipe.ingredients.map(x=>[x.quantity,x.name].filter(Boolean).join(' ')).join(', ');
+  voiceSpeakAndListen('Για '+recipe.name+' χρειάζεστε '+ingredients+'. Έχετε ήδη μαγειρέψει και χρησιμοποιήσει τα υλικά; Πείτε ναι για να ελέγξουμε την αφαίρεση από την αποθήκη, ή όχι αν θα μαγειρέψετε αργότερα.',answer=>{
+    const decision=learnAnswerDecision(answer);
+    if(decision==='yes'){
+      const button=box.querySelector('[data-recipe-voice-consumption]');
+      if(button&&!button.disabled)voiceLater(()=>button.click(),300);
+      else chefSpeak('Η συνταγή είναι στην οθόνη. Ελέγξτε τα υλικά.');
+    }else if(decision==='no')chefSpeak('Εντάξει. Δεν αφαιρώ τίποτα. Όταν τελειώσετε, πατήστε ενημέρωση αποθήκης με φωνή στο τέλος της συνταγής.');
+    else chefSpeak('Η συνταγή είναι στην οθόνη. Δεν αφαιρέθηκαν υλικά.');
+  },{statusId:'chefBubble'});
 }
 
 function handleChefCommand(text){
@@ -7556,7 +7457,8 @@ function handleChefCommand(text){
     const box=$('todaySuggestion');
     if(box)box.scrollIntoView({behavior:'smooth',block:'start'});
     if(Array.isArray(suggestions)&&suggestions.length){
-      chefSpeak('Για '+(selector?.value==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή εναλλακτικά '+suggestions[1].name:'')+'. Δες τις προτάσεις και τις συνταγές στην οθόνη.');
+      beginVoiceConversation();
+      voiceLater(()=>askChefRecipeChoice(suggestions,selector?.value||'lunch'),300);
     }else{
       chefSpeak(Array.isArray(suggestions)&&more?'Δεν έχω άλλες διαφορετικές προτάσεις με τα σημερινά κριτήρια. Μπορείς να ξεκινήσεις ξανά.':'Άνοιξα τις προτάσεις. Δες το μήνυμα στην οθόνη.');
     }
