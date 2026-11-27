@@ -7456,7 +7456,7 @@ function chefRecipeChoice(answer,suggestions){
   return scores[0]?.score>0&&(!scores[1]||scores[0].score>scores[1].score)?scores[0].i:null;
 }
 function askChefRecipeChoice(suggestions,slot){
-  const prompt='Για '+(slot==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή '+suggestions[1].name:'')+'. Ποιο θέλετε να μαγειρέψουμε; Πείτε το πρώτο, '+(suggestions[1]?'το δεύτερο, ':'')+'το όνομα του φαγητού, κάτι άλλο ή όχι.';
+  const prompt='Για '+(slot==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή '+suggestions[1].name:'')+'. Ποιο θέλετε να μαγειρέψουμε;';
   voiceSpeakAndListen(prompt,answer=>{
     const choice=chefRecipeChoice(answer,suggestions);
     if(choice==='stop'){chefSpeak('Εντάξει. Οι προτάσεις παραμένουν στην οθόνη.');return;}
