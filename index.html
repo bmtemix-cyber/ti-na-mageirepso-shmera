@@ -5406,12 +5406,39 @@ async function loadTodayMealImage(name,id){
    const st=document.createElement('h4');st.textContent='Εκτέλεση';div.append(st);
    const ol=document.createElement('ol');(recipe.steps||[]).forEach(x=>{const li=document.createElement('li');li.textContent=String(x).replace(/^\d+[.)]\s*/,'');li.style.marginBottom='9px';ol.append(li)});div.append(ol);
    if(recipe.tip){const tip=document.createElement('p');tip.textContent='💡 '+recipe.tip;div.append(tip)}
-   const pantry=s.pantry||[];
-   if(pantry.length){const ph=document.createElement('h4');ph.textContent='🧺 Έλεγχος αποθήκης (ενδεικτικός)';div.append(ph);const pl=document.createElement('ul');(recipe.ingredients||[]).forEach(x=>{const key=String(x.name||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();const match=pantry.find(p=>{const n=String(p.name||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();return key.length>3&&n.length>3&&(key.includes(n)||n.includes(key))});const li=document.createElement('li');li.textContent=(match?'✓ Υπάρχει καταχώριση: ':'? Δεν εντοπίστηκε: ')+x.name+(match&&match.qty?' ('+match.qty+')':'');pl.append(li)});div.append(pl);const note=document.createElement('p');note.className='small';note.textContent='Ο έλεγχος γίνεται με βάση τις ονομασίες· δεν επιβεβαιώνει ακόμη αν επαρκεί η ποσότητα.';div.append(note)}
+   const report=recipeStockReport(recipe,s.pantry||[],localDateValue(new Date()));
+   const ph=document.createElement('h4');ph.textContent='🧺 Έλεγχος αποθήκης';div.append(ph);
+   const pl=document.createElement('ul');const statuses={available:'✓ Επαρκεί: ',missing:'Δεν βρέθηκε διαθέσιμο: ',insufficient:'Ανεπαρκής ποσότητα ή ασύμβατη μονάδα: ',unknown:'Χρειάζεται έλεγχος ποσότητας: '};
+   report.forEach(x=>{const li=document.createElement('li');li.textContent=statuses[x.status]+x.name;pl.append(li);});div.append(pl);
+   const stockNote=document.createElement('p');stockNote.className='small';stockNote.textContent='Ο έλεγχος βασίζεται στις καταχωρισμένες ονομασίες, ποσότητες και ημερομηνίες λήξης.';div.append(stockNote);
    appendRecipeConsumption(div,recipe);
    box.append(div);
  }
 
+
+function recipeStockReport(recipe,pantry,today){
+  const rows=recipeConsumptionRows(recipe,pantry,today);
+  let remaining=pantry;
+  return rows.map(row=>{
+    if(!row.exact)return {...row,status:'missing'};
+    if(!row.valid)return {...row,status:'unknown'};
+    const result=planConsumption(remaining,[{name:row.name,qty:row.raw}],today);
+    if(result.error)return {...row,status:'insufficient'};
+    remaining=result.next;
+    return {...row,status:'available'};
+  });
+}
+function recipeStockSpeech(report){
+  const names=status=>[...new Set(report.filter(x=>x.status===status).map(x=>x.name))].join(', ');
+  const missing=names('missing'),insufficient=names('insufficient'),unknown=names('unknown');
+  const parts=[];
+  if(report.length&&report.every(x=>x.status==='available'))return 'Στην αποθήκη έχετε όλα τα απαραίτητα υλικά στις απαιτούμενες ποσότητες.';
+  if(names('available'))parts.push('Στην αποθήκη έχετε επαρκείς ποσότητες για: '+names('available')+'.');
+  if(missing)parts.push('Δεν βρήκα διαθέσιμα στην αποθήκη: '+missing+'.');
+  if(insufficient)parts.push('Δεν επαρκούν οι καταχωρισμένες ποσότητες ή δεν ταιριάζουν οι μονάδες για: '+insufficient+'.');
+  if(unknown)parts.push('Υπάρχουν καταχωρίσεις, αλλά χρειάζεται έλεγχος ποσότητας για: '+unknown+'.');
+  return parts.join(' ');
+}
 
 function recipeStockTracked(pantry,name,today){
   return pantry.some(p=>consumptionName(p.name)===consumptionName(name)&&(!p.exp||(/^\d{4}-\d{2}-\d{2}$/.test(p.exp)&&p.exp>=today))&&(!consumptionQuantity(p.qty)||consumptionQuantity(p.qty).base>0));
@@ -7416,15 +7443,20 @@ function chefSuggestionSlot(t){
 
 function chefRecipeChoice(answer,suggestions){
   const t=normalizeLearnVoiceAnswer(answer);
-  if(/^(οχι|δεν)(?:\s|$)/.test(t)&&!chefWantsOtherSuggestions(t))return 'stop';
   if(chefWantsOtherSuggestions(t))return 'more';
-  if(suggestions[1]&&/δευτερ|εναλλακτικ/.test(t))return 1;
-  if(/πρωτ|κυρι[αο]|^ναι$/.test(t))return 0;
-  const index=suggestions.findIndex(x=>t.includes(normalizeLearnVoiceAnswer(x.name)));
-  return index>=0?index:null;
+  if(/^(οχι|δεν)(?:\s|$)/.test(t))return 'stop';
+  if(suggestions[1]&&/^(?:το\s+)?(?:δευτερο|2|δυο|εναλλακτικο)(?:\s|$)/.test(t))return 1;
+  if(/^(?:το\s+)?(?:πρωτο|1|ενα|κυριο)(?:\s|$)/.test(t)||t==='ναι'&&suggestions.length===1)return 0;
+  const words=x=>normalizeLearnVoiceAnswer(x).replace(/ς/g,'σ').split(/\s+/).filter(w=>w.length>=3&&!['και','με','στο','στη','στην','στον','για','του','τησ','των','την','τον','να','θελω','θελουμε','μαγειρεψουμε','μαγειρεψω','φτιαξουμε','φτιαξω','φαμε','προτιμω','προτιμαμε','παρακαλω','σημερα','κανουμε','κάνουμε','θα','ηθελα'].includes(w));
+  const full=suggestions.map((x,i)=>({i,name:normalizeLearnVoiceAnswer(x.name)})).filter(x=>t.includes(x.name));
+  if(full.length===1)return full[0].i;
+  const spoken=words(answer);
+  const scores=suggestions.map((x,i)=>({i,score:words(x.name).filter(w=>spoken.some(v=>v===w)).length}));
+  scores.sort((a,b)=>b.score-a.score);
+  return scores[0]?.score>0&&(!scores[1]||scores[0].score>scores[1].score)?scores[0].i:null;
 }
 function askChefRecipeChoice(suggestions,slot){
-  const prompt='Για '+(slot==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή '+suggestions[1].name:'')+'. Ποιο θέλετε να μαγειρέψετε; Πείτε το πρώτο, '+(suggestions[1]?'το δεύτερο, ':'')+'κάτι άλλο ή όχι.';
+  const prompt='Για '+(slot==='dinner'?'βραδινό':'μεσημεριανό')+' προτείνω '+suggestions[0].name+(suggestions[1]?' ή '+suggestions[1].name:'')+'. Ποιο θέλετε να μαγειρέψουμε; Πείτε το πρώτο, '+(suggestions[1]?'το δεύτερο, ':'')+'το όνομα του φαγητού, κάτι άλλο ή όχι.';
   voiceSpeakAndListen(prompt,answer=>{
     const choice=chefRecipeChoice(answer,suggestions);
     if(choice==='stop'){chefSpeak('Εντάξει. Οι προτάσεις παραμένουν στην οθόνη.');return;}
@@ -7435,14 +7467,18 @@ function askChefRecipeChoice(suggestions,slot){
 }
 async function openChefRecipe(name,id){
   const generation=voiceGeneration;
+  chefSpeak('Ετοιμάζω τη συνταγή για '+name+'.');
   const recipe=await findRecipeForMeal(name,id);
-  if(generation!==voiceGeneration||!recipe||!$('home').classList.contains('active'))return;
+  if(generation!==voiceGeneration||!$('home').classList.contains('active'))return;
+  if(!recipe){chefSpeak('Δεν μπόρεσα να ετοιμάσω τη συνταγή. Δοκιμάστε ξανά.');return;}
   const box=$(id);
   if(!box)return;
   box.scrollIntoView({behavior:'smooth',block:'start'});
   const ingredients=recipe.ingredients.map(x=>[x.quantity,x.name].filter(Boolean).join(' ')).join(', ');
-  voiceSpeakAndListen('Για '+recipe.name+' χρειάζεστε '+ingredients+'. Έχετε ήδη μαγειρέψει και χρησιμοποιήσει τα υλικά; Πείτε ναι για να ελέγξουμε την αφαίρεση από την αποθήκη, ή όχι αν θα μαγειρέψετε αργότερα.',answer=>{
-    const decision=learnAnswerDecision(answer);
+  const stockMessage=recipeStockSpeech(recipeStockReport(recipe,s.pantry||[],localDateValue(new Date())));
+  voiceSpeakAndListen('Για να μαγειρέψετε '+recipe.name+' χρειάζεστε '+ingredients+'. '+stockMessage+' Αν έχετε ήδη μαγειρέψει, πείτε μου για να αφαιρέσουμε τα υλικά που χρησιμοποιήσατε από την αποθήκη. Έχετε τελειώσει το μαγείρεμα;',answer=>{
+    const t=normalizeLearnVoiceAnswer(answer);
+    const decision=learnAnswerDecision(answer)||(/^(?:το )?(?:μαγειρεψα|μαγειρεψαμε|τελειωσα|τελειωσαμε|ετοιμο|το εφτιαξα|το φτιαξαμε)(?:\s|$)/.test(t)?'yes':null);
     if(decision==='yes'){
       const button=box.querySelector('[data-recipe-voice-consumption]');
       if(button&&!button.disabled)voiceLater(()=>button.click(),300);
