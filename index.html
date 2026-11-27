@@ -5545,8 +5545,55 @@ async function loadTodayMealImage(name,id){
    if(recipe.tip){const tip=document.createElement('p');tip.textContent='💡 '+recipe.tip;div.append(tip)}
    const pantry=s.pantry||[];
    if(pantry.length){const ph=document.createElement('h4');ph.textContent='🧺 Έλεγχος αποθήκης (ενδεικτικός)';div.append(ph);const pl=document.createElement('ul');(recipe.ingredients||[]).forEach(x=>{const key=String(x.name||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();const match=pantry.find(p=>{const n=String(p.name||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();return key.length>3&&n.length>3&&(key.includes(n)||n.includes(key))});const li=document.createElement('li');li.textContent=(match?'✓ Υπάρχει καταχώριση: ':'? Δεν εντοπίστηκε: ')+x.name+(match&&match.qty?' ('+match.qty+')':'');pl.append(li)});div.append(pl);const note=document.createElement('p');note.className='small';note.textContent='Ο έλεγχος γίνεται με βάση τις ονομασίες· δεν επιβεβαιώνει ακόμη αν επαρκεί η ποσότητα.';div.append(note)}
+   appendRecipeConsumption(div,recipe);
    box.append(div);
  }
+
+
+function recipeConsumptionRows(recipe,pantry,today){
+  return (recipe.ingredients||[]).map(x=>{
+    const name=String(x.name||'').trim();
+    // Only explicit numeric quantities in supported units; never guess a spoon/cup conversion.
+    const raw=String(x.quantity||'').trim().replace(/^(\d+)\s+(\d+)\/(\d+)(?=\s|$)/,(_,a,b,c)=>String(+a + +b/+c)).replace(/^(\d+)\/(\d+)(?=\s|$)/,(_,a,b)=>String(+a/+b));
+    const qty=consumptionQuantity(raw);
+    const exact=pantry.some(p=>consumptionName(p.name)===consumptionName(name));
+    const valid=qty&&qty.base>0;
+    const available=valid&&exact&&!planConsumption(pantry,[{name,qty:raw}],today).error;
+    return {name,raw,exact,valid,available};
+  });
+}
+function appendRecipeConsumption(div,recipe){
+  const section=document.createElement('div');section.className='soft';section.style.marginTop='12px';
+  const title=document.createElement('h4');title.textContent='🍳 Μαγείρεψα — ενημέρωση αποθήκης';section.append(title);
+  const note=document.createElement('p');note.className='small';note.textContent='Μετά το μαγείρεμα, επιλέξτε μόνο τα υλικά που χρησιμοποιήσατε από την αποθήκη και διορθώστε τις πραγματικές ποσότητες. Δεν αφαιρείται τίποτα ακόμη.';section.append(note);
+  const controls=[];
+  const rows=recipeConsumptionRows(recipe,s.pantry,localDateValue(new Date()));
+  rows.forEach(row=>{
+    const line=document.createElement('div');line.style.marginBottom='10px';
+    const label=document.createElement('label');label.style.display='flex';label.style.alignItems='center';label.style.gap='8px';
+    const check=document.createElement('input');check.type='checkbox';check.style.width='auto';check.checked=row.available;label.append(check,document.createTextNode(row.name+' — '+row.raw));line.append(label);
+    const input=document.createElement('input');input.type='text';input.value=row.valid?row.raw:'';input.placeholder='π.χ. 200 g ή 2 τεμ.';input.setAttribute('aria-label','Πραγματική ποσότητα '+row.name);line.append(input);
+    const hint=document.createElement('div');hint.className='small';hint.textContent=row.available?'Επαρκές απόθεμα':!row.exact?'Δεν βρέθηκε ακριβής αντιστοίχιση στην αποθήκη':!row.valid?'Χρειάζεται πραγματική ποσότητα και μονάδα':'Ανεπαρκές απόθεμα ή διαφορετική μονάδα';line.append(hint);section.append(line);
+    controls.push({check,input,name:row.name});
+  });
+  const status=document.createElement('div');status.className='small';
+  const button=document.createElement('button');button.type='button';button.className='btn primary';button.textContent='Έλεγχος και ενημέρωση αποθήκης';
+  button.onclick=()=>{
+    if(button.disabled)return;
+    const items=controls.filter(x=>x.check.checked).map(x=>({name:x.name,qty:x.input.value.trim()}));
+    const result=planConsumption(s.pantry,items,localDateValue(new Date()));
+    if(result.error){status.textContent=result.error;return;}
+    if(voiceBusy())cancelVoiceConversation();
+    show('pantry');
+    $('consumeText').value=items.map(x=>x.qty+' '+x.name).join(', ');
+    if(prepareConsumptionItems(items)){
+      $('consumeConfirm').scrollIntoView({behavior:'smooth',block:'center'});
+      // Prevent accidental duplicate submission from the same recipe card after confirmation.
+      pendingConsumption.onCommitted=()=>{button.disabled=true;button.textContent='✓ Η κατανάλωση καταγράφηκε';status.textContent='Η αποθήκη ενημερώθηκε.';};
+    }
+  };
+  section.append(button,status);div.append(section);
+}
 
  function counts(){
   let c={
@@ -7331,7 +7378,10 @@ function clearConsumption(){
 function prepareConsumption(text){
   clearConsumption();
   const clean=String(text||'').trim().replace(/^(?:χρησιμοποίησα|χρησιμοποιησα|χρησιμοποιήσαμε|χρησιμοποιησαμε|κατανάλωσα|καταναλωσα|αφαίρεσε|αφαιρεσε|έβαλα|εβαλα)\s+/i,'');
-  const items=parseVoicePantry(clean);
+  return prepareConsumptionItems(parseVoicePantry(clean));
+}
+function prepareConsumptionItems(items){
+  clearConsumption();
   const result=planConsumption(s.pantry,items,localDateValue(new Date()));
   if(result.error){$('consumeStatus').textContent=result.error;return false;}
   pendingConsumption={items,snapshot:JSON.stringify(s.pantry)};
@@ -7346,6 +7396,7 @@ function commitConsumption(){
   const result=planConsumption(s.pantry,pendingConsumption.items,localDateValue(new Date()));
   if(result.error){clearConsumption();$('consumeStatus').textContent=result.error;return false;}
   const previous=s.pantry;
+  const onCommitted=pendingConsumption.onCommitted;
   s.pantry=result.next;
   try{save();}catch(e){s.pantry=previous;$('consumeStatus').textContent='Δεν αποθηκεύτηκαν οι αλλαγές.';return false;}
   clearConsumption();
@@ -7353,6 +7404,7 @@ function commitConsumption(){
   render();
   const message='Η αποθήκη ενημερώθηκε.'+(result.empty.length?' Εξαντλήθηκαν: '+result.empty.join(', ')+'.':'');
   $('consumeStatus').textContent=message;
+  if(onCommitted)onCommitted();
   chefSpeak(message);
   return true;
 }
