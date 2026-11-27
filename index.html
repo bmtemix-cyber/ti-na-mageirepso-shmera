@@ -5413,13 +5413,27 @@ async function loadTodayMealImage(name,id){
  }
 
 
+function recipeStockTracked(pantry,name,today){
+  return pantry.some(p=>consumptionName(p.name)===consumptionName(name)&&(!p.exp||(/^\d{4}-\d{2}-\d{2}$/.test(p.exp)&&p.exp>=today))&&(!consumptionQuantity(p.qty)||consumptionQuantity(p.qty).base>0));
+}
+function recipeConsumptionSelection(pantry,items,today){
+  let working=pantry;
+  const accepted=[],skipped=[];
+  for(const item of items){
+    const result=planConsumption(working,[item],today);
+    if(result.error){skipped.push(item.name);continue;}
+    accepted.push(item);working=result.next;
+  }
+  return {accepted,skipped};
+}
+
 function recipeConsumptionRows(recipe,pantry,today){
   return (recipe.ingredients||[]).map(x=>{
     const name=String(x.name||'').trim();
     // Only explicit numeric quantities in supported units; never guess a spoon/cup conversion.
     const raw=String(x.quantity||'').trim().replace(/^(\d+)\s+(\d+)\/(\d+)(?=\s|$)/,(_,a,b,c)=>String(+a + +b/+c)).replace(/^(\d+)\/(\d+)(?=\s|$)/,(_,a,b)=>String(+a/+b));
     const qty=consumptionQuantity(raw);
-    const exact=pantry.some(p=>consumptionName(p.name)===consumptionName(name));
+    const exact=recipeStockTracked(pantry,name,today);
     const valid=qty&&qty.base>0;
     const available=valid&&exact&&!planConsumption(pantry,[{name,qty:raw}],today).error;
     return {name,raw,exact,valid,available};
@@ -5448,39 +5462,43 @@ function appendRecipeConsumption(div,recipe){
   rows.forEach(row=>{
     const line=document.createElement('div');line.style.marginBottom='10px';
     const label=document.createElement('label');label.style.display='flex';label.style.alignItems='center';label.style.gap='8px';
-    const check=document.createElement('input');check.type='checkbox';check.style.width='auto';check.checked=row.available;label.append(check,document.createTextNode(row.name+' — '+row.raw));line.append(label);
-    const input=document.createElement('input');input.type='text';input.value=row.valid?row.raw:'';input.placeholder='π.χ. 200 g ή 2 τεμ.';input.setAttribute('aria-label','Πραγματική ποσότητα '+row.name);line.append(input);
-    const hint=document.createElement('div');hint.className='small';hint.textContent=row.available?'Επαρκές απόθεμα':!row.exact?'Δεν βρέθηκε ακριβής αντιστοίχιση στην αποθήκη':!row.valid?'Χρειάζεται πραγματική ποσότητα και μονάδα':'Ανεπαρκές απόθεμα ή διαφορετική μονάδα';line.append(hint);section.append(line);
-    controls.push({check,input,name:row.name});
+    const check=document.createElement('input');check.type='checkbox';check.style.width='auto';check.checked=row.available;check.disabled=!row.exact;label.append(check,document.createTextNode(row.name+' — '+row.raw));line.append(label);
+    const input=document.createElement('input');input.type='text';input.value=row.valid?row.raw:'';input.disabled=!row.exact;input.placeholder='π.χ. 200 g ή 2 τεμ.';input.setAttribute('aria-label','Πραγματική ποσότητα '+row.name);line.append(input);
+    const hint=document.createElement('div');hint.className='small';hint.textContent=row.available?'Επαρκές απόθεμα':!row.exact?'Δεν υπάρχει διαθέσιμο απόθεμα — δεν θα αφαιρεθεί':!row.valid?'Χρειάζεται πραγματική ποσότητα και μονάδα':'Ανεπαρκές απόθεμα ή διαφορετική μονάδα';line.append(hint);section.append(line);
+    controls.push({check,input,name:row.name,tracked:row.exact});
   });
   const status=document.createElement('div');status.className='small';
   const statusId='recipeConsumptionStatus'+(++recipeConsumptionSequence);status.id=statusId;
   const button=document.createElement('button');button.type='button';button.className='btn primary';button.textContent='Έλεγχος και ενημέρωση αποθήκης';
   const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='btn secondary';voiceButton.textContent='🎤 Ενημέρωση αποθήκης με φωνή';voiceButton.setAttribute('data-recipe-voice-consumption','1');
-  const selected=()=>controls.filter(x=>x.check.checked).map(x=>({name:x.name,qty:x.input.value.trim()}));
+  const selected=()=>controls.filter(x=>x.tracked&&x.check.checked).map(x=>({name:x.name,qty:x.input.value.trim()}));
+  const selection=()=>recipeConsumptionSelection(s.pantry,selected(),localDateValue(new Date()));
+  const omitted=skipped=>[...new Set([...controls.filter(x=>!x.tracked).map(x=>x.name),...skipped])];
+  const omissionNote=skipped=>{const names=omitted(skipped);return names.length?' Δεν θα αφαιρεθούν: '+names.join(', ')+'.':'';};
   const readItems=items=>items.map(x=>x.qty+' '+x.name).join(', ');
   const markCommitted=()=>{button.disabled=true;voiceButton.disabled=true;button.textContent='✓ Η κατανάλωση καταγράφηκε';status.textContent='Η αποθήκη ενημερώθηκε.';};
   const prepare=()=>{
     if(button.disabled)return false;
-    const items=selected(),result=planConsumption(s.pantry,items,localDateValue(new Date()));
-    if(result.error){status.textContent=result.error;return false;}
+    const {accepted:items,skipped}=selection();
+    if(!items.length){status.textContent='Δεν υπάρχουν διαθέσιμες ποσότητες για αφαίρεση.'+omissionNote(skipped);return false;}
     if(voiceBusy())cancelVoiceConversation();
     show('pantry');
     $('consumeText').value=readItems(items);
     if(!prepareConsumptionItems(items))return false;
     $('consumeConfirm').scrollIntoView({behavior:'smooth',block:'center'});
     pendingConsumption.onCommitted=markCommitted;
+    $('consumePreview').textContent+=omissionNote(skipped);
     return true;
   };
   button.onclick=prepare;
   function askFinal(){
-    const items=selected(),result=planConsumption(s.pantry,items,localDateValue(new Date()));
-    if(result.error){status.textContent=result.error;chefSpeak(result.error+' Μπορείτε να διορθώσετε τις ποσότητες στην οθόνη.');return;}
+    const {accepted:items,skipped}=selection();
+    if(!items.length){status.textContent='Δεν υπάρχουν διαθέσιμες ποσότητες για αφαίρεση.'+omissionNote(skipped);chefSpeak(status.textContent);return;}
     const snapshot=JSON.stringify(s.pantry);
-    voiceSpeakAndListen('Να αφαιρέσω '+readItems(items)+' από την αποθήκη; Πείτε ναι ή όχι.',answer=>{
+    voiceSpeakAndListen('Να αφαιρέσω '+readItems(items)+' από την αποθήκη;'+omissionNote(skipped)+' Πείτε ναι ή όχι.',answer=>{
       const decision=learnAnswerDecision(answer);
       if(decision==='yes'){
-        if(snapshot!==JSON.stringify(s.pantry)||JSON.stringify(items)!==JSON.stringify(selected())){status.textContent='Τα στοιχεία άλλαξαν. Ελέγξτε ξανά τις ποσότητες.';chefSpeak(status.textContent);return;}
+        if(snapshot!==JSON.stringify(s.pantry)||JSON.stringify(items)!==JSON.stringify(selection().accepted)){status.textContent='Τα στοιχεία άλλαξαν. Ελέγξτε ξανά τις ποσότητες.';chefSpeak(status.textContent);return;}
         if(prepare())commitConsumption();
       }else if(decision==='no'){status.textContent='Δεν αφαιρέθηκαν υλικά.';chefSpeak(status.textContent);}
       else voiceLater(askFinal,300);
@@ -5489,6 +5507,7 @@ function appendRecipeConsumption(div,recipe){
   function askQuantity(index){
     if(index>=controls.length){voiceLater(askFinal,300);return;}
     const row=controls[index];
+    if(!row.tracked||!recipeStockTracked(s.pantry,row.name,localDateValue(new Date()))){row.check.checked=false;voiceLater(()=>askQuantity(index+1),100);return;}
     voiceSpeakAndListen('Για '+row.name+', '+(row.check.checked&&row.input.value?'έχω '+row.input.value+'. Πείτε ναι αν είναι σωστό, όχι αν δεν το χρησιμοποιήσατε, ή την πραγματική ποσότητα.':'πείτε την πραγματική ποσότητα ή όχι αν δεν θέλετε να αφαιρεθεί.'),answer=>{
       const decision=learnAnswerDecision(answer),qty=recipeSpokenQuantity(answer,row.name);
       if(qty){row.check.checked=true;row.input.value=qty;}
@@ -5502,7 +5521,8 @@ function appendRecipeConsumption(div,recipe){
     if(voiceBusy()||button.disabled)return;
     beginVoiceConversation();
     const items=selected();
-    voiceSpeakAndListen('Χρησιμοποιήσατε '+(items.length?readItems(items):'κάποια υλικά')+'; Πείτε ναι αν οι ποσότητες είναι σωστές ή όχι για να τις ελέγξουμε μία μία.',answer=>{
+    if(!controls.some(x=>x.tracked)){status.textContent='Δεν υπάρχουν καταχωρισμένα διαθέσιμα υλικά για αφαίρεση.';chefSpeak(status.textContent);return;}
+    voiceSpeakAndListen('Χρησιμοποιήσατε '+(items.length?readItems(items):'κάποια υλικά από την αποθήκη')+';'+omissionNote([])+' Πείτε ναι αν οι ποσότητες είναι σωστές ή όχι για να τις ελέγξουμε μία μία.',answer=>{
       const decision=learnAnswerDecision(answer);
       if(decision==='yes'&&items.length)voiceLater(askFinal,300);
       else if(decision==='no'||decision==='yes')voiceLater(()=>askQuantity(0),300);
